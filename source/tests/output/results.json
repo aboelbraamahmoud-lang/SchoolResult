@@ -1,6 +1,6 @@
 {
-  "version": "6.7.0",
-  "date": "2026-10-01T04:19:42.285Z",
+  "version": "6.7.2",
+  "date": "2026-10-01T21:28:21.219Z",
   "method": "Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.",
   "passed": 59,
   "failed": 0,
@@ -38,7 +38,7 @@
       "status": "pass"
     },
     {
-      "name": "تقرير مقارنة المواد يجمع الصف الدراسي في صفحة واحدة ويقسم الشعب والمعلمين",
+      "name": "تقرير مقارنة المواد يرتب كل مادة ثم الشعب رأسيا مع معلم كل شعبة",
       "status": "pass"
     },
     {

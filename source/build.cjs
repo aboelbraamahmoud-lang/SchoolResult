@@ -63,7 +63,7 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة 
 replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
 replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
 replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
-replace('الإصدار 6.2 الاحترافي','الإصدار 6.7 — التقارير المطورة');
+replace('الإصدار 6.2 الاحترافي','الإصدار 6.7.2 — مقارنة الشعب داخل المواد');
 replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
 // Null-safe workbook exports and precise labels for student-subject records.
 for(const [a,b] of [['children:`ناجح`','children:`نتائج ناجحة`'],['children:`راسب`','children:`نتائج راسبة`'],['children:`المقيمون`','children:`نتائج مقيمة`'],['`حاضر/مقيم`','`نتائج مقيمة`']])code=code.split(a).join(b);
