@@ -1,0 +1,16 @@
+{
+  "product": "مرصد النتائج المدرسية",
+  "edition": "cloud",
+  "version": "6.7.0",
+  "released": "2026-10-01",
+  "updateFiles": [
+    "app.js",
+    "style.css",
+    "version.json",
+    "index.html",
+    "supabase.js"
+  ],
+  "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
+  "project": "school-results",
+  "workspaceSchema": 6
+}

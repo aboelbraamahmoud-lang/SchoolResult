@@ -1,0 +1,63 @@
+مرصد النتائج المدرسية — حزمة المطور 6.7.0
+
+1) نقطة البداية
+- التطبيق النهائي: index.html + app.js + style.css + supabase.js.
+- مصدر التطوير الحالي داخل source/.
+- هذه ليست شجرة React/TypeScript الأصلية؛ source/base/app.js هو bundle أصلي قديم، وتطبّق source/build.cjs تعديلات AST ونصية وخدمات مقروءة من source/src/.
+- لا تعدّل app.js النهائي يدويًا؛ عدّل source ثم أعد البناء.
+
+2) البناء والاختبار
+من داخل source/:
+node --expose-internals build.cjs
+node --expose-internals tests/regression.cjs
+node --expose-internals tests/cloud.cjs
+node --expose-internals tests/structure.cjs
+node release.cjs
+node tests/release.cjs
+
+لإعادة بناء supabase.js عند تغيير نسخة SDK:
+npm ci
+npx --no-install esbuild sdk-entry.js --bundle --minify --format=iife --global-name=SchoolSupabase --outfile=../supabase.js
+
+3) قاعدة البيانات
+- المشروع المرتبط: school-results.
+- مرجع إنشاء قاعدة جديدة: source/db/schema.sql.
+- migrations الخاصة بـ 6.6 و6.6.1 موجودة في source/db/migrations/.
+- تم تطبيق migrations 6.6 و6.6.1 على المشروع الحي بتاريخ 2026-10-01.
+- RLS إلزامي. دوال القراءة العامة SECURITY INVOKER. الكتابات الحساسة تستخدم private SECURITY DEFINER helpers غير معروضة للـData API، وكل helper يتحقق من auth.uid()؛ لا تُنشئ SECURITY DEFINER داخل public كحل سريع للصلاحيات.
+- لا تضف service_role أو أي secret إلى الواجهة.
+
+4) الحفظ
+- السحابة هي المصدر authoritative؛ لا توجد نتائج في localStorage/IndexedDB.
+- school_save يستخدم revision + write_id لمنع الكتابة فوق نسخة أحدث ودعم idempotent retry.
+- الحفظ التلقائي مجمّع 750ms لتقليل الطلبات المتتابعة.
+- Workspace ما زال JSONB واحدًا؛ هذا مقبول للحجم الحالي لكنه دين معماري عند أحجام ضخمة أو تعدد مستخدمين متزامنين.
+
+5) الأرشيف 6.6
+- school_archive_list يعيد metadata فقط.
+- school_archive_get(id) يعيد جسم نسخة واحدة عند الحاجة.
+- النسخة الشاملة تستدعي الأجسام عند طلب المستخدم فقط.
+- لا تعِد استخدام /api/workspace/snapshots؛ هذا المسار القديم أزيل من bundle النهائي.
+
+6) الأمن
+- authenticated يملك SELECT فقط على الجدولين. لا توجد كتابة مباشرة؛ school_save / school_snapshot / school_archive_delete هي مسارات الكتابة المعتمدة.
+- anon لا يملك وصول الجداول ولا تنفيذ RPCs الحساسة.
+- تحذير Supabase Security Advisor المتبقي: Leaked Password Protection Disabled، وهو إعداد Auth في لوحة Supabase وليس تعديل كود.
+
+7) التحديثات
+- update.ps1 يتحقق من SHA256 ويرفض downgrade وفق Semantic Version.
+- update-manifest.json للتحديث الجزئي يحوي ملفات الواجهة الخمسة حفاظًا على توافق updater القديم.
+- release.cjs يعيد توليد manifest وchecksums.
+- source/tests/output مستثنى من checksums لأنه ناتج متغير للاختبارات.
+
+8) اتجاه الإصدار الرئيسي القادم
+الأفضل في 7.x إعادة استخراج الواجهة إلى مشروع React/TypeScript منظم بدل توسيع patching للbundle، ثم فصل البيانات ذات النمو السريع (results/audit/imports) إلى جداول طبيعية إذا أصبح حجم المدارس أو العمل المتزامن كبيرًا.
+
+6.6.1: تم نقل عمليات الكتابة الحساسة إلى private SECURITY DEFINER helpers مع public wrappers، وأضيف school_archive_delete. راجع migration: 6.6.1_harden_write_path.sql.
+
+
+ملاحظة 6.7.0 — تقرير مقارنة المواد:
+- SR63.gradeSubjectPages ينشئ صفحة واحدة لكل grade.
+- SR63.gradeSubjectMatrix يبني مصفوفة الشعب × المواد وملخص المعلمين.
+- SRGradeSubjectsReport هو مكوّن العرض والطباعة.
+- التخطيط landscape مضبوط في source/src/repair.css تحت grade-subjects-landscape.
