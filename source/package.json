@@ -9,6 +9,7 @@
     "test:cloud": "node --expose-internals tests/cloud.cjs",
     "test:structure": "node --expose-internals tests/structure.cjs",
     "release": "node release.cjs",
-    "test:release": "node tests/release.cjs"
+    "test:release": "node tests/release.cjs",
+    "test:reports": "node --expose-internals tests/report-logic-6914.cjs"
   }
 }

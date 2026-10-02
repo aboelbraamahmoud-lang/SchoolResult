@@ -1,6 +1,6 @@
 {
   "method": "Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.",
-  "passed": 56,
+  "passed": 57,
   "failed": 0,
   "results": [
     {
@@ -265,6 +265,10 @@
     },
     {
       "name": "officialMinistryLogo699",
+      "status": "pass"
+    },
+    {
+      "name": "embeddedMinistryLogoNoHeaderCircles6910",
       "status": "pass"
     }
   ]
