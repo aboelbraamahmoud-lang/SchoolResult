@@ -1,6 +1,6 @@
 {
   "method": "Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.",
-  "passed": 57,
+  "passed": 58,
   "failed": 0,
   "results": [
     {
@@ -224,7 +224,7 @@
       "status": "pass"
     },
     {
-      "name": "gradeComparisonCombinedPage",
+      "name": "gradeComparisonSplitMetricPages",
       "status": "pass"
     },
     {
@@ -269,6 +269,10 @@
     },
     {
       "name": "embeddedMinistryLogoNoHeaderCircles6910",
+      "status": "pass"
+    },
+    {
+      "name": "officialComparisonAndDepartmentMatrix6916",
       "status": "pass"
     }
   ]

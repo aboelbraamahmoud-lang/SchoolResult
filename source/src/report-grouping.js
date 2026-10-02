@@ -11,7 +11,7 @@ SR63.reportClassOrder=function(rows,exam){
 SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mode,exam,threshold,settings){
   const allRows=Array.isArray(rows)?rows:[];
   if(mode==='subjects')return SR63.gradeSubjectPages(allRows,exam,selectedEntity);
-  if(mode==='departmentStats')return SR63.departmentStatsPages(allRows,exam,selectedSubject||'الكل');
+  if(mode==='departmentStats')return SR63.departmentStatsPages(allRows,exam,selectedEntity||'الكل');
   const subjectSelected=selectedSubject&&![`الكل`,`كل المواد`].includes(selectedSubject);
   const subjectFilter=subjectSelected?allRows.filter(row=>ij(row.subject||'')===ij(selectedSubject)):allRows;
   const detail=['levels','struggling','comparison'].includes(mode);

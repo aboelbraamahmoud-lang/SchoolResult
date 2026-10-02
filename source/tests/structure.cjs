@@ -8,9 +8,9 @@ for(const mode of ['empty','demo'])for(const page of pages){let index=0;const wo
 // The new archive and report header components are evaluated directly as element trees.
 ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}]};
 for(const name of ['archive','reportHeader','cloudLogin'])try{const workspace=ctx.zj();assert.ok(name==='cloudLogin'?ctx.SR63.CloudApp():name==='archive'?ctx.SR63.Archives({workspace,snapshots:[],status:'اختبار',bytes:0}):ctx.M9({workspace,title:'ملخص النتائج',subject:'كل المواد',assessment:workspace.settings.exams[0].name}));results.push({name,status:'pass'});}catch(error){results.push({name,status:'fail',error:error.stack});}
-try{const workspace=ctx.zj(),page=ctx.SR63.gradeSubjectPages(workspace.rows,workspace.activeExam,'الكل')[0];assert.ok(page);assert.equal('metricType' in page,false);assert.ok(ctx.SRGradeSubjectsReport({page,exam:workspace.activeExam,workspace}));results.push({name:'gradeSubjectsReport',status:'pass'});}catch(error){results.push({name:'gradeSubjectsReport',status:'fail',error:error.stack});}
+try{const workspace=ctx.zj(),page=ctx.SR63.gradeSubjectPages(workspace.rows,workspace.activeExam,'الكل')[0];assert.ok(page);assert.ok(['success','achievement'].includes(page.metricType));assert.ok(ctx.SRGradeSubjectsReport({page,exam:workspace.activeExam,workspace}));results.push({name:'gradeSubjectsReport',status:'pass'});}catch(error){results.push({name:'gradeSubjectsReport',status:'fail',error:error.stack});}
 try{const workspace=ctx.zj(),page=ctx.SR63.departmentStatsPages(workspace.rows,workspace.activeExam,'الكل')[0];assert.ok(page);assert.ok(ctx.SRDepartmentStatsReport({page,exam:workspace.activeExam,workspace}));results.push({name:'departmentStatsReport',status:'pass'});}catch(error){results.push({name:'departmentStatsReport',status:'fail',error:error.stack});}
-try{const workspace=ctx.zj(),pages=ctx.SR63.gradeSubjectPages(workspace.rows,workspace.activeExam,'الكل');assert.ok(pages.length);assert.ok(pages.every(p=>!('metricType' in p)));assert.ok(pages.every(p=>p.subject==='كل المواد'));results.push({name:'gradeComparisonCombinedPage',status:'pass'});}catch(error){results.push({name:'gradeComparisonCombinedPage',status:'fail',error:error.stack});}
+try{const workspace=ctx.zj(),pages=ctx.SR63.gradeSubjectPages(workspace.rows,workspace.activeExam,'الكل');assert.ok(pages.length);assert.ok(pages.every(p=>['success','achievement'].includes(p.metricType)));assert.ok(pages.every(p=>p.subject==='كل المواد'));results.push({name:'gradeComparisonSplitMetricPages',status:'pass'});}catch(error){results.push({name:'gradeComparisonSplitMetricPages',status:'fail',error:error.stack});}
 
 try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.Dashboard({workspace,onNavigate:()=>{}}));assert.ok(ctx.SR63.DashboardTrendChart({items:ctx.XA.map(exam=>({exam,metric:ctx.bj(workspace.rows,exam,workspace.settings)})),settings:workspace.settings}));results.push({name:'dashboard69',status:'pass'});}catch(error){results.push({name:'dashboard69',status:'fail',error:error.stack});}
 try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.MasterData({workspace,setWorkspace:()=>{},onNavigate:()=>{}}));results.push({name:'masterData68',status:'pass'});}catch(error){results.push({name:'masterData68',status:'fail',error:error.stack});}
@@ -61,6 +61,14 @@ try{
  assert.ok(css.includes('.report-school-logo,.report-school-mark,.report-brand-mark')&&css.includes('border-radius:1.4mm!important'));
  results.push({name:'embeddedMinistryLogoNoHeaderCircles6910',status:'pass'});
 }catch(error){results.push({name:'embeddedMinistryLogoNoHeaderCircles6910',status:'fail',error:error.stack});}
+
+try{
+ const reports=fs.readFileSync(path.join(__dirname,'../src/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8');
+ assert.ok(reports.includes('بيان ${metricLabel}')&&reports.includes('grade-subject-matrix-official'),'official two-metric comparison renderer missing');
+ assert.ok(reports.includes('إحصائية نتائج القسم — النجاح والتحصيل')&&reports.includes('department-subject-matrix'),'department combined matrix missing');
+ assert.ok(css.includes('6.9.16 — official comparison matrix')&&css.includes('.report-context p{display:flex!important'),'6.9.16 report CSS missing');
+ results.push({name:'officialComparisonAndDepartmentMatrix6916',status:'pass'});
+}catch(error){results.push({name:'officialComparisonAndDepartmentMatrix6916',status:'fail',error:error.stack});}
 
 const report={method:'Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results};
 fs.writeFileSync('tests/output/structure-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
