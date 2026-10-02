@@ -86,3 +86,5 @@ jobs:
           VERSION="$(node -p "require('./version.json').version")"
           git commit -m "Build SchoolResult v${VERSION}"
           git push origin HEAD:main
+
+# Activation marker: workflow already exists on main.
