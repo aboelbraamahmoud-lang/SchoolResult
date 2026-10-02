@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.9.12",
+  "version": "6.9.13",
   "released": "2026-10-02",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إعادة بناء منطق فلترة جميع التقارير: عزل المعلم/الشعبة/الصف/المادة قبل الحساب والعرض، ومنع تسرب بيانات نطاق آخر."
+  "notes": "تصحيح منطق التقارير: ربط المعلم بمادته تلقائيًا، ترتيب تقارير المعلمين حسب المادة، فلترة معلمي المادة فقط، وفصل المعلمين داخل إحصائية القسم."
 }
