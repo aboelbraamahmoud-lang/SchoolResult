@@ -1,8 +1,8 @@
 {
-  "version": "6.8.0",
-  "date": "2026-10-01T22:02:47.835Z",
+  "version": "6.9.0",
+  "date": "2026-10-02T08:59:42.032Z",
   "method": "Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.",
-  "passed": 64,
+  "passed": 66,
   "failed": 0,
   "results": [
     {
@@ -39,6 +39,14 @@
     },
     {
       "name": "ترحيل الهيكل الأكاديمي من بيانات 6.7 تلقائيًا",
+      "status": "pass"
+    },
+    {
+      "name": "منسق المادة ينتقل إلى سجل المادة ويظهر من مرجع واحد",
+      "status": "pass"
+    },
+    {
+      "name": "خريطة منسقي المواد تعكس قاعدة المواد السحابية",
       "status": "pass"
     },
     {

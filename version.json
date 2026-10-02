@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.8.0",
+  "version": "6.9.0",
   "released": "2026-10-02",
   "updateFiles": [
     "app.js",
@@ -13,5 +13,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "هيكل أكاديمي مترابط، ربط تلقائي للنتائج بالمعلمين، ملف أكاديمي للطالب، ولوحة قيادة تنفيذية مطورة."
+  "notes": "لوحة قيادة تحليلية مطورة برسوم بيانية في الأعلى، قائمة جانبية احترافية جديدة، ومنسق مادة محفوظ سحابيًا ومستخدم تلقائيًا في التقارير."
 }

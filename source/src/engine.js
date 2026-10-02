@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.8.0', release:'2026-10-02', formDirty:false};
+var SR63 = {version:'6.9.0', release:'2026-10-02', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.fail = message => { throw new Error(message); };
@@ -98,7 +98,7 @@ SR63.validate = function(raw) {
   }
   for(const grade of raw.grades??[])must(grade&&typeof grade.id==='string'&&typeof grade.name==='string'&&grade.name.trim(),'أحد الصفوف الدراسية غير صالح.');
   for(const cls of raw.classes??[])must(cls&&typeof cls.id==='string'&&typeof cls.className==='string'&&typeof cls.gradeId==='string','إحدى الشعب غير صالحة.');
-  for(const subject of raw.subjects??[])must(subject&&typeof subject.id==='string'&&typeof subject.name==='string'&&subject.name.trim()&&Array.isArray(subject.gradeIds??[]),'إحدى المواد غير صالحة.');
+  for(const subject of raw.subjects??[])must(subject&&typeof subject.id==='string'&&typeof subject.name==='string'&&subject.name.trim()&&Array.isArray(subject.gradeIds??[])&&(subject.coordinatorName===undefined||typeof subject.coordinatorName==='string')&&(subject.coordinatorId===undefined||typeof subject.coordinatorId==='string'),'إحدى المواد غير صالحة.');
   const teacherIds=new Set();for(const profile of raw.teachers??[]){must(profile&&typeof profile.id==='string'&&!teacherIds.has(profile.id)&&typeof profile.teacher==='string'&&typeof (profile.subject??'')==='string'&&typeof (profile.department??'')==='string'&&Array.isArray(profile.classes??[])&&(profile.subjects===undefined||Array.isArray(profile.subjects)),'أحد سجلات المعلمين غير صالح.');teacherIds.add(profile.id);}
   for(const assignment of raw.teacherAssignments??[])must(assignment&&typeof assignment.id==='string'&&typeof assignment.profileId==='string'&&teacherIds.has(assignment.profileId)&&['teacher','subject','className'].every(k=>typeof assignment[k]==='string'),'إسناد معلم يشير إلى سجل غير موجود.');
   for(const aliases of [settings.importAliases??QA,settings.statusAliases??$A]){must(aliases&&typeof aliases==='object'&&!Array.isArray(aliases),'مسميات الاستيراد غير صالحة.');for(const list of Object.values(aliases))must(Array.isArray(list)&&list.every(x=>typeof x==='string'),'مسميات الاستيراد أو الحالات غير صالحة.');}

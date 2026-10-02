@@ -89,7 +89,7 @@ function SRGradeSubjectsReport({page:e,exam:t,workspace:n}){
   const visualRows=data.subjectGroups.reduce((sum,group)=>sum+group.classGroups.reduce((n,c)=>n+Math.max(1,c.teachers.length),0)+2,0),dense=visualRows>28,ultra=visualRows>40;
   const body=[];
   for(const group of data.subjectGroups){
-    body.push((0,q.jsx)(`tr`,{className:`grade-subject-banner`,children:(0,q.jsxs)(`td`,{colSpan:4,children:[(0,q.jsx)(`strong`,{children:group.subject}),(0,q.jsx)(`span`,{children:` · جميع شعب ${grade}`})]})},`subject-${group.subject}`));
+    body.push((0,q.jsx)(`tr`,{className:`grade-subject-banner`,children:(0,q.jsxs)(`td`,{colSpan:4,children:[(0,q.jsx)(`strong`,{children:group.subject}),(0,q.jsx)(`span`,{children:` · جميع شعب ${grade}${SR63.subjectCoordinator(n,group.subject)?` · منسق المادة: ${SR63.subjectCoordinator(n,group.subject)}`:``}`})]})},`subject-${group.subject}`));
     for(const cls of group.classGroups){
       cls.teachers.forEach((item,index)=>body.push((0,q.jsxs)(`tr`,{className:`grade-class-teacher-row ${index===0?`class-start`:``}`,children:[
         ...(index===0?[(0,q.jsx)(`td`,{className:`grade-class-name`,rowSpan:cls.teachers.length,children:cls.className})]:[]),
