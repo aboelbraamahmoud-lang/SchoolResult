@@ -1,8 +1,8 @@
 {
-  "version": "6.7.2",
-  "date": "2026-10-01T21:28:21.219Z",
+  "version": "6.8.0",
+  "date": "2026-10-01T22:02:47.835Z",
   "method": "Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.",
-  "passed": 59,
+  "passed": 64,
   "failed": 0,
   "results": [
     {
@@ -35,6 +35,26 @@
     },
     {
       "name": "تمييز الطلاب الفريدين عن نتائج المواد",
+      "status": "pass"
+    },
+    {
+      "name": "ترحيل الهيكل الأكاديمي من بيانات 6.7 تلقائيًا",
+      "status": "pass"
+    },
+    {
+      "name": "ملف النتيجة بلا اسم معلم يرتبط من المادة والشعبة",
+      "status": "pass"
+    },
+    {
+      "name": "تغيير خريطة التكليف يستبدل المعلم دون تكرار الخلية",
+      "status": "pass"
+    },
+    {
+      "name": "الملف الأكاديمي يجمع مواد الطالب واختباراته",
+      "status": "pass"
+    },
+    {
+      "name": "لوحة القيادة تطبق فلاتر الصف والمادة وتبني الخريطة الحرارية",
       "status": "pass"
     },
     {

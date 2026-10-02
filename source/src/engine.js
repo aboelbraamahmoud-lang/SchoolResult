@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.7.2', release:'2026-10-01', formDirty:false};
+var SR63 = {version:'6.8.0', release:'2026-10-02', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.fail = message => { throw new Error(message); };
@@ -84,7 +84,7 @@ SR63.validate = function(raw) {
   must(Array.isArray(settings.bands)&&settings.bands.length>0&&settings.bands.every(b=>b&&typeof b.id==='string'&&typeof b.label==='string'&&Number.isFinite(b.min)&&Number.isFinite(b.max)&&['above','average','below'].includes(b.macro)),'مستويات الأداء غير صالحة.');
   must(new Set(settings.bands.map(b=>b.id)).size===settings.bands.length&&!Ej(settings.bands).length,'حدود مستويات الأداء مكررة أو متداخلة أو بها فجوات.');
   for(const field of ['schoolName','academicYear','principalName','academicViceName','coordinatorName','schoolVision'])must(typeof settings[field]==='string',`الحقل ${field} غير صالح.`);
-  for(const [field,limit] of [['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
+  for(const [field,limit] of [['grades',100],['classes',1000],['subjects',1000],['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
   if(settings.reportDesign!==undefined){const design=settings.reportDesign;must(design&&typeof design==='object'&&!Array.isArray(design),'تصميم التقرير غير صالح.');for(const [key,value] of Object.entries(ZA)){if(design[key]===undefined)continue;must(typeof design[key]===typeof value,`إعداد تصميم غير صالح: ${key}`);if(typeof value==='object')must(design[key]&&!Array.isArray(design[key])&&Object.values(design[key]).every(item=>typeof item==='string'),'مسميات التقرير غير صالحة.');}}
   const ids=new Set(),keys=new Set();
   for(const [index,row] of raw.rows.entries()){
@@ -96,7 +96,10 @@ SR63.validate = function(raw) {
       must(status==='present'?Number.isFinite(score)&&score!==null&&score>=0&&score<=total:score===null,`عدم اتساق الحالة والدرجة في السجل ${index+1} — ${tj(settings,exam).name}.`);
     }
   }
-  const teacherIds=new Set();for(const profile of raw.teachers??[]){must(profile&&typeof profile.id==='string'&&!teacherIds.has(profile.id)&&['teacher','subject','department'].every(k=>typeof profile[k]==='string')&&Array.isArray(profile.classes)&&profile.classes.every(c=>typeof c==='string'),'أحد سجلات المعلمين غير صالح.');teacherIds.add(profile.id);}
+  for(const grade of raw.grades??[])must(grade&&typeof grade.id==='string'&&typeof grade.name==='string'&&grade.name.trim(),'أحد الصفوف الدراسية غير صالح.');
+  for(const cls of raw.classes??[])must(cls&&typeof cls.id==='string'&&typeof cls.className==='string'&&typeof cls.gradeId==='string','إحدى الشعب غير صالحة.');
+  for(const subject of raw.subjects??[])must(subject&&typeof subject.id==='string'&&typeof subject.name==='string'&&subject.name.trim()&&Array.isArray(subject.gradeIds??[]),'إحدى المواد غير صالحة.');
+  const teacherIds=new Set();for(const profile of raw.teachers??[]){must(profile&&typeof profile.id==='string'&&!teacherIds.has(profile.id)&&typeof profile.teacher==='string'&&typeof (profile.subject??'')==='string'&&typeof (profile.department??'')==='string'&&Array.isArray(profile.classes??[])&&(profile.subjects===undefined||Array.isArray(profile.subjects)),'أحد سجلات المعلمين غير صالح.');teacherIds.add(profile.id);}
   for(const assignment of raw.teacherAssignments??[])must(assignment&&typeof assignment.id==='string'&&typeof assignment.profileId==='string'&&teacherIds.has(assignment.profileId)&&['teacher','subject','className'].every(k=>typeof assignment[k]==='string'),'إسناد معلم يشير إلى سجل غير موجود.');
   for(const aliases of [settings.importAliases??QA,settings.statusAliases??$A]){must(aliases&&typeof aliases==='object'&&!Array.isArray(aliases),'مسميات الاستيراد غير صالحة.');for(const list of Object.values(aliases))must(Array.isArray(list)&&list.every(x=>typeof x==='string'),'مسميات الاستيراد أو الحالات غير صالحة.');}
   for(const item of raw.imports??[])must(item&&typeof item.id==='string'&&typeof item.name==='string'&&typeof item.at==='string'&&['results','teachers'].includes(item.kind)&&(item.changes===undefined||Array.isArray(item.changes)&&item.changes.every(change=>change&&typeof change.rowId==='string'&&(!change.exam||XA.includes(change.exam)))),'سجل دفعة استيراد غير صالح.');
@@ -108,7 +111,8 @@ SR63.validate = function(raw) {
 // External backups still pass through the strict validator without this migration.
 SR63.migrateLocal=function(raw){
   const profiles=raw?.teachers??[],assignments=raw?.teacherAssignments??[];if(!Array.isArray(profiles)||!Array.isArray(assignments))return {workspace:raw,repaired:0};
-  const ids=new Set(profiles.map(profile=>profile?.id)),byName=new Map();for(const profile of profiles){if(!profile||typeof profile.teacher!=='string'||typeof profile.subject!=='string')continue;const key=dj(profile.teacher,profile.subject);if(!byName.has(key))byName.set(key,[]);byName.get(key).push(profile);}
-  let repaired=0;const next=assignments.map(assignment=>{if(!assignment||ids.has(assignment.profileId)||typeof assignment.teacher!=='string'||typeof assignment.subject!=='string')return assignment;const matches=byName.get(dj(assignment.teacher,assignment.subject))??[];if(matches.length!==1)return assignment;repaired++;return {...assignment,profileId:matches[0].id};});
-  return {workspace:repaired?{...raw,teacherAssignments:next}:raw,repaired};
+  const ids=new Set(profiles.map(profile=>profile?.id)),byName=new Map();for(const profile of profiles){if(!profile||typeof profile.teacher!=='string')continue;const keys=new Set([profile.subject,...(profile.subjects??[])]);for(const subject of keys){if(typeof subject!=='string'||!subject.trim())continue;const key=dj(profile.teacher,subject);if(!byName.has(key))byName.set(key,[]);byName.get(key).push(profile);}}
+  let repaired=0;const next=assignments.map(assignment=>{if(!assignment||ids.has(assignment.profileId)||typeof assignment.teacher!=='string'||typeof assignment.subject!=='string')return assignment;const matches=[...new Map((byName.get(dj(assignment.teacher,assignment.subject))??[]).map(p=>[p.id,p])).values()];if(matches.length!==1)return assignment;repaired++;return {...assignment,profileId:matches[0].id};});
+  const workspace=SR63.withCatalog({...raw,teacherAssignments:next});
+  return {workspace,repaired};
 };

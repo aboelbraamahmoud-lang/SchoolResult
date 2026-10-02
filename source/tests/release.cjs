@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=requ
 const root=path.resolve(__dirname,'../..');
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 const version=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
-assert.equal(version.version,'6.7.2');
+assert.equal(version.version,'6.8.0');
 const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
 assert.ok(app.includes("school_archive_get"),'archive on-demand RPC missing');
 assert.ok(app.includes("school_archive_delete"),'archive delete RPC missing');

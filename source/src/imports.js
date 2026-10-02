@@ -59,7 +59,7 @@ SR63.mergeTeachers=function(workspace,preview,policy){
   const merged=policy==='replace'?assignments:[...workspace.teacherAssignments.filter(a=>!replacedKeys.has(dj(a.subject,a.className))&&profileIds.has(a.profileId)),...assignments];
   const finalProfiles=profiles.map(profile=>({...profile,classes:[...new Set(merged.filter(a=>a.profileId===profile.id).map(a=>lj(a.className)))]}));
   const result={...workspace,teachers:finalProfiles,teacherAssignments:merged,imports:[{id:crypto.randomUUID(),name:preview.fileName,at:new Date().toISOString(),rows:assignments.length,warnings:preview.issues.filter(i=>i.severity==='warning').length,kind:'teachers'},...workspace.imports]};
-  return jj(result,'استيراد المعلمين',`${preview.fileName} — ${policy}؛ حُفظت معرفات المعلمين ونتائجهم التاريخية`);
+  return jj(SR63.withCatalog(result),'استيراد المعلمين',`${preview.fileName} — ${policy}؛ حُفظت معرفات المعلمين ونتائجهم التاريخية`);
 };
 SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTotal,policy){
   const batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),rows=new Map(workspace.rows.map(row=>[_j(row),row])),changes=[];let skipped=0,created=0,updated=0;
@@ -84,5 +84,5 @@ SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTo
   const definitions=new Map(files.flatMap(file=>file.sheets.filter(s=>s.selected&&s.wide&&s.examDefinition).map(s=>[s.exam,s.examDefinition])));
   const wide=definitions.size>0,exams=workspace.settings.exams.map(def=>definitions.has(def.key)?{...def,...definitions.get(def.key)}:!wide&&def.key===exam?{...def,total:defaultTotal}:def);
   const imported={id:batchId,name:[...new Set(files.map(f=>f.fileName))].join('، '),at:new Date().toISOString(),rows:changes.length,warnings:files.flatMap(f=>[...f.issues,...f.sheets.flatMap(s=>s.issues)]).filter(i=>i.severity==='warning').length,kind:'results',exam:usedExams.size>1?'multi':[...usedExams][0]??exam,changes,skipped,updated,created};
-  return jj({...workspace,rows:[...rows.values()],activeExam:usedExams.size===1?[...usedExams][0]:workspace.activeExam,settings:{...workspace.settings,exams},teacherAssignments:assignments,teachers:workspace.teachers.map(p=>({...p,classes:[...new Set(assignments.filter(a=>a.profileId===p.id).map(a=>a.className))]})),imports:[imported,...workspace.imports]},'استيراد النتائج',`${imported.name} — ${changes.length} نتيجة، ${usedExams.size} اختبار`);
+  return jj(SR63.withCatalog({...workspace,rows:[...rows.values()],activeExam:usedExams.size===1?[...usedExams][0]:workspace.activeExam,settings:{...workspace.settings,exams},teacherAssignments:assignments,teachers:workspace.teachers.map(p=>({...p,classes:[...new Set(assignments.filter(a=>a.profileId===p.id).map(a=>a.className))]})),imports:[imported,...workspace.imports]}),'استيراد النتائج',`${imported.name} — ${changes.length} نتيجة، ${usedExams.size} اختبار`);
 };

@@ -31,8 +31,6 @@ function replace(oldText,newText,expected=1){
 const importOld=fs.readFileSync('base/ode.js','utf8').replace('function ode(','function srLegacyImport(').replace('hv(e,{type:`array`})','e');
 const qualityOld=fs.readFileSync('base/zN.js','utf8').replace('function zN(','function srLegacyQualityRows(');
 // State metadata and compatibility with older scores-only backups.
-replace('return{version:6,settings:{...ej,...n','return{version:6,__storage:t?.__storage??null,settings:{...ej,...n');
-replace('e.statuses?.[t]??`unentered`','e.statuses?.[t]??(typeof e.scores?.[t]===`number`?`present`:`unentered`)');
 // Imported virtual sheets carry their own exam and, where present, per-row totals.
 replace('P=(0,v.useCallback)(e=>g[A9(e.sourceFile,e.sourceSheet)]??m,[g,m])','P=(0,v.useCallback)(e=>e.totalOverride??g[A9(e.sourceFile,e.sourceSheet)]??m,[g,m])');
 replace('let r=k9(n);e.has(r)?t.add(r):e.add(r)','let r=k9(n)+`|`+(n.exam??f);e.has(r)?t.add(r):e.add(r)');
@@ -63,7 +61,7 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة 
 replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
 replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
 replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
-replace('الإصدار 6.2 الاحترافي','الإصدار 6.7.2 — مقارنة الشعب داخل المواد');
+replace('الإصدار 6.2 الاحترافي','الإصدار 6.8.0 — الهيكل الأكاديمي ولوحة القيادة');
 replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
 // Null-safe workbook exports and precise labels for student-subject records.
 for(const [a,b] of [['children:`ناجح`','children:`نتائج ناجحة`'],['children:`راسب`','children:`نتائج راسبة`'],['children:`المقيمون`','children:`نتائج مقيمة`'],['`حاضر/مقيم`','`نتائج مقيمة`']])code=code.split(a).join(b);
@@ -101,12 +99,19 @@ replace('()=>document.fullscreenElement?document.exitFullscreen():document.docum
 replace('a(structuredClone(e.settings)),s(!1)','a(structuredClone(e.settings)),SR63.formDirty=false,s(!1)');
 replace('t.paired<10','t.paired<e.settings.minSampleSize');
 replace('أقل من 10 سجلات','أقل من ${e.settings.minSampleSize} سجلات');
+
+// 6.8 academic master data, student profile and executive dashboard.
+replace('{id:`teacherData`,label:`قاعدة المعلمين`,icon:Cy,group:`الرئيسية`},{id:`data`,label:`البيانات الأساسية`,icon:gy,group:`الرئيسية`}', '{id:`masterData`,label:`الهيكل الأكاديمي`,icon:Cy,group:`الرئيسية`},{id:`studentProfile`,label:`الملف الأكاديمي للطالب`,icon:gy,group:`الرئيسية`},{id:`data`,label:`البيانات الأساسية`,icon:gy,group:`الرئيسية`}');
+replace('o===`dashboard`?Le():o===`import`?Re():o===`teacherData`?ze():o===`data`?Be():', 'o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`teacherData`?ze():o===`data`?Be():');
+replace('الربط الدقيق يعتمد على المادة + الشعبة. تستطيع حسم أي حالة ناقصة باختيار المعلم الصحيح؛ وسيُحفظ هذا الإسناد للمرة التالية.','الربط التلقائي يعتمد على المادة + الشعبة من الهيكل الأكاديمي. لا يلزم وجود اسم المعلم في ملف النتيجة؛ إذا غاب التكليف أو كان متعارضًا يتوقف الاعتماد حتى تصحيحه.');
+replace('استورد قاعدة المعلمين واعتمدها أولًا حتى تظهر اختيارات الربط.','أكمل الهيكل الأكاديمي وخريطة التكليفات أولًا؛ ملف النتيجة لا يحتاج اسم المعلم.');
+
 // Cloud edition: replace remaining local-only labels and wrap the app with account login.
 code=code.split('تحميل أحدث نسخة محلية').join('تحميل أحدث نسخة سحابية').split('تم تحميل أحدث نسخة محلية.').join('تم تحميل أحدث نسخة سحابية.').split('الحفظ المحلي').join('الحفظ السحابي');
 replace('children:(0,q.jsx)(Nde,{})','children:(0,q.jsx)(SR63.CloudApp,{})');
 replace('SR63.currentWorkspace=e},[e])','SR63.currentWorkspace=e},[e]);(0,v.useEffect)(()=>{SR63.settingsDirty=i},[i])');
 replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)(()=>structuredClone(zj().settings))','function Nde(){let[e,t]=(0,v.useState)(()=>Aj()),[n,r]=(0,v.useState)(()=>structuredClone(Aj().settings))');
-const services=['engine.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
+const services=['engine.js','catalog.js','master-ui.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync('../app.js',code);

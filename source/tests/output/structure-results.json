@@ -1,6 +1,6 @@
 {
   "method": "Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.",
-  "passed": 40,
+  "passed": 47,
   "failed": 0,
   "results": [
     {
@@ -11,6 +11,16 @@
     {
       "mode": "empty",
       "page": "import",
+      "status": "pass"
+    },
+    {
+      "mode": "empty",
+      "page": "masterData",
+      "status": "pass"
+    },
+    {
+      "mode": "empty",
+      "page": "studentProfile",
       "status": "pass"
     },
     {
@@ -101,6 +111,16 @@
     {
       "mode": "demo",
       "page": "import",
+      "status": "pass"
+    },
+    {
+      "mode": "demo",
+      "page": "masterData",
+      "status": "pass"
+    },
+    {
+      "mode": "demo",
+      "page": "studentProfile",
       "status": "pass"
     },
     {
@@ -197,6 +217,18 @@
     },
     {
       "name": "gradeSubjectsReport",
+      "status": "pass"
+    },
+    {
+      "name": "dashboard68",
+      "status": "pass"
+    },
+    {
+      "name": "masterData68",
+      "status": "pass"
+    },
+    {
+      "name": "studentProfile68",
       "status": "pass"
     }
   ]
