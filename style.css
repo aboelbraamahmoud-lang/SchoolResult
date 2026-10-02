@@ -452,3 +452,13 @@
 .report-school-logo,.report-school-mark{border-radius:1.3mm!important}
 .grade-subjects-landscape .report-ministry-emblem-official{width:39mm!important;max-width:39mm!important;height:8.3mm!important;max-height:8.3mm!important}
 @media print{.school-report-page:after,.report-head:before,.report-head:after,.report-head-compact:before,.report-head-compact:after{content:none!important;display:none!important}}
+
+
+/* 6.9.11 — Ministry emblem placement and print-header stability. */
+.report-ministry-lockup-official{min-height:10.5mm!important;display:flex!important;align-items:center!important;justify-content:flex-start!important}
+.report-ministry-emblem-official{display:block!important;width:49mm!important;max-width:49mm!important;height:10.3mm!important;max-height:10.3mm!important;object-fit:contain!important;object-position:right center!important}
+@media print{
+  .report-head-compact{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;align-items:center!important}
+  .report-ministry-lockup-official{grid-column:auto!important;min-height:10.5mm!important}
+  .report-school-lockup{grid-column:auto!important}
+}

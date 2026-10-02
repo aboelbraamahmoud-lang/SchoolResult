@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.9.10",
+  "version": "6.9.11",
   "released": "2026-10-02",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح نهائي لرأس التقارير: تضمين شعار الوزارة داخل التقرير نفسه وإزالة الدوائر الزخرفية نهائيًا."
+  "notes": "إصلاح موضع شعار الوزارة: تضمين الشعار فعليًا داخل ملف التشغيل وتثبيت تخطيط رأس التقرير في المعاينة والطباعة."
 }

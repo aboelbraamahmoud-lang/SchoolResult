@@ -61,7 +61,7 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة 
 replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
 replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
 replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
-replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.10 — إصلاح شعار الوزارة ورأس التقارير');
+replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.11 — تثبيت شعار الوزارة في رأس التقارير');
 replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
 // Null-safe workbook exports and precise labels for student-subject records.
 for(const [a,b] of [['children:`ناجح`','children:`نتائج ناجحة`'],['children:`راسب`','children:`نتائج راسبة`'],['children:`المقيمون`','children:`نتائج مقيمة`'],['`حاضر/مقيم`','`نتائج مقيمة`']])code=code.split(a).join(b);
@@ -122,8 +122,8 @@ replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)((
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
 code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
 const ministryEmblem='data:image/png;base64,'+fs.readFileSync('../moehe.png').toString('base64');
-const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n').replace('__MOEHE_EMBLEM_DATA__',ministryEmblem);
-code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
+const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
+code=services+'\nSR63.moeheEmblemData='+JSON.stringify(ministryEmblem)+';\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync('../app.js',code);
 fs.writeFileSync('../style.css',fs.readFileSync('base/style.css','utf8')+'\n'+fs.readFileSync('src/repair.css','utf8'));
