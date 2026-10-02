@@ -26,4 +26,15 @@ const sample=workspace.rows.filter(r=>ctx.mj(r,exam)===teacher).slice(0,3).map((
 const mixed=[...workspace.rows,...sample];
 pages=ctx.SR63.buildReportPages(mixed,'teacher',teacher,'الكل','summary',exam,pass,workspace.settings);assert.ok(pages.some(p=>p.subject==='مادة إضافية'));oneSubject(pages);
 const app=require('fs').readFileSync('../app.js','utf8');assert.ok(app.includes('SR63.buildReportPages(e.rows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');
+
+// 6.9.17 runtime route and official report contracts.
+const runtime=require('fs').readFileSync('../app.js','utf8');
+assert.ok(runtime.includes('n===`subjects`&&(0,q.jsx)(SRGradeSubjectsReport'),'official comparison renderer not wired');checks++;
+assert.ok(runtime.includes('n===`departmentStats`&&(0,q.jsx)(SRDepartmentStatsReport'),'department renderer not wired');checks++;
+assert.ok(!runtime.includes('n===`subjects`&&(0,q.jsx)(bde'),'legacy comparison renderer still wired');checks++;
+const subjectPages6917=ctx.SR63.gradeSubjectPages(workspace.rows,exam,'الكل');
+assert.ok(subjectPages6917.some(p=>p.metricType==='success')&&subjectPages6917.some(p=>p.metricType==='achievement'));checks++;
+assert.ok(subjectPages6917.every(p=>p.subjectChunk.length<=10));checks++;
+const deptPages6917=ctx.SR63.departmentStatsPages(workspace.rows,exam,'الكل');
+assert.ok(deptPages6917.length&&deptPages6917.every(p=>p.subjectChunk.length<=3));checks++;
 console.log(JSON.stringify({passed:checks+10,failed:0,teacher,subject,modes}));

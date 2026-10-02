@@ -62,15 +62,16 @@ SR63.gradeOrder=function(value){
 SR63.displayClass=value=>String(value??'').replace(/\s*\/\s*/g,' - ').replace(/\s+/g,' ').trim();
 SR63.metricTone=function(value){if(value===null||value===undefined||!Number.isFinite(Number(value)))return 'na';const n=Number(value);return n<21?'very-low':n<50?'low':n<71?'mid':n<91?'good':'excellent';};
 SR63.clampPercent=value=>value===null||value===undefined||!Number.isFinite(Number(value))?0:Math.max(0,Math.min(100,Number(value)));
+SR63.reportWestern=value=>String(value??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g,'.').replace(/٬/g,',');
 SR63.renderReportValue=function(value,key=''){
   const raw=value??'',text=String(raw).trim(),keyText=String(key),numeric=typeof raw==='number'?raw:Number(text.replace(/[%،,\s]/g,'')),isDelta=/delta|valueAdded|القيمة المضافة|القيمة المنقوصة|الفارق/i.test(keyText),isPercent=/percent|success|achievement|ratio|نسبة|تحصيل/i.test(keyText)||/%$/.test(text);
   if(isDelta&&Number.isFinite(numeric)){
     const n=Number(numeric),tone=n>0?'positive':n<0?'negative':'neutral',arrow=n>0?'↑':n<0?'↓':'•',sign=n>0?'+':'';
-    return (0,q.jsxs)(`span`,{className:`report-delta-chip delta-${tone}`,title:n>0?'قيمة مضافة':n<0?'قيمة منقوصة':'لا تغير',children:[(0,q.jsx)(`i`,{children:arrow}),(0,q.jsx)(`b`,{children:`${sign}${n.toFixed(1)}`})]});
+    return (0,q.jsxs)(`span`,{className:`report-delta-chip delta-${tone}`,title:n>0?'قيمة مضافة':n<0?'قيمة منقوصة':'لا تغير',children:[(0,q.jsx)(`i`,{children:arrow}),(0,q.jsx)(`b`,{children:SR63.reportWestern(`${sign}${n.toFixed(1)}`)})]});
   }
   if(isPercent&&Number.isFinite(numeric)){
     let pct=/%$/.test(text)?numeric:(numeric>=0&&numeric<=1?numeric*100:numeric);pct=SR63.clampPercent(pct);const tone=SR63.metricTone(pct);
-    return (0,q.jsxs)(`div`,{className:`report-meter report-cell-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:/%$/.test(text)?text:wj(pct)})]});
+    return (0,q.jsxs)(`div`,{className:`report-meter report-cell-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:SR63.reportWestern(/%$/.test(text)?text:wj(pct))})]});
   }
   return raw;
 };
@@ -78,23 +79,29 @@ SR63.macroLabel=macro=>macro==='above'?'فوق المتوسط':macro==='average'
 SR63.macroTone=macro=>macro==='above'?'above':macro==='average'?'average':macro==='below'?'below':'na';
 SR63.gradeSubjectPages=function(rows,exam,selected='الكل'){
   const grades=[...new Set(rows.map(row=>gj(row,exam)).filter(Boolean))].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||String(a).localeCompare(String(b),'ar',{numeric:true}));
-  const target=selected==='الكل'?grades:grades.filter(value=>value===selected);
+  const target=selected==='الكل'?grades:grades.filter(value=>ij(value)===ij(selected));
   const pages=[];
   for(const grade of target){
-    const subset=rows.filter(row=>gj(row,exam)===grade),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
-    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/9)},(_,i)=>subjects.slice(i*9,(i+1)*9)):[[]];
-    for(const metricType of ['success','achievement'])chunks.forEach((subjectChunk,index)=>pages.push({key:`subjects-${grade}-${metricType}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,metricType,rowOffset:0,part:index+1,totalParts:chunks.length}));
+    const subset=rows.filter(row=>ij(gj(row,exam))===ij(grade)),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
+    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/10)},(_,i)=>subjects.slice(i*10,(i+1)*10)):[[]];
+    for(const metricType of ['success','achievement'])chunks.forEach((subjectChunk,index)=>pages.push({
+      key:`subjects-${grade}-${metricType}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',
+      rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,metricType,rowOffset:0,part:index+1,totalParts:chunks.length
+    }));
   }
   return pages;
 };
 SR63.departmentStatsPages=function(rows,exam,selected='الكل'){
   const grades=[...new Set(rows.map(row=>gj(row,exam)).filter(Boolean))].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||String(a).localeCompare(String(b),'ar',{numeric:true}));
-  const target=selected==='الكل'?grades:grades.filter(value=>value===selected);
+  const target=selected==='الكل'?grades:grades.filter(value=>ij(value)===ij(selected));
   const pages=[];
   for(const grade of target){
-    const subset=rows.filter(row=>gj(row,exam)===grade),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
-    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/9)},(_,i)=>subjects.slice(i*9,(i+1)*9)):[[]];
-    chunks.forEach((subjectChunk,index)=>pages.push({key:`department-${grade}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,rowOffset:0,part:index+1,totalParts:chunks.length}));
+    const subset=rows.filter(row=>ij(gj(row,exam))===ij(grade)),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
+    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/3)},(_,i)=>subjects.slice(i*3,(i+1)*3)):[[]];
+    chunks.forEach((subjectChunk,index)=>pages.push({
+      key:`department-${grade}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',
+      rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,rowOffset:0,part:index+1,totalParts:chunks.length
+    }));
   }
   return pages;
 };
@@ -112,31 +119,95 @@ SR63.gradeSubjectMatrix=function(rows,exam,settings,subjectChunk){
 function SRGradeSubjectsReport({page:e,exam:t,workspace:n}){
   const data=SR63.gradeSubjectMatrix(e.allRows,t,n.settings,e.subjectChunk),grade=e.grade||e.entity||'غير محدد',metric=e.metricType==='achievement'?'achievement':'success',metricLabel=metric==='achievement'?'نسب التحصيل الأكاديمي':'نسب النجاح';
   const meter=value=>value===null||value===undefined?'—':SR63.renderReportValue(value,metric);
-  const headSubjects=data.subjects.map(subject=>(0,q.jsx)(`th`,{colSpan:2,className:`grade-matrix-subject official-subject-head`,children:(0,q.jsxs)(q.Fragment,{children:[(0,q.jsx)(`b`,{children:subject}),SR63.subjectCoordinator(n,subject)?(0,q.jsxs)(`small`,{children:[`المنسق: `,SR63.subjectCoordinator(n,subject)]}):null]})},subject));
+  const headSubjects=data.subjects.map(subject=>(0,q.jsx)(`th`,{colSpan:2,className:`grade-matrix-subject official-subject-head`,children:(0,q.jsx)(`b`,{children:subject})},subject));
   const subheads=data.subjects.flatMap(subject=>[(0,q.jsx)(`th`,{className:`grade-matrix-teacher-head`,children:`اسم المعلم`},`${subject}-teacher`),(0,q.jsx)(`th`,{className:`grade-matrix-percent-head`,children:`النسبة`},`${subject}-metric`)]);
-  const body=data.classes.map(className=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{className:`grade-matrix-class`,children:SR63.displayClass(className)}),...data.subjects.flatMap(subject=>{const cell=data.cells.get(`${className}\u0000${subject}`),value=cell?.metric?.[metric];return[(0,q.jsx)(`td`,{className:`grade-matrix-teacher${cell?.teacherCount>1?' teacher-conflict':''}`,title:cell?.teacherCount>1?'يوجد أكثر من معلم مرتبط بهذه الشعبة والمادة — راجع التكليفات':'',children:cell?.teacher||'—'},`${className}-${subject}-teacher`),(0,q.jsx)(`td`,{className:`grade-matrix-value`,children:cell?.rows?.length?meter(value):'—'},`${className}-${subject}-metric`)];})]},className));
-  const totals=data.subjects.flatMap(subject=>{const value=data.totals[subject]?.[metric];return[(0,q.jsx)(`td`,{className:`grade-matrix-total-label`,children:`المتوسط`},`${subject}-total-label`),(0,q.jsx)(`td`,{className:`grade-matrix-value total`,children:meter(value)},`${subject}-total-metric`)];});
+  const body=data.classes.map(className=>(0,q.jsxs)(`tr`,{children:[
+    (0,q.jsx)(`th`,{className:`grade-matrix-class`,children:SR63.displayClass(className)}),
+    ...data.subjects.flatMap(subject=>{const cell=data.cells.get(`${className}\u0000${subject}`),value=cell?.metric?.[metric];return[
+      (0,q.jsx)(`td`,{className:`grade-matrix-teacher${cell?.teacherCount>1?' teacher-conflict':''}`,title:cell?.teacherCount>1?'يوجد أكثر من معلم مرتبط بهذه الشعبة والمادة — راجع التكليفات':'',children:cell?.teacher||'—'},`${className}-${subject}-teacher`),
+      (0,q.jsx)(`td`,{className:`grade-matrix-value`,children:cell?.rows?.length?meter(value):'—'},`${className}-${subject}-metric`)
+    ];})
+  ]},className));
+  const totals=data.subjects.flatMap(subject=>{const value=data.totals[subject]?.[metric];return[
+    (0,q.jsx)(`td`,{className:`grade-matrix-total-label`,children:``},`${subject}-total-label`),
+    (0,q.jsx)(`td`,{className:`grade-matrix-value total`,children:meter(value)},`${subject}-total-metric`)
+  ];});
   return(0,q.jsxs)(q.Fragment,{children:[
-    (0,q.jsxs)(`div`,{className:`grade-matrix-caption official-comparison-caption`,children:[(0,q.jsx)(`strong`,{children:`بيان ${metricLabel} — ${tj(n.settings,t).name}`}),(0,q.jsxs)(`span`,{children:[`الصف: `,grade,e.totalParts>1?` · مجموعة مواد ${e.part}/${e.totalParts}`:``]})]}),
-    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix grade-subject-matrix-official`,children:[(0,q.jsxs)(`thead`,{children:[(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{rowSpan:2,className:`grade-matrix-class-head`,children:`الشعبة`}),...headSubjects]}),(0,q.jsx)(`tr`,{children:subheads})]}),(0,q.jsx)(`tbody`,{children:body}),(0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`على مستوى الصف`}),...totals]})})]}),
-    (0,q.jsxs)(`div`,{className:`grade-matrix-legend`,children:[(0,q.jsx)(`b`,{children:`المفتاح`}),(0,q.jsx)(`span`,{className:`tone-very-low`,children:`< 21%`}),(0,q.jsx)(`span`,{className:`tone-low`,children:`21% - 49.9%`}),(0,q.jsx)(`span`,{className:`tone-mid`,children:`50% - 70.9%`}),(0,q.jsx)(`span`,{className:`tone-good`,children:`71% - 90.9%`}),(0,q.jsx)(`span`,{className:`tone-excellent`,children:`≥ 91%`})]}),
-    (0,q.jsxs)(`div`,{className:`grade-matrix-summary`,children:[(0,q.jsxs)(`span`,{children:[`متوسط ${metric==='achievement'?'التحصيل':'النجاح'}: `,(0,q.jsx)(`b`,{children:wj(data.overall[metric])})]}),(0,q.jsxs)(`span`,{children:[`عدد الشعب: `,(0,q.jsx)(`b`,{children:data.classes.length})]}),(0,q.jsxs)(`span`,{children:[`عدد المواد: `,(0,q.jsx)(`b`,{children:data.subjects.length})]})]})
+    (0,q.jsxs)(`div`,{className:`grade-matrix-caption official-comparison-caption`,children:[
+      (0,q.jsx)(`strong`,{children:`بيان ${metricLabel} — ${tj(n.settings,t).name}`}),
+      (0,q.jsxs)(`span`,{children:[`الصف: `,grade,e.totalParts>1?` · المواد ${e.part}/${e.totalParts}`:``]})
+    ]}),
+    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix grade-subject-matrix-official`,children:[
+      (0,q.jsxs)(`thead`,{children:[
+        (0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{rowSpan:2,className:`grade-matrix-class-head`,children:`الشعبة`}),...headSubjects]}),
+        (0,q.jsx)(`tr`,{children:subheads})
+      ]}),
+      (0,q.jsx)(`tbody`,{children:body}),
+      (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`على مستوى الصف`}),...totals]})})
+    ]}),
+    (0,q.jsxs)(`div`,{className:`grade-matrix-legend`,children:[
+      (0,q.jsx)(`b`,{children:`المفتاح`}),
+      (0,q.jsx)(`span`,{className:`tone-very-low`,children:`< 21%`}),
+      (0,q.jsx)(`span`,{className:`tone-low`,children:`21% - 49.9%`}),
+      (0,q.jsx)(`span`,{className:`tone-mid`,children:`50% - 70.9%`}),
+      (0,q.jsx)(`span`,{className:`tone-good`,children:`71% - 90.9%`}),
+      (0,q.jsx)(`span`,{className:`tone-excellent`,children:`≥ 91%`})
+    ]}),
+    (0,q.jsxs)(`div`,{className:`grade-matrix-summary`,children:[
+      (0,q.jsxs)(`span`,{children:[`متوسط ${metric==='achievement'?'التحصيل':'النجاح'}: `,(0,q.jsx)(`b`,{children:SR63.reportWestern(wj(data.overall[metric]))})]}),
+      (0,q.jsxs)(`span`,{children:[`عدد الشعب: `,(0,q.jsx)(`b`,{children:data.classes.length})]}),
+      (0,q.jsxs)(`span`,{children:[`عدد المواد: `,(0,q.jsx)(`b`,{children:data.subjects.length})]})
+    ]})
   ]});
 }
 function SRDepartmentStatsReport({page:e,exam:t,workspace:n}){
-  const data=SR63.gradeSubjectMatrix(e.allRows,t,n.settings,e.subjectChunk),grade=e.grade||e.entity||'غير محدد';
-  const meter=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
-  const headSubjects=data.subjects.map(subject=>(0,q.jsx)(`th`,{colSpan:3,className:`grade-matrix-subject`,children:(0,q.jsxs)(q.Fragment,{children:[(0,q.jsx)(`b`,{children:subject}),SR63.subjectCoordinator(n,subject)?(0,q.jsxs)(`small`,{children:[`المنسق: `,SR63.subjectCoordinator(n,subject)]}):null]})},subject));
-  const subheads=data.subjects.flatMap(subject=>[(0,q.jsx)(`th`,{className:`grade-matrix-teacher-head`,children:`اسم المعلم`},`${subject}-teacher`),(0,q.jsx)(`th`,{className:`grade-matrix-percent-head`,children:`النجاح`},`${subject}-success`),(0,q.jsx)(`th`,{className:`grade-matrix-percent-head`,children:`التحصيل`},`${subject}-achievement`)]);
-  const body=data.classes.map(className=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{className:`grade-matrix-class`,children:SR63.displayClass(className)}),...data.subjects.flatMap(subject=>{const cell=data.cells.get(`${className}\u0000${subject}`),success=cell?.metric?.success,achievement=cell?.metric?.achievement;return[(0,q.jsx)(`td`,{className:`grade-matrix-teacher${cell?.teacherCount>1?' teacher-conflict':''}`,title:cell?.teacherCount>1?'يوجد أكثر من معلم مرتبط بهذه الشعبة والمادة — راجع التكليفات':'',children:cell?.teacher||'—'},`${className}-${subject}-teacher`),(0,q.jsx)(`td`,{className:`grade-matrix-value`,children:cell?.rows?.length?meter(success,'success'):'—'},`${className}-${subject}-success`),(0,q.jsx)(`td`,{className:`grade-matrix-value`,children:cell?.rows?.length?meter(achievement,'achievement'):'—'},`${className}-${subject}-achievement`)];})]},className));
-  const totals=data.subjects.flatMap(subject=>{const metric=data.totals[subject];return[(0,q.jsx)(`td`,{className:`grade-matrix-total-label`,children:`متوسط`},`${subject}-total-label`),(0,q.jsx)(`td`,{className:`grade-matrix-value total`,children:meter(metric?.success,'success')},`${subject}-total-success`),(0,q.jsx)(`td`,{className:`grade-matrix-value total`,children:meter(metric?.achievement,'achievement')},`${subject}-total-achievement`)];});
+  const subjects=e.subjectChunk?.length?e.subjectChunk:SR63.reportSubjectOrder(e.rows),grade=e.grade||e.entity||'غير محدد',groups=[];
+  const sort=(a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true});
+  for(const subject of subjects){
+    const subjectRows=e.allRows.filter(row=>ij(row.subject||'')===ij(subject)),classes=[...new Set(subjectRows.map(row=>hj(row,t)).filter(Boolean))].sort(sort);
+    for(const className of classes){
+      const classRows=subjectRows.filter(row=>ij(hj(row,t)||'')===ij(className)),teachers=[...new Set(classRows.map(row=>mj(row,t)).filter(Boolean))].sort(sort);
+      if(!teachers.length)teachers.push('غير مربوط');
+      for(const teacher of teachers){
+        const rows=teacher==='غير مربوط'?classRows.filter(row=>!mj(row,t)):classRows.filter(row=>ij(mj(row,t)||'')===ij(teacher));
+        if(!rows.length)continue;
+        groups.push({subject,className,teacher,rows,metric:bj(rows,t,n.settings)});
+      }
+    }
+  }
+  const pageRows=e.rows,overall=bj(pageRows,t,n.settings),meter=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
   return(0,q.jsxs)(q.Fragment,{children:[
-    (0,q.jsxs)(`div`,{className:`grade-matrix-caption department-matrix-caption`,children:[(0,q.jsx)(`strong`,{children:`إحصائية نتائج القسم — النجاح والتحصيل`}),(0,q.jsxs)(`span`,{children:[`الصف: `,grade,` · `,tj(n.settings,t).name,e.totalParts>1?` · مجموعة مواد ${e.part}/${e.totalParts}`:``]})]}),
-    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix grade-subject-matrix-combined department-subject-matrix`,children:[(0,q.jsxs)(`thead`,{children:[(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{rowSpan:2,className:`grade-matrix-class-head`,children:`الشعبة`}),...headSubjects]}),(0,q.jsx)(`tr`,{children:subheads})]}),(0,q.jsx)(`tbody`,{children:body}),(0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`على مستوى الصف`}),...totals]})})]}),
-    (0,q.jsxs)(`div`,{className:`grade-matrix-summary`,children:[(0,q.jsxs)(`span`,{children:[`متوسط النجاح: `,(0,q.jsx)(`b`,{children:wj(data.overall.success)})]}),(0,q.jsxs)(`span`,{children:[`متوسط التحصيل: `,(0,q.jsx)(`b`,{children:wj(data.overall.achievement)})]}),(0,q.jsxs)(`span`,{children:[`عدد الشعب: `,(0,q.jsx)(`b`,{children:data.classes.length})]}),(0,q.jsxs)(`span`,{children:[`عدد المواد: `,(0,q.jsx)(`b`,{children:data.subjects.length})]})]})
+    (0,q.jsxs)(`div`,{className:`grade-matrix-caption department-list-caption`,children:[
+      (0,q.jsx)(`strong`,{children:`إحصائية نتائج القسم — ${tj(n.settings,t).name}`}),
+      (0,q.jsxs)(`span`,{children:[`الصف: `,grade,e.totalParts>1?` · الجزء ${e.part}/${e.totalParts}`:``]})
+    ]}),
+    (0,q.jsxs)(`table`,{className:`report-table department-stats-list`,children:[
+      (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[
+        (0,q.jsx)(`th`,{children:`الشعبة`}),(0,q.jsx)(`th`,{children:`المادة`}),(0,q.jsx)(`th`,{children:`معلم المادة`}),
+        (0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`})
+      ]})}),
+      (0,q.jsx)(`tbody`,{children:groups.length?groups.map((g,index)=>(0,q.jsxs)(`tr`,{children:[
+        (0,q.jsx)(`td`,{className:`dept-class`,children:SR63.displayClass(g.className)}),
+        (0,q.jsx)(`td`,{className:`dept-subject`,children:g.subject}),
+        (0,q.jsx)(`td`,{className:`dept-teacher`,children:g.teacher}),
+        (0,q.jsx)(`td`,{children:g.metric.students}),
+        (0,q.jsx)(`td`,{className:`dept-metric-cell`,children:meter(g.metric.success,'success')}),
+        (0,q.jsx)(`td`,{className:`dept-metric-cell`,children:meter(g.metric.achievement,'achievement')})
+      ]},`${g.subject}-${g.className}-${g.teacher}-${index}`)):(0,q.jsx)(`tr`,{children:(0,q.jsx)(`td`,{colSpan:6,children:`لا توجد نتائج للقسم في النطاق المحدد.`})})}),
+      (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[
+        (0,q.jsx)(`th`,{colSpan:3,children:`ملخص الجزء`}),
+        (0,q.jsx)(`th`,{children:overall.students}),
+        (0,q.jsx)(`th`,{children:meter(overall.success,'success')}),
+        (0,q.jsx)(`th`,{children:meter(overall.achievement,'achievement')})
+      ]})})
+    ]}),
+    (0,q.jsxs)(`div`,{className:`grade-matrix-summary department-list-summary`,children:[
+      (0,q.jsxs)(`span`,{children:[`عدد المواد: `,(0,q.jsx)(`b`,{children:subjects.length})]}),
+      (0,q.jsxs)(`span`,{children:[`عدد الشعب: `,(0,q.jsx)(`b`,{children:new Set(groups.map(g=>g.className)).size})]}),
+      (0,q.jsxs)(`span`,{children:[`عدد المعلمين: `,(0,q.jsx)(`b`,{children:new Set(groups.map(g=>g.teacher).filter(v=>v&&v!=='غير مربوط')).size})]})
+    ]})
   ]});
 }
-
 function SRSummaryReport({page:e,exam:t,workspace:n}){
   const metric=bj(e.allRows,t,n.settings),dimension=e.scope===`teacher`?`className`:`teacher`,groups=Sj(e.rows,dimension,t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null),subject=SR63.reportDisplaySubject(e,t);
   const metricCell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);

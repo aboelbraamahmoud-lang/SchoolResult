@@ -488,3 +488,35 @@
 .department-subject-matrix{font-size:4.45px!important}.department-subject-matrix .grade-matrix-teacher{font-size:4px!important}.department-subject-matrix .report-meter{font-size:3.7px!important;min-height:3.35mm!important}
 .report-band,.level-macro-badge,.target-status,.comparison-trend,.report-delta-chip{width:auto!important;max-width:calc(100% - .6mm)!important;margin-inline:auto!important}
 @media print{.grade-subject-matrix-official,.department-subject-matrix,.grade-subject-matrix-official .report-meter,.department-subject-matrix .report-meter{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+
+
+/* 6.9.17 — official subject comparison and department results list */
+.grade-subject-matrix-official{direction:rtl!important}
+.grade-subject-matrix-official .official-subject-head{background:#8fc5d3!important;color:#0b2731!important;text-shadow:none!important;border-color:#203944!important}
+.grade-subject-matrix-official .grade-matrix-teacher-head,
+.grade-subject-matrix-official .grade-matrix-percent-head{background:#b7dde5!important;color:#17333d!important;text-shadow:none!important;border-color:#203944!important}
+.grade-subject-matrix-official .grade-matrix-class-head{background:#6fb4c7!important;color:#102d37!important;text-shadow:none!important}
+.grade-subject-matrix-official .grade-matrix-class{font-weight:900!important;background:#edf7fa!important}
+.grade-subject-matrix-official .grade-matrix-value .report-meter{border-radius:0!important;border:0!important;min-height:4.1mm!important}
+.grade-subject-matrix-official tfoot td.grade-matrix-total-label{background:#fff!important}
+.department-stats-list{table-layout:fixed!important;direction:rtl!important;font-size:6px!important}
+.department-stats-list th,.department-stats-list td{padding:.65mm .7mm!important;box-sizing:border-box!important}
+.department-stats-list .dept-class{font-weight:900!important;text-align:center!important;width:12mm}
+.department-stats-list .dept-subject{font-weight:800!important}
+.department-stats-list .dept-teacher{font-weight:700!important}
+.department-stats-list .dept-metric-cell{padding:.25mm!important}
+.department-stats-list .dept-metric-cell .report-meter{min-height:4.2mm!important;max-width:100%!important}
+.department-list-caption strong{font-size:7px!important}
+.department-list-caption span{font-size:5.2px!important}
+.report-context p{justify-content:flex-start!important;column-gap:.6mm!important}
+.report-context p span{flex:0 0 auto!important}
+.report-context p b{flex:0 1 auto!important}
+@media print{
+  .grade-subject-matrix-official .official-subject-head,
+  .grade-subject-matrix-official .grade-matrix-teacher-head,
+  .grade-subject-matrix-official .grade-matrix-percent-head,
+  .grade-subject-matrix-official .grade-matrix-class-head,
+  .department-stats-list,.department-stats-list .report-meter{
+    -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important
+  }
+}

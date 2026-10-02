@@ -14,9 +14,9 @@ vj=(row,exam,settings)=>SR63.validResult(row,exam,settings)&&row.statuses[exam]=
 /* PATCH yj */
 yj=(value,bands)=>typeof value==='number'&&Number.isFinite(value)?[...bands].sort((a,b)=>b.min-a.min).find(band=>value>=band.min&&(value<band.max||band.max===100&&value<=100)):undefined
 /* PATCH wj */
-wj=(value,digits=1)=>value===null||value===undefined||!Number.isFinite(value)?'—':`${value.toLocaleString('ar-EG',{minimumFractionDigits:digits,maximumFractionDigits:digits})}%`
+wj=(value,digits=1)=>value===null||value===undefined||!Number.isFinite(value)?'—':`${value.toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits,useGrouping:false})}%`
 /* PATCH Tj */
-Tj=value=>value===null||value===undefined||!Number.isFinite(value)?'لا توجد عينة مشتركة':`${value>0?'+':''}${value.toLocaleString('ar-EG',{minimumFractionDigits:1,maximumFractionDigits:1})} ن.م`
+Tj=value=>value===null||value===undefined||!Number.isFinite(value)?'لا توجد عينة مشتركة':`${value>0?'+':''}${value.toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1,useGrouping:false})}`
 /* PATCH Ede */
 function Ede(value,key){
   if(typeof value!=='string')return value;
