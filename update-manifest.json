@@ -1,18 +1,18 @@
 {
   "product": "School Results Cloud",
-  "version": "6.9.8",
+  "version": "6.9.9",
   "files": [
     {
       "name": "app.js",
-      "sha256": "47fd754d27d3198a5339c7ed80bf82bfd950ee3541d8e744463652d5bce8b761"
+      "sha256": "ecfe6ba99e635a15c654ac125b63dcce3ab5462777ceb8452916be651c8104e2"
     },
     {
       "name": "style.css",
-      "sha256": "e95d5b0abea30f077f6c774f6704db8c1d53bb4f4a4f0d9e2efae18982baa946"
+      "sha256": "9c3b24818535fbceebc76a23decd04fb5e0462c30131d70fb829ad89f6a90fd6"
     },
     {
       "name": "version.json",
-      "sha256": "675255ac3b6f431063dc34608589c130aa8ce4e7f2bbfa9d4679513e983eeabc"
+      "sha256": "78104282007b2740631737d80803daeb582f54580509cb38ebfd9911b126e4cb"
     },
     {
       "name": "index.html",
@@ -24,7 +24,7 @@
     },
     {
       "name": "moehe.png",
-      "sha256": "ee5fb281d830988dcb2ada533007c38c51a37a6277edc34059f737cbaf317075"
+      "sha256": "a215c113262010805923e11f0b89e20444e2f28caf80b7f928fceafc08aac5fe"
     }
   ]
 }

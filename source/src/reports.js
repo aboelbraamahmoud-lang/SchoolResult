@@ -115,7 +115,7 @@ function SRGradeSubjectsReport({page:e,exam:t,workspace:n}){
 
 
 
-/* 6.9.8 — premium targeted-student and two-exam comparison reports. */
+/* 6.9.9 — premium targeted-student and two-exam comparison reports. */
 function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
   const targeted=e.rows.map(row=>({row,value:vj(row,t,r.settings)})).filter(item=>item.value!==null&&item.value<n).sort((a,b)=>a.value-b.value);
   const uniqueStudents=new Set(targeted.map(item=>item.row.studentId)).size,avg=targeted.length?targeted.reduce((sum,item)=>sum+item.value,0)/targeted.length:null,lowest=targeted.length?targeted[0].value:null;

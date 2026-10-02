@@ -1,17 +1,18 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.9.8",
+  "version": "6.9.9",
   "released": "2026-10-02",
   "updateFiles": [
     "app.js",
     "style.css",
     "version.json",
     "index.html",
-    "supabase.js"
+    "supabase.js",
+    "moehe.png"
   ],
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إعادة تصميم تقرير الطلاب ضمن نسبة ليكون مضغوطًا واحترافيًا، مع إصلاح CSS الخاص به وتطبيق بطاقات مؤشرات أفقية وجدول أكثر وضوحًا للطباعة."
+  "notes": "اعتماد شعار وزارة التربية والتعليم والتعليم العالي الرسمي المرفوع من المستخدم داخل جميع التقارير، مع ضبط حجمه وموضعه وإزالة التكرار النصي في رأس التقرير."
 }

@@ -361,7 +361,7 @@
 @media print{.target-range-hero,.target-range-kpis article,.target-range-split span,.target-status,.comparison-trend,.comparison-summary-697 .summary-trends p{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;box-shadow:none!important}.comparison-row.comparison-positive td:first-child{border-right:1.4mm solid #15945b!important}.comparison-row.comparison-negative td:first-child{border-right:1.4mm solid #d43d57!important}.comparison-row.comparison-stable td:first-child{border-right:1.4mm solid #94a4ad!important}}
 
 
-/* 6.9.8 — compact executive targeted-range report. */
+/* 6.9.9 — compact executive targeted-range report. */
 .target-range-hero{grid-template-columns:29mm minmax(0,1fr)!important;gap:2mm!important;margin:.8mm 2mm 1mm!important;padding:1.4mm 2mm!important;border-radius:1.6mm!important}
 .target-range-hero>div:first-child{display:flex!important;align-items:baseline;gap:1.3mm!important;white-space:nowrap}
 .target-range-hero>div:first-child span{font-size:5.2px!important}
@@ -390,4 +390,48 @@
  .target-range-hero{margin-top:.6mm!important}
  .target-range-kpis article{min-height:6.6mm!important}
  .target-student-table th,.target-student-table td{padding:.55mm .8mm!important}
+}
+
+
+/* 6.9.9 — official Ministry logo lockup supplied by user; no decorative frame/circle. */
+.report-ministry-lockup-official{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  min-width:0!important;
+  overflow:visible!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.report-ministry-emblem-official{
+  display:block!important;
+  width:54mm!important;
+  max-width:100%!important;
+  height:11.5mm!important;
+  object-fit:contain!important;
+  object-position:right center!important;
+  flex:0 1 auto!important;
+  padding:0!important;
+  margin:0!important;
+  background:transparent!important;
+  border:0!important;
+  border-radius:0!important;
+  outline:0!important;
+  box-shadow:none!important;
+  filter:none!important;
+}
+.report-ministry-lockup-official:before,.report-ministry-lockup-official:after,
+.report-ministry-emblem-official:before,.report-ministry-emblem-official:after{content:none!important;display:none!important}
+.grade-subjects-landscape .report-ministry-emblem-official{
+  width:43mm!important;
+  height:8.8mm!important;
+  object-position:right center!important;
+}
+@media(max-width:760px){
+  .report-ministry-emblem-official{width:min(54mm,100%)!important;height:auto!important;max-height:12mm!important}
+}
+@media print{
+  .report-ministry-emblem-official{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }

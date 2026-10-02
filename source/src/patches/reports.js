@@ -1,4 +1,4 @@
-/* 6.9.8 — compact official report header with local Ministry emblem asset. */
+/* 6.9.9 — compact official report header with local Ministry emblem asset. */
 SR63.moeheEmblemData='./moehe.png';
 /* PATCH Tv */
 function Tv(book,filename,options){const opts=options||{};SR63.formatWorkbook(book);opts.type='file';opts.file=filename;wv(opts);return Cv(book,opts);}
@@ -13,13 +13,9 @@ function M9({workspace:e,title:t,subject:n,assessment:r}){
   const design=e.settings.reportDesign,jsx=q.jsx,jsxs=q.jsxs;
   return jsxs(q.Fragment,{children:[
     jsxs('div',{className:'report-head report-head-compact',children:[
-      jsxs('div',{className:'report-ministry-lockup',children:[
-        jsx('img',{src:SR63.moeheEmblemData,alt:'شعار وزارة التربية والتعليم والتعليم العالي',className:'report-ministry-emblem'}),
-        jsxs('div',{children:[
-          jsx('b',{children:design.ministryHeader||'وزارة التربية والتعليم والتعليم العالي'}),
-          jsx('small',{children:design.systemHeader||'Ministry of Education and Higher Education · State of Qatar'})
-        ]})
-      ]}),
+      jsx('div',{className:'report-ministry-lockup report-ministry-lockup-official',children:
+        jsx('img',{src:SR63.moeheEmblemData,alt:'شعار وزارة التربية والتعليم والتعليم العالي',className:'report-ministry-emblem report-ministry-emblem-official'})
+      }),
       jsxs('div',{className:'report-school-lockup',children:[
         design.showLogo&&(design.logoDataUrl?jsx('img',{src:design.logoDataUrl,alt:'شعار المدرسة',className:'report-logo-image report-school-logo'}):jsx('span',{className:'report-brand-mark report-school-mark',children:design.logoLetter})),
         jsxs('div',{className:'report-identity report-identity-compact',children:[

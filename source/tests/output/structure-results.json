@@ -1,6 +1,6 @@
 {
   "method": "Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.",
-  "passed": 55,
+  "passed": 56,
   "failed": 0,
   "results": [
     {
@@ -261,6 +261,10 @@
     },
     {
       "name": "compactTargetRange698",
+      "status": "pass"
+    },
+    {
+      "name": "officialMinistryLogo699",
       "status": "pass"
     }
   ]
