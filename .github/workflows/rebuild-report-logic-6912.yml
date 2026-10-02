@@ -1,0 +1,76 @@
+name: Rebuild report filtering logic 6.9.12
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'release/activate-6.9.12.txt'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: schoolresult-6912
+  cancel-in-progress: false
+
+jobs:
+  build-test-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply centralized report scoping to build
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json
+          p=Path('source/build.cjs'); s=p.read_text(encoding='utf-8')
+          old="['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js']"
+          new="['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','reports.js','ui.js','cloud-ui.js']"
+          if old not in s: raise SystemExit('services list not found')
+          s=s.replace(old,new,1)
+          anchor="let reportCode=code.slice(reportStart,reportEnd);"
+          injection="""let reportCode=code.slice(reportStart,reportEnd);\n// 6.9.12: every ordinary report receives a page re-scoped from its declared entity before any metric/rendering.\nreportCode=reportCode.split('page:t,').join('page:SR63.normalizeReportPage(t,n,n===`comparison`?m:u,e),');"""
+          if anchor not in s: raise SystemExit('report block anchor not found')
+          s=s.replace(anchor,injection,1)
+          s=s.replace("replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.11 — تثبيت شعار الوزارة في رأس التقارير');","replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.12 — إعادة بناء منطق فلترة التقارير');",1)
+          p.write_text(s,encoding='utf-8')
+          vp=Path('version.json'); v=json.loads(vp.read_text(encoding='utf-8')); v['version']='6.9.12'; v['notes']='إعادة بناء منطق فلترة جميع التقارير: عزل المعلم/الشعبة/الصف/المادة قبل الحساب والعرض، ومنع تسرب بيانات نطاق آخر.'; vp.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          for name in ['README.md','source/README.txt','source/tests/release.cjs']:
+            q=Path(name); t=q.read_text(encoding='utf-8').replace('6.9.11','6.9.12'); q.write_text(t,encoding='utf-8')
+          PY
+      - name: Build runtime
+        run: cd source && node --expose-internals build.cjs
+      - name: Report-scope regression tests
+        run: cd source && node --expose-internals tests/report-scope.cjs
+      - name: Full regression tests
+        run: cd source && node --expose-internals tests/regression.cjs
+      - name: Cloud tests
+        run: cd source && node --expose-internals tests/cloud.cjs
+      - name: Structure tests
+        run: cd source && node --expose-internals tests/structure.cjs
+      - name: Verify runtime uses centralized report scoping
+        run: |
+          node - <<'NODE'
+          const fs=require('fs');const app=fs.readFileSync('app.js','utf8');
+          if(!app.includes('SR63.normalizeReportPage')) throw Error('central report scoping missing from runtime');
+          if(!app.includes('SR63.reportScopeRows')) throw Error('report scope engine missing from runtime');
+          NODE
+      - name: Generate hashes
+        run: cd source && node release.cjs
+      - name: Release tests
+        run: cd source && node tests/release.cjs
+      - name: Commit verified 6.9.12
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Build SchoolResult v6.9.12 — rebuild report filtering logic'
+          git push origin HEAD:main
