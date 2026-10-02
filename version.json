@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.9.7",
+  "version": "6.9.8",
   "released": "2026-10-02",
   "updateFiles": [
     "app.js",
@@ -13,5 +13,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تطوير تقرير الطلاب ضمن نسبة ومقارنة اختبارين بأشرطة أداء وألوان واضحة للقيمة المضافة والمنقوصة، مع إصلاح شعار الوزارة كأصل محلي ثابت."
+  "notes": "إعادة تصميم تقرير الطلاب ضمن نسبة ليكون مضغوطًا واحترافيًا، مع إصلاح CSS الخاص به وتطبيق بطاقات مؤشرات أفقية وجدول أكثر وضوحًا للطباعة."
 }

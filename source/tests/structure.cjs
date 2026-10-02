@@ -35,5 +35,14 @@ try{
  results.push({name:'targetAndComparisonVisuals697',status:'pass'});
 }catch(error){results.push({name:'targetAndComparisonVisuals697',status:'fail',error:error.stack});}
 
+
+try{
+ const reports=fs.readFileSync(path.join(__dirname,'../src/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8');
+ assert.ok(!css.includes('\\n'),'repair.css must not contain literal escaped newlines');
+ assert.ok(css.includes('6.9.8 — compact executive targeted-range report')&&css.includes('.target-range-kpis article{display:flex!important')&&css.includes('.target-student-table{table-layout:fixed!important'));
+ assert.ok(reports.includes('نتائج ضمن النطاق')&&reports.includes('متوسط المستهدفين')&&reports.includes('خطة فردية + متابعة مكثفة'));
+ results.push({name:'compactTargetRange698',status:'pass'});
+}catch(error){results.push({name:'compactTargetRange698',status:'fail',error:error.stack});}
+
 const report={method:'Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results};
 fs.writeFileSync('tests/output/structure-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
