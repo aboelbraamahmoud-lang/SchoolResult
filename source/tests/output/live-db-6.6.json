@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-01",
+  "project": "school-results",
+  "archiveMetadataMigrationApplied": true,
+  "leastPrivilegeMigrationApplied": true,
+  "rlsEnabled": true,
+  "anonymousRpcExecute": false,
+  "authenticatedExcessPrivileges": false,
+  "archiveListMetadataOnlyVerified": true,
+  "archiveGetOnDemandVerified": true,
+  "performanceAdvisorFindings": 0,
+  "securityAdvisorFindings": ["auth_leaked_password_protection"]
+}

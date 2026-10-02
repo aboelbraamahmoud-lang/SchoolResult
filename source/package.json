@@ -1,0 +1,14 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "2.117.2",
+    "esbuild": "0.25.12"
+  },
+  "scripts": {
+    "build": "node --expose-internals build.cjs",
+    "test:regression": "node --expose-internals tests/regression.cjs",
+    "test:cloud": "node --expose-internals tests/cloud.cjs",
+    "test:structure": "node --expose-internals tests/structure.cjs",
+    "release": "node release.cjs",
+    "test:release": "node tests/release.cjs"
+  }
+}
