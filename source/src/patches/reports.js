@@ -1,5 +1,5 @@
-/* 6.9.9 — compact official report header with local Ministry emblem asset. */
-SR63.moeheEmblemData='./moehe.png';
+/* 6.9.10 — Ministry emblem embedded into runtime by the build from the repository asset. */
+SR63.moeheEmblemData='__MOEHE_EMBLEM_DATA__';
 /* PATCH Tv */
 function Tv(book,filename,options){const opts=options||{};SR63.formatWorkbook(book);opts.type='file';opts.file=filename;wv(opts);return Cv(book,opts);}
 /* PATCH gm */

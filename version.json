@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.9.9",
+  "version": "6.9.10",
   "released": "2026-10-02",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "اعتماد شعار وزارة التربية والتعليم والتعليم العالي الرسمي المرفوع من المستخدم داخل جميع التقارير، مع ضبط حجمه وموضعه وإزالة التكرار النصي في رأس التقرير."
+  "notes": "إصلاح نهائي لرأس التقارير: تضمين شعار الوزارة داخل التقرير نفسه وإزالة الدوائر الزخرفية نهائيًا."
 }

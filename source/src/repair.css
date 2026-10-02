@@ -432,3 +432,20 @@
 @media print{
   .report-ministry-emblem-official{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
 }
+
+
+/* 6.9.10 — definitive report-header cleanup: embedded Ministry logo and zero decorative circles. */
+.school-report-page:after{content:none!important;display:none!important}
+.report-head:before,.report-head:after,
+.report-head-compact:before,.report-head-compact:after,
+.report-ministry-lockup:before,.report-ministry-lockup:after,
+.report-ministry-lockup-official:before,.report-ministry-lockup-official:after,
+.report-school-lockup:before,.report-school-lockup:after,
+.report-brand:before,.report-brand:after,
+.report-brand-mark:before,.report-brand-mark:after,
+.report-logo-image:before,.report-logo-image:after{content:none!important;display:none!important}
+.report-ministry-lockup-official{overflow:hidden!important;justify-content:flex-start!important}
+.report-ministry-emblem-official{width:49mm!important;max-width:49mm!important;height:10.3mm!important;max-height:10.3mm!important;object-fit:contain!important;object-position:right center!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important}
+.report-school-logo,.report-school-mark{border-radius:1.3mm!important}
+.grade-subjects-landscape .report-ministry-emblem-official{width:39mm!important;max-width:39mm!important;height:8.3mm!important;max-height:8.3mm!important}
+@media print{.school-report-page:after,.report-head:before,.report-head:after,.report-head-compact:before,.report-head-compact:after{content:none!important;display:none!important}}

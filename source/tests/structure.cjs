@@ -48,7 +48,8 @@ try{
 try{
  const reports=fs.readFileSync(path.join(__dirname,'../src/patches/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8'),logo=path.join(__dirname,'../../moehe.png');
  assert.ok(reports.includes('report-ministry-lockup-official')&&reports.includes('report-ministry-emblem-official'));
- assert.ok(css.includes('6.9.9 — official Ministry logo lockup')&&css.includes('width:54mm!important')&&css.includes('border-radius:0!important'));
+ assert.ok(css.includes('6.9.10 — definitive report-header cleanup')&&css.includes('.school-report-page:after{content:none!important;display:none!important}')&&css.includes('width:49mm!important'));
+ assert.ok(reports.includes('__MOEHE_EMBLEM_DATA__'),'ministry logo build placeholder missing');
  assert.ok(fs.existsSync(logo)&&fs.statSync(logo).size>5000,'official Ministry logo asset missing or empty');
  results.push({name:'officialMinistryLogo699',status:'pass'});
 }catch(error){results.push({name:'officialMinistryLogo699',status:'fail',error:error.stack});}
