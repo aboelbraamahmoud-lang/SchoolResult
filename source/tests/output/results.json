@@ -1,6 +1,6 @@
 {
   "version": "6.9.5",
-  "date": "2026-10-02T18:31:18.352Z",
+  "date": "2026-10-02T19:18:00.466Z",
   "method": "Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.",
   "passed": 66,
   "failed": 0,
@@ -66,7 +66,7 @@
       "status": "pass"
     },
     {
-      "name": "تقرير مقارنة المواد ينشئ بيان نجاح وبيان تحصيل ويضع الشعب صفوفا والمواد أعمدة",
+      "name": "تقرير مقارنة المواد يجمع المعلم والنجاح والتحصيل في صفحة عرضية واحدة لكل صف",
       "status": "pass"
     },
     {

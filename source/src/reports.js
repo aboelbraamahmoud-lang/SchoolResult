@@ -82,8 +82,8 @@ SR63.gradeSubjectPages=function(rows,exam,selected='الكل'){
   const pages=[];
   for(const grade of target){
     const subset=rows.filter(row=>gj(row,exam)===grade),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
-    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/8)},(_,i)=>subjects.slice(i*8,(i+1)*8)):[[]];
-    for(const metricType of ['success','achievement'])chunks.forEach((subjectChunk,index)=>pages.push({key:`subjects-${grade}-${metricType}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,metricType,rowOffset:0,part:index+1,totalParts:chunks.length}));
+    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/9)},(_,i)=>subjects.slice(i*9,(i+1)*9)):[[]];
+    chunks.forEach((subjectChunk,index)=>pages.push({key:`subjects-${grade}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,rowOffset:0,part:index+1,totalParts:chunks.length}));
   }
   return pages;
 };
@@ -91,29 +91,89 @@ SR63.gradeSubjectMatrix=function(rows,exam,settings,subjectChunk){
   const sort=values=>[...new Set(values.filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
   const subjects=(subjectChunk?.length?subjectChunk:sort(rows.map(row=>row.subject||'غير محدد'))),classes=sort(rows.map(row=>hj(row,exam)));
   const cells=new Map();
-  for(const className of classes)for(const subject of subjects){const subset=rows.filter(row=>hj(row,exam)===className&&(row.subject||'غير محدد')===subject),teachers=sort(subset.map(row=>mj(row,exam)).filter(Boolean));cells.set(`${className}\u0000${subject}`,{rows:subset,teacher:teachers.join(' / ')||'—',metric:bj(subset,exam,settings)});}
+  for(const className of classes)for(const subject of subjects){
+    const subset=rows.filter(row=>hj(row,exam)===className&&(row.subject||'غير محدد')===subject),teachers=sort(subset.map(row=>mj(row,exam)).filter(Boolean));
+    cells.set(`${className}\u0000${subject}`,{rows:subset,teacher:teachers.join(' / ')||'—',teacherCount:teachers.length,metric:bj(subset,exam,settings)});
+  }
   const totals=Object.fromEntries(subjects.map(subject=>[subject,bj(rows.filter(row=>(row.subject||'غير محدد')===subject),exam,settings)]));
   return {subjects,classes,cells,totals,overall:bj(rows,exam,settings)};
 };
 function SRGradeSubjectsReport({page:e,exam:t,workspace:n}){
-  const data=SR63.gradeSubjectMatrix(e.allRows,t,n.settings,e.subjectChunk),grade=e.grade||e.entity||'غير محدد',metric=e.metricType==='achievement'?'achievement':'success',label=metric==='achievement'?'التحصيل الأكاديمي':'نسب النجاح';
-  const headSubjects=data.subjects.map(subject=>(0,q.jsx)(`th`,{colSpan:2,className:`grade-matrix-subject`,children:(0,q.jsxs)(q.Fragment,{children:[(0,q.jsx)(`b`,{children:subject}),SR63.subjectCoordinator(n,subject)?(0,q.jsxs)(`small`,{children:[`المنسق: `,SR63.subjectCoordinator(n,subject)]}):null]})},subject));
-  const subheads=data.subjects.flatMap(subject=>[(0,q.jsx)(`th`,{children:`اسم المعلم`},`${subject}-teacher`),(0,q.jsx)(`th`,{children:`النسبة`},`${subject}-metric`)]);
-  const rows=data.classes.map(className=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{className:`grade-matrix-class`,children:SR63.displayClass(className)}),...data.subjects.flatMap(subject=>{const cell=data.cells.get(`${className}\u0000${subject}`),value=cell?.metric?.[metric],tone=SR63.metricTone(value);return[(0,q.jsx)(`td`,{className:`grade-matrix-teacher`,children:cell?.teacher||'—'},`${className}-${subject}-teacher`),(0,q.jsx)(`td`,{className:`grade-matrix-value tone-${tone}`,children:cell?.rows?.length?(0,q.jsxs)(`div`,{className:`report-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:wj(value)})]}):'—'},`${className}-${subject}-metric`)];})]},className));
-  const totals=data.subjects.flatMap(subject=>{const value=data.totals[subject]?.[metric],tone=SR63.metricTone(value);return[(0,q.jsx)(`td`,{className:`grade-matrix-total-label`,children:`متوسط`},`${subject}-total-label`),(0,q.jsx)(`td`,{className:`grade-matrix-value total tone-${tone}`,children:(0,q.jsxs)(`div`,{className:`report-meter total tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:wj(value)})]})},`${subject}-total`) ];});
+  const data=SR63.gradeSubjectMatrix(e.allRows,t,n.settings,e.subjectChunk),grade=e.grade||e.entity||'غير محدد';
+  const meter=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
+  const headSubjects=data.subjects.map(subject=>(0,q.jsx)(`th`,{colSpan:3,className:`grade-matrix-subject`,children:(0,q.jsxs)(q.Fragment,{children:[(0,q.jsx)(`b`,{children:subject}),SR63.subjectCoordinator(n,subject)?(0,q.jsxs)(`small`,{children:[`المنسق: `,SR63.subjectCoordinator(n,subject)]}):null]})},subject));
+  const subheads=data.subjects.flatMap(subject=>[
+    (0,q.jsx)(`th`,{className:`grade-matrix-teacher-head`,children:`اسم المعلم`},`${subject}-teacher`),
+    (0,q.jsx)(`th`,{className:`grade-matrix-percent-head`,children:`النجاح`},`${subject}-success`),
+    (0,q.jsx)(`th`,{className:`grade-matrix-percent-head`,children:`التحصيل`},`${subject}-achievement`)
+  ]);
+  const rows=data.classes.map(className=>(0,q.jsxs)(`tr`,{children:[
+    (0,q.jsx)(`th`,{className:`grade-matrix-class`,children:SR63.displayClass(className)}),
+    ...data.subjects.flatMap(subject=>{const cell=data.cells.get(`${className}\u0000${subject}`),success=cell?.metric?.success,achievement=cell?.metric?.achievement;return[
+      (0,q.jsx)(`td`,{className:`grade-matrix-teacher${cell?.teacherCount>1?' teacher-conflict':''}`,title:cell?.teacherCount>1?'يوجد أكثر من معلم مرتبط بهذه الشعبة والمادة — راجع التكليفات':'',children:cell?.teacher||'—'},`${className}-${subject}-teacher`),
+      (0,q.jsx)(`td`,{className:`grade-matrix-value`,children:cell?.rows?.length?meter(success,'success'):'—'},`${className}-${subject}-success`),
+      (0,q.jsx)(`td`,{className:`grade-matrix-value`,children:cell?.rows?.length?meter(achievement,'achievement'):'—'},`${className}-${subject}-achievement`)
+    ];})
+  ]},className));
+  const totals=data.subjects.flatMap(subject=>{const metric=data.totals[subject];return[
+    (0,q.jsx)(`td`,{className:`grade-matrix-total-label`,children:`متوسط`},`${subject}-total-label`),
+    (0,q.jsx)(`td`,{className:`grade-matrix-value total`,children:meter(metric?.success,'success')},`${subject}-total-success`),
+    (0,q.jsx)(`td`,{className:`grade-matrix-value total`,children:meter(metric?.achievement,'achievement')},`${subject}-total-achievement`)
+  ];});
   return(0,q.jsxs)(q.Fragment,{children:[
-    (0,q.jsxs)(`div`,{className:`grade-matrix-caption`,children:[(0,q.jsx)(`strong`,{children:metric==='achievement'?`بيان نسب التحصيل الأكاديمي`:`بيان نسب النجاح`}),(0,q.jsxs)(`span`,{children:[grade,` · `,tj(n.settings,t).name,e.totalParts>1?` · مجموعة مواد ${e.part}/${e.totalParts}`:``]})]}),
-    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix`,children:[
+    (0,q.jsxs)(`div`,{className:`grade-matrix-caption`,children:[(0,q.jsx)(`strong`,{children:`مقارنة المواد — النجاح والتحصيل`}),(0,q.jsxs)(`span`,{children:[grade,` · `,tj(n.settings,t).name,e.totalParts>1?` · مجموعة مواد ${e.part}/${e.totalParts}`:``]})]}),
+    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix grade-subject-matrix-combined`,children:[
       (0,q.jsxs)(`thead`,{children:[(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{rowSpan:2,className:`grade-matrix-class-head`,children:`الشعبة`}),...headSubjects]}),(0,q.jsx)(`tr`,{children:subheads})]}),
       (0,q.jsx)(`tbody`,{children:rows}),
       (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`على مستوى الصف`}),...totals]})})
     ]}),
     (0,q.jsxs)(`div`,{className:`grade-matrix-legend`,children:[(0,q.jsx)(`b`,{children:`المفتاح`}),(0,q.jsx)(`span`,{className:`tone-very-low`,children:`< 21%`}),(0,q.jsx)(`span`,{className:`tone-low`,children:`21% - 49.9%`}),(0,q.jsx)(`span`,{className:`tone-mid`,children:`50% - 70.9%`}),(0,q.jsx)(`span`,{className:`tone-good`,children:`71% - 90.9%`}),(0,q.jsx)(`span`,{className:`tone-excellent`,children:`≥ 91%`})]}),
-    (0,q.jsxs)(`div`,{className:`grade-matrix-summary`,children:[(0,q.jsxs)(`span`,{children:[`متوسط `,label,`: `,(0,q.jsx)(`b`,{children:wj(data.overall[metric])})]}),(0,q.jsxs)(`span`,{children:[`عدد الشعب: `,(0,q.jsx)(`b`,{children:data.classes.length})]}),(0,q.jsxs)(`span`,{children:[`عدد المواد: `,(0,q.jsx)(`b`,{children:data.subjects.length})]})]})
+    (0,q.jsxs)(`div`,{className:`grade-matrix-summary`,children:[
+      (0,q.jsxs)(`span`,{children:[`متوسط النجاح: `,(0,q.jsx)(`b`,{children:wj(data.overall.success)})]}),
+      (0,q.jsxs)(`span`,{children:[`متوسط التحصيل: `,(0,q.jsx)(`b`,{children:wj(data.overall.achievement)})]}),
+      (0,q.jsxs)(`span`,{children:[`عدد الشعب: `,(0,q.jsx)(`b`,{children:data.classes.length})]}),
+      (0,q.jsxs)(`span`,{children:[`عدد المواد: `,(0,q.jsx)(`b`,{children:data.subjects.length})]})
+    ]})
   ]});
 }
 
+function SRSummaryReport({page:e,exam:t,workspace:n}){
+  const metric=bj(e.allRows,t,n.settings),dimension=e.scope===`teacher`?`className`:`teacher`,groups=Sj(e.rows,dimension,t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null),subject=SR63.reportDisplaySubject(e,t);
+  const metricCell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
+  return(0,q.jsxs)(q.Fragment,{children:[
+    (0,q.jsxs)(`div`,{className:`report-meta-grid`,children:[
+      (0,q.jsxs)(`b`,{children:[e.scope===`teacher`?`المعلم: `:`الشعبة: `,e.scope===`teacher`?(e.teacher||e.entity):(e.className||e.entity)]}),
+      (0,q.jsxs)(`span`,{children:[`المادة: `,subject]}),
+      (0,q.jsxs)(`span`,{children:[tj(n.settings,t).name,` · `,I9(e.allRows,t,n.settings)]})
+    ]}),
+    (0,q.jsx)(`div`,{className:`report-kpis`,children:[
+      [`عدد الطلاب`,metric.students,`students`],[`حاضر/مقيم`,metric.evaluated,`present`],[`غائب`,metric.absent+metric.excused+metric.unexcused,`absent`],[`ناجح`,metric.passed,`passed`],[`راسب`,metric.failed,`failed`],[`نسبة النجاح`,metricCell(metric.success,'success'),`success`],[`نسبة التحصيل`,metricCell(metric.achievement,'achievement'),`achievement`]
+    ].map(([label,value,tone])=>(0,q.jsxs)(`div`,{className:`kpi-${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},String(label)))}),
+    (0,q.jsx)(`h2`,{className:`report-section-title`,children:`ملخص الأداء`}),
+    (0,q.jsxs)(`table`,{className:`report-table`,children:[
+      (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:e.scope===`teacher`?`الصف/الشعبة`:`المعلم`}),(0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`ناجح`}),(0,q.jsx)(`th`,{children:`راسب`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`}),(0,q.jsx)(`th`,{children:`القيمة المضافة`})]})}),
+      (0,q.jsx)(`tbody`,{children:groups.map(group=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:group.name}),(0,q.jsx)(`td`,{children:group.metric.students}),(0,q.jsx)(`td`,{children:group.metric.passed}),(0,q.jsx)(`td`,{children:group.metric.failed}),(0,q.jsx)(`td`,{children:metricCell(group.metric.success,'success')}),(0,q.jsx)(`td`,{children:metricCell(group.metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:group.va?SR63.renderReportValue(group.va.delta,'valueAdded'):`خط أساس`})]},group.name))}),
+      (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:`الإجمالي / المتوسط`}),(0,q.jsx)(`td`,{children:metric.students}),(0,q.jsx)(`td`,{children:metric.passed}),(0,q.jsx)(`td`,{children:metric.failed}),(0,q.jsx)(`td`,{children:metricCell(metric.success,'success')}),(0,q.jsx)(`td`,{children:metricCell(metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:`—`})]})})
+    ]}),
+    (0,q.jsx)(`h2`,{className:`report-section-title`,children:`توزيع مستويات الأداء`}),(0,q.jsx)(L9,{rows:e.allRows,exam:t,workspace:n})
+  ]});
+}
 
+function SRTeacherReport({page:e,exam:t,workspace:n}){
+  const metric=bj(e.allRows,t,n.settings),groups=Sj(e.rows,`className`,t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null),teacher=e.teacher||e.entity||'—',subject=SR63.reportDisplaySubject(e,t);
+  const metricCell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
+  return(0,q.jsxs)(q.Fragment,{children:[
+    (0,q.jsxs)(`div`,{className:`report-meta-grid`,children:[(0,q.jsxs)(`b`,{children:[`اسم المعلم: `,teacher]}),(0,q.jsxs)(`span`,{children:[`المادة: `,subject]}),(0,q.jsx)(`span`,{children:tj(n.settings,t).name})]}),
+    (0,q.jsxs)(`table`,{className:`report-table teacher-table`,children:[
+      (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`الصف/الشعبة`}),(0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`}),(0,q.jsx)(`th`,{children:`مؤشر الأداء`}),(0,q.jsx)(`th`,{children:`القيمة المضافة`})]})}),
+      (0,q.jsx)(`tbody`,{children:groups.length?groups.map(group=>{const band=yj(group.metric.achievement,n.settings.bands),macro=band?.macro||'na';return(0,q.jsxs)(`tr`,{children:[
+        (0,q.jsx)(`td`,{children:group.name}),(0,q.jsx)(`td`,{children:group.metric.students}),(0,q.jsx)(`td`,{children:metricCell(group.metric.success,'success')}),(0,q.jsx)(`td`,{children:metricCell(group.metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:(0,q.jsx)(`span`,{className:`level-macro-badge macro-${SR63.macroTone(macro)}`,children:band?.label||`—`})}),(0,q.jsx)(`td`,{children:group.va?SR63.renderReportValue(group.va.delta,'valueAdded'):`خط أساس`})
+      ]},group.name)}):(0,q.jsx)(`tr`,{children:(0,q.jsx)(`td`,{colSpan:6,children:`لا توجد نتائج مرتبطة بهذا المعلم في المادة المختارة.`})})}),
+      (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:`المتوسط`}),(0,q.jsx)(`td`,{children:metric.students}),(0,q.jsx)(`td`,{children:metricCell(metric.success,'success')}),(0,q.jsx)(`td`,{children:metricCell(metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:yj(metric.achievement,n.settings.bands)?.label||`—`}),(0,q.jsx)(`td`,{children:`—`})]})})
+    ]}),
+    (0,q.jsx)(`h2`,{className:`report-section-title`,children:`توزيع مستويات طلاب المعلم`}),(0,q.jsx)(L9,{rows:e.allRows,exam:t,workspace:n})
+  ]});
+}
 
 /* 6.9.9 — premium targeted-student and two-exam comparison reports. */
 function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
