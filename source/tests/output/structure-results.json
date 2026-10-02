@@ -1,6 +1,6 @@
 {
   "method": "Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.",
-  "passed": 49,
+  "passed": 50,
   "failed": 0,
   "results": [
     {
@@ -237,6 +237,10 @@
     },
     {
       "name": "studentProfile68",
+      "status": "pass"
+    },
+    {
+      "name": "premiumReportVisuals",
       "status": "pass"
     }
   ]

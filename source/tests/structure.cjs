@@ -1,4 +1,4 @@
-const fs=require('fs'),assert=require('assert/strict'),{loadApp}=require('./harness.cjs');
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{loadApp}=require('./harness.cjs');
 const {ctx}=loadApp(),results=[];
 const pages=['dashboard','import','masterData','studentProfile','teacherData','data','quality','classes','teachers','departments','school','comparison','value','levels','struggling','reports','customReports','reportDesign','backups','settings'];
 for(const mode of ['empty','demo'])for(const page of pages){let index=0;const workspace=mode==='demo'?ctx.zj():ctx.Aj();
@@ -16,5 +16,8 @@ try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='functi
 try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.MasterData({workspace,setWorkspace:()=>{},onNavigate:()=>{}}));results.push({name:'masterData68',status:'pass'});}catch(error){results.push({name:'masterData68',status:'fail',error:error.stack});}
 try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.StudentProfile({workspace,onNavigate:()=>{}}));results.push({name:'studentProfile68',status:'pass'});}catch(error){results.push({name:'studentProfile68',status:'fail',error:error.stack});}
 
+try{const reports=fs.readFileSync(path.join(__dirname,'../src/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8');assert.ok(reports.includes('level-overview')&&reports.includes('report-meter')&&reports.includes('فوق المتوسط')&&reports.includes('في المتوسط')&&reports.includes('دون المتوسط'));assert.ok(css.includes('.report-meter')&&css.includes('.level-overview')&&css.includes('.level-macro-badge'));results.push({name:'premiumReportVisuals',status:'pass'});}catch(error){results.push({name:'premiumReportVisuals',status:'fail',error:error.stack});}
+
 const report={method:'Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results};
 fs.writeFileSync('tests/output/structure-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
+
