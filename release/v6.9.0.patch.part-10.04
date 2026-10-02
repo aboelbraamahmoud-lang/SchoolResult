@@ -1,0 +1,6 @@
+:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
++ fs.writeFileSync('tests/output/results.json',JSON.stringify({version:'6.9.0',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
+  console.log(JSON.stringify({passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length}));if(results.some(r=>r.status==='fail'))process.exitCode=1;
+ }
+ main().catch(error=>{console.error(error);process.exitCode=1});
+diff --git a/source/tests/release.cjs b/source/tests/release.cjs

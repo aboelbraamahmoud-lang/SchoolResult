@@ -1,0 +1,17 @@
+st body=[];
+   for(const group of data.subjectGroups){
+-    body.push((0,q.jsx)(`tr`,{className:`grade-subject-banner`,children:(0,q.jsxs)(`td`,{colSpan:4,children:[(0,q.jsx)(`strong`,{children:group.subject}),(0,q.jsx)(`span`,{children:` · جميع شعب ${grade}`})]})},`subject-${group.subject}`));
++    body.push((0,q.jsx)(`tr`,{className:`grade-subject-banner`,children:(0,q.jsxs)(`td`,{colSpan:4,children:[(0,q.jsx)(`strong`,{children:group.subject}),(0,q.jsx)(`span`,{children:` · جميع شعب ${grade}${SR63.subjectCoordinator(n,group.subject)?` · منسق المادة: ${SR63.subjectCoordinator(n,group.subject)}`:``}`})]})},`subject-${group.subject}`));
+     for(const cls of group.classGroups){
+       cls.teachers.forEach((item,index)=>body.push((0,q.jsxs)(`tr`,{className:`grade-class-teacher-row ${index===0?`class-start`:``}`,children:[
+         ...(index===0?[(0,q.jsx)(`td`,{className:`grade-class-name`,rowSpan:cls.teachers.length,children:cls.className})]:[]),
+diff --git a/source/tests/regression.cjs b/source/tests/regression.cjs
+index 21d62bc..a917f17 100644
+--- a/source/tests/regression.cjs
++++ b/source/tests/regression.cjs
+@@ -28,6 +28,8 @@ async function main(){
+  await test('تطبيع أسماء الشعب العربية',()=>same(['السابع أ','٧/أ','7/1'].map(c.lj),['7/1','7/1','7/1']));
+  await test('تمييز الطلاب الفريدين عن نتائج المواد',()=>{const m=c.bj([row(),row('S-1','الرياضيات')],'exam1',c.ej);same([m.students,m.rows,m.evaluated],[1,2,2]);});
+  await test('ترحيل الهيكل الأكاديمي من بيانات 6.7 تلقائيًا',()=>{const w=workspace(),m=c.kj(w);assert.equal(m.version,7);same([m.grades.length,m.classes.length,m.subjects.length],[1,2,1]);assert.ok(m.teachers[0].teacherId);assert.ok(m.teacherAssignments[0].classId&&m.teacherAssignments[0].subjectId);});
++ await test('منسق المادة ينتقل إلى سجل المادة ويظهر من مرجع واحد',()=>{const w=workspace(),m=c.kj(w);assert.equal(c.SR63.subjectCoordinator(m,'العلوم'),'منسق أ');m.subjects[0].coordinatorName='منسق العلوم';m.subjects[0].coordinatorId='';assert.equal(c.SR63.subjectCoordinator(m,'العلوم'),'منسق العلوم');});
++ await test('خريطة منسقي المواد تعكس قاعدة المواد السحابية',()=>{const w=c.kj(workspace());w.subjects[0].coordinatorName='منسق العلوم';const map=c.SR63.subjectCoordinatorMap(w);
