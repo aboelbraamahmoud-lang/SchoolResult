@@ -23,7 +23,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Apply subject-aware report logic
+
+      - name: Wire subject-aware report services
         shell: bash
         run: |
           python - <<'PY'
@@ -32,11 +33,12 @@ jobs:
 
           build=Path('source/build.cjs')
           s=build.read_text(encoding='utf-8')
-          old_services="'imports.js','report-scope.js','reports.js'"
-          new_services="'imports.js','report-scope.js','report-grouping.js','reports.js'"
-          if old_services not in s:
+
+          old="'imports.js','report-scope.js','reports.js','ui.js'"
+          new="'imports.js','report-scope.js','report-grouping.js','reports.js','report-overrides.js','ui.js'"
+          if old not in s:
               raise SystemExit('service chain anchor missing')
-          s=s.replace(old_services,new_services,1)
+          s=s.replace(old,new,1)
 
           route="if(i===`departmentStats`)return SR63.departmentStatsPages(e,a,r);if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);"
           routed="if(i===`departmentStats`)return SR63.departmentStatsPages(e,a,r);if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);if(i===`teachers`)return SR63.reportTeacherSequence(e,a,n,r);"
@@ -50,86 +52,59 @@ jobs:
               raise SystemExit('report header subject anchor missing')
           s=s.replace(header,fixed,1)
 
-          s=s.replace("الإصدار 6.9.12 — إعادة بناء منطق فلترة التقارير","الإصدار 6.9.13 — ربط المعلم بالمادة وتصحيح نطاقات التقارير",1)
+          s=s.replace('الإصدار 6.9.12 — إعادة بناء منطق فلترة التقارير','الإصدار 6.9.13 — ربط المعلم بالمادة وتصحيح نطاقات التقارير',1)
           build.write_text(s,encoding='utf-8')
 
-          # Keep runtime service version aligned.
           engine=Path('source/src/engine.js')
           et=engine.read_text(encoding='utf-8').replace("version:'6.9.5'","version:'6.9.13'",1)
           engine.write_text(et,encoding='utf-8')
 
-          # Comparison report must show its resolved subject explicitly.
-          reports=Path('source/src/reports.js')
-          r=reports.read_text(encoding='utf-8')
-          old="children:[(0,q.jsxs)(`b`,{children:[`الصف: `,e.className]}),(0,q.jsxs)(`span`,{children:[`المعلم: `,e.teacher||`غير مربوط`]}),(0,q.jsxs)(`span`,{children:[fromExam.name,` ← `,toExam.name]})]"
-          new="children:[(0,q.jsxs)(`b`,{children:[`الصف: `,e.className]}),(0,q.jsxs)(`span`,{children:[`المعلم: `,e.teacher||`غير مربوط`]}),(0,q.jsxs)(`span`,{children:[`المادة: `,SR63.reportDisplaySubject(e,n)]}),(0,q.jsxs)(`span`,{children:[fromExam.name,` ← `,toExam.name]})]"
-          if old not in r:
-              raise SystemExit('comparison metadata anchor missing')
-          r=r.replace(old,new,1)
-
-          # Department statistics: one row per teacher + class, never merge teacher names into one row.
-          start=r.find('function SRDepartmentStatsReport')
-          end=r.find('\nfunction SRLevelAnalysisReport',start)
-          if start<0 or end<0:
-              raise SystemExit('department report function not found')
-          dept=r'''function SRDepartmentStatsReport({page:e,exam:t,workspace:n}){
-  const grades=[...new Set(e.allRows.map(row=>gj(row,t)).filter(Boolean))].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||a.localeCompare(b,'ar',{numeric:true})),body=[];
-  for(const grade of grades){
-    const gradeRows=e.allRows.filter(row=>gj(row,t)===grade),classes=[...new Set(gradeRows.map(row=>hj(row,t)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
-    body.push((0,q.jsx)(`tr`,{className:`dept-grade-banner`,children:(0,q.jsx)(`th`,{colSpan:9,children:grade})},`grade-${grade}`));
-    for(const className of classes){
-      const classRows=gradeRows.filter(row=>hj(row,t)===className),teacherNames=[...new Set(classRows.map(row=>mj(row,t)).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
-      const groups=teacherNames.length?teacherNames:[`غير مربوط`];
-      for(const teacher of groups){
-        const rows=teacher===`غير مربوط`?classRows.filter(row=>!mj(row,t)):classRows.filter(row=>ij(mj(row,t))===ij(teacher)),m=bj(rows,t,n.settings),notEvaluated=m.absent+m.excused+m.unexcused+m.deprived;
-        body.push((0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:teacher}),(0,q.jsx)(`td`,{children:SR63.displayClass(className)}),(0,q.jsx)(`td`,{children:m.students}),(0,q.jsx)(`td`,{children:m.evaluated}),(0,q.jsx)(`td`,{children:notEvaluated}),(0,q.jsx)(`td`,{children:m.passed}),(0,q.jsx)(`td`,{children:m.failed}),(0,q.jsx)(`td`,{className:`dept-metric-cell`,children:SR63.renderReportValue(m.success,'success')}),(0,q.jsx)(`td`,{className:`dept-metric-cell`,children:SR63.renderReportValue(m.achievement,'achievement')})]},`${className}-${teacher}`));
-      }
-    }
-    const gm=bj(gradeRows,t,n.settings);
-    body.push((0,q.jsxs)(`tr`,{className:`dept-grade-total`,children:[(0,q.jsx)(`td`,{colSpan:2,children:`على مستوى ${grade}`}),(0,q.jsx)(`td`,{children:gm.students}),(0,q.jsx)(`td`,{children:gm.evaluated}),(0,q.jsx)(`td`,{children:gm.absent+gm.excused+gm.unexcused+gm.deprived}),(0,q.jsx)(`td`,{children:gm.passed}),(0,q.jsx)(`td`,{children:gm.failed}),(0,q.jsx)(`td`,{className:`dept-metric-cell`,children:SR63.renderReportValue(gm.success,'success')}),(0,q.jsx)(`td`,{className:`dept-metric-cell`,children:SR63.renderReportValue(gm.achievement,'achievement')})]},`total-${grade}`));
-  }
-  const overall=bj(e.allRows,t,n.settings);
-  return(0,q.jsxs)(q.Fragment,{children:[(0,q.jsxs)(`div`,{className:`dept-report-meta`,children:[(0,q.jsxs)(`span`,{children:[`المادة: `,(0,q.jsx)(`b`,{children:e.subject})]}),(0,q.jsxs)(`span`,{children:[`منسق المادة: `,(0,q.jsx)(`b`,{children:SR63.subjectCoordinator(n,e.subject)||'—'})]}),(0,q.jsxs)(`span`,{children:[`التقييم: `,(0,q.jsx)(`b`,{children:tj(n.settings,t).name})]})]}),(0,q.jsxs)(`table`,{className:`report-table dept-stats-table`,children:[(0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[`اسم المعلم`,`الشعبة`,`عدد الطلاب`,`حاضر/مقيم`,`غير مقيم`,`ناجح`,`راسب`,`نسبة النجاح`,`نسبة التحصيل`].map(h=>(0,q.jsx)(`th`,{children:h},h))})}),(0,q.jsx)(`tbody`,{children:body}),(0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{colSpan:2,children:`على مستوى المادة`}),(0,q.jsx)(`th`,{children:overall.students}),(0,q.jsx)(`th`,{children:overall.evaluated}),(0,q.jsx)(`th`,{children:overall.absent+overall.excused+overall.unexcused+overall.deprived}),(0,q.jsx)(`th`,{children:overall.passed}),(0,q.jsx)(`th`,{children:overall.failed}),(0,q.jsx)(`th`,{className:`dept-metric-cell`,children:SR63.renderReportValue(overall.success,'success')}),(0,q.jsx)(`th`,{className:`dept-metric-cell`,children:SR63.renderReportValue(overall.achievement,'achievement')})]})})]})]});
-}
-'''
-          r=r[:start]+dept+r[end:]
-          reports.write_text(r,encoding='utf-8')
-
-          vp=Path('version.json')
-          v=json.loads(vp.read_text(encoding='utf-8'))
+          version=Path('version.json')
+          v=json.loads(version.read_text(encoding='utf-8'))
           v['version']='6.9.13'
           v['released']='2026-10-02'
-          v['notes']='تصحيح شامل لمنطق التقارير: المادة تُستنتج تلقائيًا مع المعلم، تقارير المعلمين مرتبة حسب المادة، فلتر المادة يعرض معلميها فقط، وإحصائية القسم تفصل كل معلم في سطر مستقل.'
-          vp.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          v['notes']='تصحيح منطق التقارير: ربط المعلم بمادته تلقائيًا، ترتيب تقارير المعلمين حسب المادة، فلترة معلمي المادة فقط، وفصل المعلمين داخل إحصائية القسم.'
+          version.write_text(json.dumps(v,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 
           for name in ['README.md','source/README.txt','source/tests/release.cjs']:
               p=Path(name)
               if p.exists():
                   p.write_text(p.read_text(encoding='utf-8').replace('6.9.12','6.9.13'),encoding='utf-8')
           PY
+
       - name: Build runtime
         run: cd source && node --expose-internals build.cjs
-      - name: Subject-aware report grouping tests
+
+      - name: Subject-aware grouping tests
         run: cd source && node --expose-internals tests/report-grouping.cjs
-      - name: Report-scope regression tests
+
+      - name: Scope tests
         run: cd source && node --expose-internals tests/report-scope.cjs
-      - name: Full regression tests
+
+      - name: Regression tests
         run: cd source && node --expose-internals tests/regression.cjs
+
       - name: Cloud tests
         run: cd source && node --expose-internals tests/cloud.cjs
+
       - name: Structure tests
         run: cd source && node --expose-internals tests/structure.cjs
-      - name: Verify runtime report logic
+
+      - name: Verify runtime logic
         run: |
           node - <<'NODE'
-          const fs=require('fs');const app=fs.readFileSync('app.js','utf8');
+          const fs=require('fs');
+          const app=fs.readFileSync('app.js','utf8');
           for(const key of ['reportTeacherSequence','reportDisplaySubject','reportSubjectOrder','normalizeReportPage']) if(!app.includes(key)) throw Error('missing '+key);
-          if(!app.includes('المادة: ')) throw Error('report subject label missing');
+          if(!app.includes('كل المواد')) throw Error('expected all-subject comparison support missing');
           NODE
+
       - name: Generate hashes
         run: cd source && node release.cjs
+
       - name: Release tests
         run: cd source && node tests/release.cjs
+
       - name: Commit verified 6.9.13
         shell: bash
         run: |
