@@ -1,0 +1,88 @@
+name: Build and verify SchoolResult
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'release/*.patch.part-*'
+      - '.github/workflows/build-release.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: schoolresult-release-main
+  cancel-in-progress: false
+
+jobs:
+  build-test-release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Assemble and verify release patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t PARTS < <(find release -maxdepth 1 -type f -name '*.patch.part-*' -print | sort -V)
+          test "${#PARTS[@]}" -gt 0
+          cat "${PARTS[@]}" > /tmp/SchoolResult-release.patch
+          echo "4253d1074ddde87bf2978b760bc30a5a5bd75f6f27a1f285f4d9cd6b617f0815  /tmp/SchoolResult-release.patch" | sha256sum -c -
+
+      - name: Apply release patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATCH=/tmp/SchoolResult-release.patch
+          if git apply --check "$PATCH" >/dev/null 2>&1; then
+            rm -f README.md
+            git apply --whitespace=nowarn "$PATCH"
+          elif git apply --reverse --check "$PATCH" >/dev/null 2>&1; then
+            echo "Release patch is already applied."
+          else
+            rm -f README.md
+            git apply --check "$PATCH"
+            git apply --whitespace=nowarn "$PATCH"
+          fi
+
+      - name: Build runtime
+        run: cd source && node --expose-internals build.cjs
+
+      - name: Regression and migration tests
+        run: cd source && node --expose-internals tests/regression.cjs
+
+      - name: Cloud adapter tests
+        run: cd source && node --expose-internals tests/cloud.cjs
+
+      - name: Structure and UI tests
+        run: cd source && node --expose-internals tests/structure.cjs
+
+      - name: Generate release manifest and checksums
+        run: cd source && node release.cjs
+
+      - name: Release and security tests
+        run: cd source && node tests/release.cjs
+
+      - name: Commit verified release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Verified release is already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          VERSION="$(node -p "require('./version.json').version")"
+          git commit -m "Build SchoolResult v${VERSION}"
+          git push origin HEAD:main

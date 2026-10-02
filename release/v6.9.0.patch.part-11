@@ -1,0 +1,119 @@
+index a70897f..aa7f76d 100644
+--- a/source/tests/release.cjs
++++ b/source/tests/release.cjs
+@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=requ
+ const root=path.resolve(__dirname,'../..');
+ const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+ const version=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
+-assert.equal(version.version,'6.8.0');
++assert.equal(version.version,'6.9.0');
+ const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+ assert.ok(app.includes("school_archive_get"),'archive on-demand RPC missing');
+ assert.ok(app.includes("school_archive_delete"),'archive delete RPC missing');
+diff --git a/source/tests/structure.cjs b/source/tests/structure.cjs
+index eee05fa..ded214f 100644
+--- a/source/tests/structure.cjs
++++ b/source/tests/structure.cjs
+@@ -10,7 +10,7 @@ ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}]};
+ for(const name of ['archive','reportHeader','cloudLogin'])try{const workspace=ctx.zj();assert.ok(name==='cloudLogin'?ctx.SR63.CloudApp():name==='archive'?ctx.SR63.Archives({workspace,snapshots:[],status:'اختبار',bytes:0}):ctx.M9({workspace,title:'ملخص النتائج',subject:'كل المواد',assessment:workspace.settings.exams[0].name}));results.push({name,status:'pass'});}catch(error){results.push({name,status:'fail',error:error.stack});}
+ try{const workspace=ctx.zj(),page=ctx.SR63.gradeSubjectPages(workspace.rows,workspace.activeExam,'الكل')[0];assert.ok(page);assert.ok(ctx.SRGradeSubjectsReport({page,exam:workspace.activeExam,workspace}));results.push({name:'gradeSubjectsReport',status:'pass'});}catch(error){results.push({name:'gradeSubjectsReport',status:'fail',error:error.stack});}
+ 
+-try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.Dashboard({workspace,onNavigate:()=>{}}));results.push({name:'dashboard68',status:'pass'});}catch(error){results.push({name:'dashboard68',status:'fail',error:error.stack});}
++try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.Dashboard({workspace,onNavigate:()=>{}}));assert.ok(ctx.SR63.DashboardTrendChart({items:ctx.XA.map(exam=>({exam,metric:ctx.bj(workspace.rows,exam,workspace.settings)})),settings:workspace.settings}));results.push({name:'dashboard69',status:'pass'});}catch(error){results.push({name:'dashboard69',status:'fail',error:error.stack});}
+ try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.MasterData({workspace,setWorkspace:()=>{},onNavigate:()=>{}}));results.push({name:'masterData68',status:'pass'});}catch(error){results.push({name:'masterData68',status:'fail',error:error.stack});}
+ try{const workspace=ctx.zj();ctx.v={...ctx.v,useState:arg=>[typeof arg==='function'?arg():arg,()=>{}],useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value})};assert.ok(ctx.SR63.StudentProfile({workspace,onNavigate:()=>{}}));results.push({name:'studentProfile68',status:'pass'});}catch(error){results.push({name:'studentProfile68',status:'fail',error:error.stack});}
+ 
+diff --git a/version.json b/version.json
+index 9c978f9..1d46872 100644
+--- a/version.json
++++ b/version.json
+@@ -1,7 +1,7 @@
+ {
+   "product": "مرصد النتائج المدرسية",
+   "edition": "cloud",
+-  "version": "6.8.0",
++  "version": "6.9.0",
+   "released": "2026-10-02",
+   "updateFiles": [
+     "app.js",
+@@ -13,5 +13,5 @@
+   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
+   "project": "school-results",
+   "workspaceSchema": 7,
+-  "notes": "هيكل أكاديمي مترابط، ربط تلقائي للنتائج بالمعلمين، ملف أكاديمي للطالب، ولوحة قيادة تنفيذية مطورة."
++  "notes": "لوحة قيادة تحليلية مطورة برسوم بيانية في الأعلى، قائمة جانبية احترافية جديدة، ومنسق مادة محفوظ سحابيًا ومستخدم تلقائيًا في التقارير."
+ }
+diff --git "a/\330\247\330\250\330\257\330\243-\331\207\331\206\330\247.txt" "b/\330\247\330\250\330\257\330\243-\331\207\331\206\330\247.txt"
+index 07e0e81..b916386 100644
+--- "a/\330\247\330\250\330\257\330\243-\331\207\331\206\330\247.txt"
++++ "b/\330\247\330\250\330\257\330\243-\331\207\331\206\330\247.txt"
+@@ -1,4 +1,4 @@
+-مرصد النتائج المدرسية — الإصدار السحابي 6.8.0
++مرصد النتائج المدرسية — الإصدار السحابي 6.9.0
+ 
+ قاعدة البيانات جاهزة ومربوطة بالفعل:
+ المشروع: school-results
+diff --git "a/\330\252\330\271\331\204\331\212\331\205\330\247\330\252-\330\247\331\204\330\252\330\264\330\272\331\212\331\204.txt" "b/\330\252\330\271\331\204\331\212\331\205\330\247\330\252-\330\247\331\204\330\252\330\264\330\272\331\212\331\204.txt"
+index 07e0e81..b916386 100644
+--- "a/\330\252\330\271\331\204\331\212\331\205\330\247\330\252-\330\247\331\204\330\252\330\264\330\272\331\212\331\204.txt"
++++ "b/\330\252\330\271\331\204\331\212\331\205\330\247\330\252-\330\247\331\204\330\252\330\264\330\272\331\212\331\204.txt"
+@@ -1,4 +1,4 @@
+-مرصد النتائج المدرسية — الإصدار السحابي 6.8.0
++مرصد النتائج المدرسية — الإصدار السحابي 6.9.0
+ 
+ قاعدة البيانات جاهزة ومربوطة بالفعل:
+ المشروع: school-results
+diff --git "a/\330\252\331\202\330\261\331\212\330\261-\330\247\331\204\330\247\330\256\330\252\330\250\330\247\330\261\330\247\330\252.txt" "b/\330\252\331\202\330\261\331\212\330\261-\330\247\331\204\330\247\330\256\330\252\330\250\330\247\330\261\330\247\330\252.txt"
+index ce646ba..64e075d 100644
+--- "a/\330\252\331\202\330\261\331\212\330\261-\330\247\331\204\330\247\330\256\330\252\330\250\330\247\330\261\330\247\330\252.txt"
++++ "b/\330\252\331\202\330\261\331\212\330\261-\330\247\331\204\330\247\330\256\330\252\330\250\330\247\330\261\330\247\330\252.txt"
+@@ -1,28 +1,16 @@
+-تقرير اختبارات مرصد النتائج المدرسية — Cloud v6.8.0
+-التاريخ: 2 أكتوبر 2026
++SchoolResult — تقرير الاختبارات
++الإصدار: 6.9.0
++التاريخ: 2026-10-02
+ 
+-النتيجة النهائية:
+-- اختبارات المنطق والاستيراد والتصدير والترحيل والهيكل الأكاديمي: 64 / 64 ناجحة.
+-- اختبارات السحابة والحفظ والتعارض والأرشيف: 22 / 22 ناجحة.
+-- الاختبارات البنيوية للواجهات والمكونات: 47 / 47 ناجحة.
+-- اختبارات الإصدار والأمان والبصمات: 11 / 11 ناجحة.
+-- الإجمالي: 144 / 144 ناجحة.
++النتائج النهائية:
++- اختبارات المنطق والاستيراد والترحيل: 66/66
++- اختبارات السحابة والحفظ والتعارضات: 22/22
++- اختبارات بنية الواجهات والتقارير: 47/47
++- اختبارات الإصدار والبصمات والأمان: 11/11
++- الإجمالي: 146/146 ناجحة
+ 
+-أهم اختبارات 6.8.0:
+-- ترحيل بيانات 6.7.x تلقائيًا إلى Workspace Schema 7 مع اشتقاق الصفوف والشعب والمواد من البيانات الحالية.
+-- رفع نتيجة بلا اسم معلم وربطها تلقائيًا بالمعلم الصحيح من المادة + الشعبة.
+-- تغيير معلم خلية في خريطة التكليفات يستبدل التكليف دون إنشاء ازدواجية.
+-- الملف الأكاديمي يجمع مواد الطالب واختباراته بصورة صحيحة.
+-- لوحة القيادة تطبق فلاتر الصف والمادة وتبني الخريطة الحرارية.
+-- نموذج الاستيراد الموحد الجديد يقرأ 4 اختبارات و12 سجل اختبار لعينة 3 طلاب دون عمود معلم.
+-- إعادة الاستيراد لا تضاعف النتائج، وتحديث الشعبة لا يفقد الدرجة.
+-- استمرار التراجع عن الاستيراد والتعديلات اليدوية مع الحفاظ على الاختبارات الأخرى.
+-- اختبار تصدير XLSX وإعادة استيراده مع حفظ الأرقام والحالات والمعلمين التاريخيين والشعب.
+-- تجميع 100,000 سجل في اختبار Node مع الحفاظ على الإجمالي؛ آخر تشغيل معزول استغرق قرابة 457ms (الزمن إرشادي ويتغير حسب الجهاز).
+-
+-ملاحظات منهجية:
+-- اختبارات المنطق تشغّل كود التطبيق الفعلي في Node مع استبعاد Bootstrap الخاص بالمتصفح.
+-- اختبارات السحابة تستخدم محاكي ردود SDK وتتحقق من revision/conflict/retry/archive RPC وعدم الرجوع لتخزين النتائج في المتصفح.
+-- اختبارات البنية تفحص شجرة عناصر الواجهة دون متصفح حقيقي.
+-- JavaScript النهائي يخضع لفحص syntax أثناء البناء وبعده.
+-- لا ندّعي هنا اختبارًا بصريًا فعليًا داخل Chrome/Edge؛ بيئة الاختبار الحالية تمنع تنقل المتصفح الآلي المحلي. يوصى بمراجعة بصرية سريعة بعد الرفع على GitHub Pages.
++ملاحظات:
++- تم بناء app.js والتحقق من صحة JavaScript بنجاح.
++- تم التحقق من منسق المادة وترحيله من البيانات القديمة عند توفره.
++- تم التحقق من لوحة القيادة الجديدة كعنصر React وبنية الرسوم.
++- اختبارات البنية لا تمثل اختبارًا بصريًا داخل متصفح حقيقي.
+diff --git "a/\330\263\330\254\331\204-\330\247\331\204\330\252\330\255\330\263\331\212\331\206\330\247\330\252.txt" "b/\330\263\330\254\331\204-\330\247\331\204\330\252\330\255\330\263\331\212\331\206\330\247\330\252.txt"
+index 3608968..1e4efb4 100644
+--- "a/\330\263\330\254\331\204-\330\247\331\204\330\252\330\255\330\263\331\212\331\206\330\247\330\252.txt"
++++ "b/\330\263\330\254\331\204-\330\247\331\204\330\252\330\255\330\263\331\212\331\206\330\247\330\252.txt"
+@@ -1,4 +1,10 @@
+-الإصدار السحابي 6.8.0 — 2 أكتوبر 2026
++الإصدار 6.9.0
