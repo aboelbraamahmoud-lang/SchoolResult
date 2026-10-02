@@ -1,7 +1,7 @@
 ﻿param([string]$SourceDirectory = (Join-Path $PSScriptRoot 'تحديث'))
 $ErrorActionPreference = 'Stop'
 $TargetDirectory = $PSScriptRoot
-$AllowedNames = @('app.js', 'style.css', 'version.json', 'index.html', 'supabase.js')
+$AllowedNames = @('app.js', 'style.css', 'version.json', 'index.html', 'supabase.js', 'moehe.png')
 $BackupDirectory = $null
 $Touched = @()
 $ExistingNames = @{}
@@ -26,7 +26,7 @@ try {
     $Manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($Manifest.product -ne 'School Results Cloud' -or !$Manifest.version) { throw 'بيانات حزمة التحديث غير صالحة.' }
     $Entries = @($Manifest.files)
-    if ($Entries.Count -ne $AllowedNames.Count) { throw 'يلزم تحديث ملفات الواجهة الخمسة معًا، بما فيها index.html وsupabase.js.' }
+    if ($Entries.Count -ne $AllowedNames.Count) { throw 'يلزم تحديث ملفات الواجهة الستة معًا، بما فيها index.html وsupabase.js وشعار الوزارة.' }
     $Seen = @{}
     foreach ($Entry in $Entries) {
         if ($AllowedNames -notcontains $Entry.name -or $Seen.ContainsKey($Entry.name)) { throw 'اسم ملف غير مسموح به أو مكرر في حزمة التحديث.' }

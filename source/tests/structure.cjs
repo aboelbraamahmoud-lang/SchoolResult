@@ -24,6 +24,16 @@ try{const reports=fs.readFileSync(path.join(__dirname,'../src/patches/reports.js
 
 try{const reports=fs.readFileSync(path.join(__dirname,'../src/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8');assert.ok(reports.includes('report-delta-chip')&&reports.includes('isDelta=')&&reports.includes("tone=n>0?'positive':n<0?'negative':'neutral'"));assert.ok(css.includes('.report-delta-chip.delta-positive')&&css.includes('.report-delta-chip.delta-negative')&&css.includes('.report-delta-chip.delta-neutral')&&css.includes('6.9.6 — visual value-added'));results.push({name:'comparisonDeltaVisual696',status:'pass'});}catch(error){results.push({name:'comparisonDeltaVisual696',status:'fail',error:error.stack});}
 
+
+try{
+ const reports=fs.readFileSync(path.join(__dirname,'../src/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8'),workspace=ctx.zj();
+ assert.ok(reports.includes('function SRTargetRangeReport')&&reports.includes('function SRComparisonReport'));
+ assert.ok(css.includes('.target-range-hero')&&css.includes('.comparison-trend.trend-positive')&&css.includes('.comparison-trend.trend-negative'));
+ const cls=ctx.hj(workspace.rows[0],workspace.activeExam),rows=workspace.rows.filter(row=>ctx.hj(row,workspace.activeExam)===cls),page={rows,allRows:rows,rowOffset:0,className:cls,teacher:'',subject:rows[0]?.subject||'كل المواد'};
+ assert.ok(ctx.SRTargetRangeReport({page,exam:workspace.activeExam,threshold:workspace.settings.pass,workspace}));
+ assert.ok(ctx.SRComparisonReport({page,from:'exam1',to:workspace.activeExam,workspace}));
+ results.push({name:'targetAndComparisonVisuals697',status:'pass'});
+}catch(error){results.push({name:'targetAndComparisonVisuals697',status:'fail',error:error.stack});}
+
 const report={method:'Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results};
 fs.writeFileSync('tests/output/structure-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
-

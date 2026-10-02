@@ -1,7 +1,7 @@
 const fs=require('fs'),path=require('path'),crypto=require('crypto');
 const root=path.resolve(__dirname,'..');
 const version=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
-const updateFiles=['app.js','style.css','version.json','index.html','supabase.js'];
+const updateFiles=['app.js','style.css','version.json','index.html','supabase.js','moehe.png'];
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 for(const name of updateFiles)if(!fs.existsSync(path.join(root,name)))throw new Error('Missing update file: '+name);
 const manifest={product:'School Results Cloud',version:version.version,files:updateFiles.map(name=>({name,sha256:sha(path.join(root,name))}))};
