@@ -1,0 +1,22 @@
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=require('assert/strict');
+const root=path.resolve(__dirname,'../..');
+const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+const version=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
+assert.equal(version.version,'6.9.16');
+const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
+assert.ok(app.includes("school_archive_get"),'archive on-demand RPC missing');
+assert.ok(app.includes("school_archive_delete"),'archive delete RPC missing');
+assert.ok(!app.includes("from('school_archives').delete"),'direct archive delete leaked into browser bundle');
+assert.ok(!app.includes('/api/workspace/snapshots'),'legacy local snapshot endpoint leaked into build');
+assert.ok(!app.includes('service_role'),'service role must never appear in browser bundle');
+const updater=fs.readFileSync(path.join(root,'update.ps1'),'utf8');
+assert.ok(updater.includes('Compare-SemVer'),'updater downgrade guard missing');
+assert.ok(updater.includes('رُفض الرجوع إلى إصدار أقدم'),'updater downgrade rejection message missing');
+const manifest=JSON.parse(fs.readFileSync(path.join(root,'update-manifest.json'),'utf8'));
+assert.equal(manifest.version,version.version);
+for(const entry of manifest.files)assert.equal(sha(path.join(root,entry.name)),entry.sha256,`manifest hash mismatch: ${entry.name}`);
+const checksums=fs.readFileSync(path.join(root,'checksums.sha256'),'utf8').trim().split(/\r?\n/).filter(Boolean);
+assert.ok(!checksums.some(line=>line.includes('source/tests/output/')),'mutable test output must not be in stable checksums');
+assert.ok(!checksums.some(line=>line.endsWith('  checksums.sha256')),'checksum file must not checksum itself');
+for(const line of checksums){const match=/^([a-f0-9]{64})  (.+)$/.exec(line);assert.ok(match,'invalid checksum line');const file=path.join(root,...match[2].split('/'));assert.ok(fs.existsSync(file),`checksum target missing: ${match[2]}`);assert.equal(sha(file),match[1],`checksum mismatch: ${match[2]}`);}
+console.log(JSON.stringify({passed:11,failed:0,version:version.version,stableChecksums:checksums.length,updateFiles:manifest.files.length}));
