@@ -1,0 +1,79 @@
+diff --git a/README.md b/README.md
+index 09755e7..e6f3773 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,6 @@
+ # SchoolResult — مرصد النتائج المدرسية
+ 
+-الإصدار السحابي الحالي: **6.9.9**
++الإصدار السحابي الحالي: **6.9.10**
+ 
+ منصة تحليل وإدارة نتائج مدرسية مرتبطة بـ Supabase، وتشمل:
+ - إدارة الصفوف والشعب والمواد والمعلمين والتكليفات التدريسية.
+@@ -20,7 +20,7 @@
+ ## التحقق
+ الملف `checksums.sha256` يحتوي بصمات ملفات الإصدار، و`update-manifest.json` يحتوي بصمات ملفات التحديث الجزئي.
+ 
+-## تقارير 6.9.9
++## تقارير 6.9.10
+ - مقارنة المواد: بيان نسب النجاح وبيان نسب التحصيل الأكاديمي لكل صف دراسي، الشعب صفوف والمواد أعمدة.
+ - تحليل المستويات: فوق المتوسط / في المتوسط / تحت المتوسط.
+ - إحصائية نتائج القسم: الصفوف والشعب والمعلمون والحضور والنجاح والتحصيل.
+@@ -32,7 +32,7 @@
+ - إضافة هوية وزارة التربية والتعليم والتعليم العالي وشعارها في رأس التقارير، مع إبقاء شعار المدرسة مستقلًا عند تفعيله.
+ - تحويل بيانات السياق إلى شرائط صغيرة أفقية ومنع تمددها الرأسي غير الضروري في الطباعة والمعاينة.
+ 
+-## واجهة 6.9.9
++## واجهة 6.9.10
+ - قائمة جانبية أكثر فخامة بتدرجات وإضاءة دقيقة، مع رأس ثابت ومضغوط للشعار والبحث فقط.
+ - تمرير واحد للقائمة الجانبية كاملة، مع مجموعات تنقل أوضح وحالة نشطة أكثر بروزًا.
+ - لوحة قيادة تنفيذية مطورة بمؤشرات قرار سريعة، رسم توزيع ناجح/راسب، واتجاهات أداء في أعلى الصفحة.
+diff --git a/source/README.txt b/source/README.txt
+index fd3d645..5cac9be 100644
+--- a/source/README.txt
++++ b/source/README.txt
+@@ -1,4 +1,4 @@
+-مشروع تطوير الإصدار السحابي 6.9.9
++مشروع تطوير الإصدار السحابي 6.9.10
+ هذه حزمة إصلاح قابلة للبناء فوق الملف المجمع الأصلي، وليست ملفات TSX الأصلية.
+ قاعدة البيانات موجودة بالفعل؛ db/schema.sql مرجع لبناء مشروع جديد فقط. لا تضف مفاتيح secret أو service_role إلى الواجهة.
+ 
+@@ -10,7 +10,7 @@ node --expose-internals tests/structure.cjs
+ node release.cjs
+ node tests/release.cjs
+ 
+-الإصدار 6.9.9 يستخدم Workspace Schema 7 ويضيف الهيكل الأكاديمي المترابط، ربط المعلم تلقائيًا من المادة + الشعبة، الملف الأكاديمي للطالب، ولوحة القيادة التنفيذية.
++الإصدار 6.9.10 يستخدم Workspace Schema 7 ويضيف الهيكل الأكاديمي المترابط، ربط المعلم تلقائيًا من المادة + الشعبة، الملف الأكاديمي للطالب، ولوحة القيادة التنفيذية.
+ source/src/catalog.js وsource/src/master-ui.js هما نقطتا التطوير الرئيسيتان لهذه الوظائف.
+ الجلسة تُدار بمكتبة Supabase المضمّنة؛ نتائج المدرسة لا تُحفظ محليًا كمصدر authoritative.
+ release.cjs يعيد إنشاء update-manifest.json وchecksums.sha256، ويستبعد tests/output لأنها ملفات متغيرة.
+diff --git a/source/build.cjs b/source/build.cjs
+index eebd59f..3da9639 100644
+--- a/source/build.cjs
++++ b/source/build.cjs
+@@ -61,7 +61,7 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة
+ replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
+ replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
+ replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
+-replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.9 — تقارير استهداف ومقارنة بصرية مطورة');
++replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.10 — إصلاح شعار الوزارة ورأس التقارير');
+ replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
+ // Null-safe workbook exports and precise labels for student-subject records.
+ for(const [a,b] of [['children:`ناجح`','children:`نتائج ناجحة`'],['children:`راسب`','children:`نتائج راسبة`'],['children:`المقيمون`','children:`نتائج مقيمة`'],['`حاضر/مقيم`','`نتائج مقيمة`']])code=code.split(a).join(b);
+@@ -119,7 +119,7 @@ replace('children:e[t.key]','children:SR63.renderReportValue(e[t.key],t.key)');
+ replace('children:(0,q.jsx)(Nde,{})','children:(0,q.jsx)(SR63.CloudApp,{})');
+ replace('SR63.currentWorkspace=e},[e])','SR63.currentWorkspace=e},[e]);(0,v.useEffect)(()=>{SR63.settingsDirty=i},[i])');
+ replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)(()=>structuredClone(zj().settings))','function Nde(){let[e,t]=(0,v.useState)(()=>Aj()),[n,r]=(0,v.useState)(()=>structuredClone(Aj().settings))');
+-// 6.9.9 coordinator names in report signatures come from the academic catalog.
++// 6.9.10 coordinator names in report signatures come from the academic catalog.
+ code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
+ const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
+ code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
+diff --git a/source/src/patches/reports.js b/source/src/patches/reports.js
+index c2c7c62..3e2b220 100644
+--- a/source/src/patches/reports.js
++++ b/source/src/patches/reports.js
+@@ -1,5 +1,5 @@
+-/* 6.9.9 — compact official report header with local Ministry emblem asset. */
+-SR63.moeheEmblemData='./moehe.png';
++/* 6.9.10 — official Ministry logo embedded directly in every report; no path dependency
