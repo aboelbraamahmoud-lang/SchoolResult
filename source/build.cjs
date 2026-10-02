@@ -61,7 +61,7 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة 
 replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
 replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
 replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
-replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.11 — تثبيت شعار الوزارة في رأس التقارير');
+replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.12 — إعادة بناء منطق فلترة التقارير');
 replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
 // Null-safe workbook exports and precise labels for student-subject records.
 for(const [a,b] of [['children:`ناجح`','children:`نتائج ناجحة`'],['children:`راسب`','children:`نتائج راسبة`'],['children:`المقيمون`','children:`نتائج مقيمة`'],['`حاضر/مقيم`','`نتائج مقيمة`']])code=code.split(a).join(b);
@@ -75,6 +75,8 @@ replace('if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);','if(i===`depar
 // Print calls are guarded by data quality. Native pagination is allowed to flow.
 const reportStart=code.indexOf('function xde('),reportEnd=code.indexOf('function ',reportStart+10);
 let reportCode=code.slice(reportStart,reportEnd);
+// 6.9.12: every ordinary report receives a page re-scoped from its declared entity before any metric/rendering.
+reportCode=reportCode.split('page:t,').join('page:SR63.normalizeReportPage(t,n,n===`comparison`?m:u,e),');
 reportCode=reportCode.split('t.id===`subjects`&&(a(`className`),l(`الكل`),s(`الكل`))').join('t.id===`subjects`&&(a(`grade`),l(`الكل`),s(`الكل`))');
 reportCode=reportCode.split('x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`صف / شعبة`})').join('x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`صف دراسي`})');
 reportCode=reportCode.split('(0,q.jsx)(J,{children:i===`teacher`?`المعلم`:`الصف / الشعبة`})').join('(0,q.jsx)(J,{children:x?`الصف الدراسي`:i===`teacher`?`المعلم`:`الصف / الشعبة`})');
@@ -122,7 +124,7 @@ replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)((
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
 code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
 const ministryEmblem='data:image/png;base64,'+fs.readFileSync('../moehe.png').toString('base64');
-const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
+const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
 code=services+'\nSR63.moeheEmblemData='+JSON.stringify(ministryEmblem)+';\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync('../app.js',code);

@@ -1,5 +1,5 @@
 {
   "scope": "Isolated grouping, not browser rendering",
   "records": 100000,
-  "milliseconds": 442
+  "milliseconds": 555
 }
