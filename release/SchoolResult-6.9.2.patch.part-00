@@ -1,0 +1,68 @@
+diff --git a/README.md b/README.md
+index 8daae96..6f5cd42 100644
+--- a/README.md
++++ b/README.md
+@@ -1,6 +1,6 @@
+ # SchoolResult — مرصد النتائج المدرسية
+ 
+-الإصدار السحابي الحالي: **6.9.1**
++الإصدار السحابي الحالي: **6.9.2**
+ 
+ منصة تحليل وإدارة نتائج مدرسية مرتبطة بـ Supabase، وتشمل:
+ - إدارة الصفوف والشعب والمواد والمعلمين والتكليفات التدريسية.
+@@ -20,7 +20,7 @@
+ ## التحقق
+ الملف `checksums.sha256` يحتوي بصمات ملفات الإصدار، و`update-manifest.json` يحتوي بصمات ملفات التحديث الجزئي.
+ 
+-## تقارير 6.9.1
++## تقارير 6.9.2
+ - مقارنة المواد: بيان نسب النجاح وبيان نسب التحصيل الأكاديمي لكل صف دراسي، الشعب صفوف والمواد أعمدة.
+ - تحليل المستويات: فوق المتوسط / في المتوسط / تحت المتوسط.
+ - إحصائية نتائج القسم: الصفوف والشعب والمعلمون والحضور والنجاح والتحصيل.
+diff --git a/source/README.txt b/source/README.txt
+index d863750..aafd4a5 100644
+--- a/source/README.txt
++++ b/source/README.txt
+@@ -1,4 +1,4 @@
+-مشروع تطوير الإصدار السحابي 6.9.1
++مشروع تطوير الإصدار السحابي 6.9.2
+ هذه حزمة إصلاح قابلة للبناء فوق الملف المجمع الأصلي، وليست ملفات TSX الأصلية.
+ قاعدة البيانات موجودة بالفعل؛ db/schema.sql مرجع لبناء مشروع جديد فقط. لا تضف مفاتيح secret أو service_role إلى الواجهة.
+ 
+@@ -10,7 +10,7 @@ node --expose-internals tests/structure.cjs
+ node release.cjs
+ node tests/release.cjs
+ 
+-الإصدار 6.9.1 يستخدم Workspace Schema 7 ويضيف الهيكل الأكاديمي المترابط، ربط المعلم تلقائيًا من المادة + الشعبة، الملف الأكاديمي للطالب، ولوحة القيادة التنفيذية.
++الإصدار 6.9.2 يستخدم Workspace Schema 7 ويضيف الهيكل الأكاديمي المترابط، ربط المعلم تلقائيًا من المادة + الشعبة، الملف الأكاديمي للطالب، ولوحة القيادة التنفيذية.
+ source/src/catalog.js وsource/src/master-ui.js هما نقطتا التطوير الرئيسيتان لهذه الوظائف.
+ الجلسة تُدار بمكتبة Supabase المضمّنة؛ نتائج المدرسة لا تُحفظ محليًا كمصدر authoritative.
+ release.cjs يعيد إنشاء update-manifest.json وchecksums.sha256، ويستبعد tests/output لأنها ملفات متغيرة.
+diff --git a/source/build.cjs b/source/build.cjs
+index 491fc6d..7fe16ad 100644
+--- a/source/build.cjs
++++ b/source/build.cjs
+@@ -61,7 +61,7 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة
+ replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
+ replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
+ replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
+-replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.1 — تقارير مدرسية مطورة ولوحة قيادة تحليلية');
++replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.2 — تقارير بصرية مطورة ولوحة قيادة تحليلية');
+ replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
+ // Null-safe workbook exports and precise labels for student-subject records.
+ for(const [a,b] of [['children:`ناجح`','children:`نتائج ناجحة`'],['children:`راسب`','children:`نتائج راسبة`'],['children:`المقيمون`','children:`نتائج مقيمة`'],['`حاضر/مقيم`','`نتائج مقيمة`']])code=code.split(a).join(b);
+@@ -116,7 +116,7 @@ code=code.split('تحميل أحدث نسخة محلية').join('تحميل أح
+ replace('children:(0,q.jsx)(Nde,{})','children:(0,q.jsx)(SR63.CloudApp,{})');
+ replace('SR63.currentWorkspace=e},[e])','SR63.currentWorkspace=e},[e]);(0,v.useEffect)(()=>{SR63.settingsDirty=i},[i])');
+ replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)(()=>structuredClone(zj().settings))','function Nde(){let[e,t]=(0,v.useState)(()=>Aj()),[n,r]=(0,v.useState)(()=>structuredClone(Aj().settings))');
+-// 6.9.1 coordinator names in report signatures come from the academic catalog.
++// 6.9.2 coordinator names in report signatures come from the academic catalog.
+ code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
+ const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
+ code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
+diff --git a/source/src/repair.css b/source/src/repair.css
+index 8e55dd5..c267514 100644
+--- a/source/src/repair.css
++++ b/source/src/repair.css
+@@ -103,7 +103,7 @@
+ @media(max-width:620px){.sr69-command-hero{padding:1.1rem;border-radius:20px}.sr69-kpi-strip{grid-template-columns:1fr}.sr69-filterbar{grid-template-columns:1fr}.sr69-teacher-grid{grid-template-columns:1fr}.sr69-readiness-list{grid-template-columns:1fr}.sr69-bars{overflow-x:auto}.sr69-bar-row{min-width:580px}.sr69-chart-labels{grid-template-columns:repeat(2,1fr)}.sr69-grade-bars{overflow-x:auto}.sr69-grade-bars article{min-wid
