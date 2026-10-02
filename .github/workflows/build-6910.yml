@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'release/SchoolResult-6.9.10.patch'
+      - 'release/activate-6.9.10.txt'
   workflow_dispatch:
 
 permissions:
@@ -28,14 +28,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Verify and apply patch
+      - name: Assemble, verify and apply patch
         shell: bash
         run: |
           set -euo pipefail
-          PATCH='release/SchoolResult-6.9.10.patch'
-          echo '69d5a12c298cf52afec036753228c078fc3f891a0c232ef16ba95e5ee458bd5b  release/SchoolResult-6.9.10.patch' | sha256sum -c -
-          git apply --check "$PATCH"
-          git apply --whitespace=nowarn "$PATCH"
+          cat release/SchoolResult-6.9.10.patch.part-* > /tmp/SchoolResult-6.9.10.patch
+          echo '69d5a12c298cf52afec036753228c078fc3f891a0c232ef16ba95e5ee458bd5b  /tmp/SchoolResult-6.9.10.patch' | sha256sum -c -
+          git apply --check /tmp/SchoolResult-6.9.10.patch
+          git apply --whitespace=nowarn /tmp/SchoolResult-6.9.10.patch
 
       - name: Build runtime
         run: cd source && node --expose-internals build.cjs
