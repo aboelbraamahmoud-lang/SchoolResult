@@ -28,14 +28,14 @@ jobs:
         with:
           node-version: '22'
 
-      - name: Assemble, verify and apply patch
+      - name: Verify and apply compact source patch
         shell: bash
         run: |
           set -euo pipefail
-          cat release/SchoolResult-6.9.10.patch.part-* > /tmp/SchoolResult-6.9.10.patch
-          echo '69d5a12c298cf52afec036753228c078fc3f891a0c232ef16ba95e5ee458bd5b  /tmp/SchoolResult-6.9.10.patch' | sha256sum -c -
-          git apply --check /tmp/SchoolResult-6.9.10.patch
-          git apply --whitespace=nowarn /tmp/SchoolResult-6.9.10.patch
+          PATCH='release/SchoolResult-6.9.10-source.patch'
+          echo '5208f385b2e234e899ee77304f9688d37879cf55216bc8d1cae5b82bee3a7f5c  release/SchoolResult-6.9.10-source.patch' | sha256sum -c -
+          git apply --check "$PATCH"
+          git apply --whitespace=nowarn "$PATCH"
 
       - name: Build runtime
         run: cd source && node --expose-internals build.cjs
