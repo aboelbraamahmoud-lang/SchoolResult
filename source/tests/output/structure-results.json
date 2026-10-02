@@ -1,6 +1,6 @@
 {
   "method": "Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.",
-  "passed": 51,
+  "passed": 53,
   "failed": 0,
   "results": [
     {
@@ -245,6 +245,14 @@
     },
     {
       "name": "premiumUnified694",
+      "status": "pass"
+    },
+    {
+      "name": "compactOfficialReportHeader695",
+      "status": "pass"
+    },
+    {
+      "name": "comparisonDeltaVisual696",
       "status": "pass"
     }
   ]

@@ -1,6 +1,6 @@
 {
-  "version": "6.9.4",
-  "date": "2026-10-02T11:29:54.936Z",
+  "version": "6.9.5",
+  "date": "2026-10-02T12:03:30.158Z",
   "method": "Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.",
   "passed": 66,
   "failed": 0,

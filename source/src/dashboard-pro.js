@@ -1,4 +1,4 @@
-/* School Results 6.9.4 — premium executive dashboard and visual analytics. */
+/* School Results 6.9.5 — premium executive dashboard and visual analytics. */
 SR63.metricTone=function(value,pass){if(value===null||value===undefined)return 'neutral';if(value>=85)return 'excellent';if(value>=70)return 'good';if(value>=pass)return 'mid';return 'low';};
 SR63.DashboardTrendChart=function({items,settings}){
   const valid=items.filter(x=>x.metric.evaluated>0),w=720,h=250,pad=34,xStep=(w-pad*2)/Math.max(1,items.length-1),y=value=>h-pad-(Math.max(0,Math.min(100,value??0))/100)*(h-pad*2),points=key=>items.map((x,i)=>x.metric[key]===null?null:[pad+i*xStep,y(x.metric[key])]).filter(Boolean),line=pts=>pts.map(p=>p.join(',')).join(' ');

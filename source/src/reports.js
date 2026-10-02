@@ -51,7 +51,7 @@ SR63.archivePreview=function(snapshot){
 };
 
 /* 6.7 — grade-wide all-subject comparison, one landscape sheet per grade. */
-/* 6.9.4 — unified premium report visuals: data bars, macro bands and executive hierarchy. */
+/* 6.9.5 — unified premium report visuals: data bars, macro bands and executive hierarchy. */
 SR63.gradeOrder=function(value){
   const text=String(value??'');
   if(/السابع|(?:^|\D)[٧7](?:\D|$)/.test(text))return 7;
@@ -63,7 +63,11 @@ SR63.displayClass=value=>String(value??'').replace(/\s*\/\s*/g,' - ').replace(/\
 SR63.metricTone=function(value){if(value===null||value===undefined||!Number.isFinite(Number(value)))return 'na';const n=Number(value);return n<21?'very-low':n<50?'low':n<71?'mid':n<91?'good':'excellent';};
 SR63.clampPercent=value=>value===null||value===undefined||!Number.isFinite(Number(value))?0:Math.max(0,Math.min(100,Number(value)));
 SR63.renderReportValue=function(value,key=''){
-  const raw=value??'',text=String(raw).trim(),keyText=String(key),numeric=typeof raw==='number'?raw:Number(text.replace(/[%،,\s]/g,'')),isPercent=/percent|success|achievement|ratio|نسبة|تحصيل/i.test(keyText)||/%$/.test(text);
+  const raw=value??'',text=String(raw).trim(),keyText=String(key),numeric=typeof raw==='number'?raw:Number(text.replace(/[%،,\s]/g,'')),isDelta=/delta|valueAdded|القيمة المضافة|القيمة المنقوصة|الفارق/i.test(keyText),isPercent=/percent|success|achievement|ratio|نسبة|تحصيل/i.test(keyText)||/%$/.test(text);
+  if(isDelta&&Number.isFinite(numeric)){
+    const n=Number(numeric),tone=n>0?'positive':n<0?'negative':'neutral',arrow=n>0?'↑':n<0?'↓':'•',sign=n>0?'+':'';
+    return (0,q.jsxs)(`span`,{className:`report-delta-chip delta-${tone}`,title:n>0?'قيمة مضافة':n<0?'قيمة منقوصة':'لا تغير',children:[(0,q.jsx)(`i`,{children:arrow}),(0,q.jsx)(`b`,{children:`${sign}${n.toFixed(1)}`})]});
+  }
   if(isPercent&&Number.isFinite(numeric)){
     let pct=/%$/.test(text)?numeric:(numeric>=0&&numeric<=1?numeric*100:numeric);pct=SR63.clampPercent(pct);const tone=SR63.metricTone(pct);
     return (0,q.jsxs)(`div`,{className:`report-meter report-cell-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:/%$/.test(text)?text:wj(pct)})]});
