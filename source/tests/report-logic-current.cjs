@@ -1,4 +1,5 @@
-const assert=require('assert/strict'),{loadApp}=require('./harness.cjs');
+const assert=require('assert/strict'),path=require('path'),{loadApp}=require('./harness.cjs');
+const APP_PATH=path.resolve(__dirname,'../../app.js');
 const {ctx}=loadApp(),workspace=ctx.zj(),exam=workspace.activeExam,pass=workspace.settings.pass;
 const modes=['summary','levels','struggling','teachers','comparison'];
 let checks=0;
@@ -25,10 +26,10 @@ const deptPages=ctx.SR63.buildReportPages(workspace.rows,'grade','الكل','ا�
 const sample=workspace.rows.filter(r=>ctx.mj(r,exam)===teacher).slice(0,3).map((r,i)=>({...structuredClone(r),id:r.id+'-second-'+i,subject:'مادة إضافية'}));
 const mixed=[...workspace.rows,...sample];
 pages=ctx.SR63.buildReportPages(mixed,'teacher',teacher,'الكل','summary',exam,pass,workspace.settings);assert.ok(pages.some(p=>p.subject==='مادة إضافية'));oneSubject(pages);
-const app=require('fs').readFileSync('../app.js','utf8');assert.ok(app.includes('SR63.buildReportPages(e.rows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');
+const app=require('fs').readFileSync(APP_PATH,'utf8');assert.ok(app.includes('SR63.buildReportPages(e.rows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');
 
 // 6.9.17 runtime route and official report contracts.
-const runtime=require('fs').readFileSync('../app.js','utf8');
+const runtime=require('fs').readFileSync(APP_PATH,'utf8');
 assert.ok(runtime.includes('n===`subjects`&&(0,q.jsx)(SRGradeSubjectsReport'),'official comparison renderer not wired');checks++;
 assert.ok(runtime.includes('n===`departmentStats`&&(0,q.jsx)(SRDepartmentStatsReport'),'department renderer not wired');checks++;
 assert.ok(!runtime.includes('n===`subjects`&&(0,q.jsx)(bde'),'legacy comparison renderer still wired');checks++;
@@ -37,4 +38,5 @@ assert.ok(subjectPages6917.some(p=>p.metricType==='success')&&subjectPages6917.s
 assert.ok(subjectPages6917.every(p=>p.subjectChunk.length<=10));checks++;
 const deptPages6917=ctx.SR63.departmentStatsPages(workspace.rows,exam,'الكل');
 assert.ok(deptPages6917.length&&deptPages6917.every(p=>p.subjectChunk.length<=3));checks++;
+const sourceReports=require('fs').readFileSync(path.resolve(__dirname,'../src/reports.js'),'utf8');assert.ok(sourceReports.includes('colSpan:3,className:`department-subject-head`')&&sourceReports.includes('children:`اسم المعلم`')&&sourceReports.includes('children:`نسبة النجاح`')&&sourceReports.includes('children:`نسبة التحصيل`')&&sourceReports.includes('children:`على مستوى الصف`'),'department statistics matrix contract missing');checks++;
 console.log(JSON.stringify({passed:checks+10,failed:0,teacher,subject,modes}));

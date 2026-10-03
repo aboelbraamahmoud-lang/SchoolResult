@@ -517,3 +517,22 @@
     -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important
   }
 }
+
+
+/* 6.9.18 — official department matrix: classes vertically, subjects horizontally. */
+.department-subject-matrix-official{table-layout:fixed!important;width:100%!important;direction:rtl!important;font-size:4.5px!important;line-height:1.06!important}
+.department-subject-matrix-official th,.department-subject-matrix-official td{padding:.3mm .22mm!important;box-sizing:border-box!important;overflow:hidden!important;vertical-align:middle!important}
+.department-subject-matrix-official .department-class-head,.department-subject-matrix-official .department-class{width:13mm!important;min-width:13mm!important;max-width:13mm!important;text-align:center!important;font-weight:1000!important}
+.department-subject-matrix-official .department-class-head{background:#6fb4c7!important;color:#102d37!important;text-shadow:none!important}
+.department-subject-matrix-official .department-class{background:#edf7fa!important}
+.department-subject-matrix-official .department-subject-head{background:#8fc5d3!important;color:#0b2731!important;text-shadow:none!important;border-color:#203944!important;font-size:5px!important}
+.department-subject-matrix-official .department-teacher-head,.department-subject-matrix-official .department-success-head,.department-subject-matrix-official .department-achievement-head{background:#b7dde5!important;color:#17333d!important;text-shadow:none!important;border-color:#203944!important;font-size:3.9px!important}
+.department-subject-matrix-official .department-teacher{font-size:4px!important;font-weight:800!important;white-space:normal!important;word-break:break-word!important}
+.department-subject-matrix-official .department-teacher.teacher-conflict{background:#fff2d8!important;color:#8a4d00!important}
+.department-subject-matrix-official .department-metric-cell{padding:.16mm!important;background:#fff!important}
+.department-subject-matrix-official .department-metric-cell .report-meter{min-height:3.5mm!important;max-width:100%!important;border-radius:.45mm!important;font-size:3.75px!important;overflow:hidden!important}
+.department-subject-matrix-official .department-total-teacher{background:#eef6f7!important;color:#64748b!important;text-align:center!important}
+.department-subject-matrix-official tfoot th,.department-subject-matrix-official tfoot td{border-top:1.4px solid #7fa8ad!important}
+.department-matrix-caption strong{font-size:7px!important}.department-matrix-caption span{font-size:5.2px!important}
+.department-matrix-summary{font-size:4.4px!important;gap:4mm!important}
+@media print{.department-subject-matrix-official,.department-subject-matrix-official .report-meter{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}

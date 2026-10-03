@@ -1,8 +1,8 @@
 const fs=require('fs'),vm=require('vm'),crypto=require('crypto').webcrypto;
-const path=require('path');fs.mkdirSync(path.join(__dirname,'output'),{recursive:true});
+const path=require('path');const PROJECT_ROOT=path.resolve(__dirname,'../..'),WEB_ROOT=PROJECT_ROOT;fs.mkdirSync(path.join(__dirname,'output'),{recursive:true});
 const acorn=require('internal/deps/acorn/acorn/dist/acorn');
 function loadApp(){
- const source=fs.readFileSync('../app.js','utf8');
+ const source=fs.readFileSync(path.join(WEB_ROOT,'app.js'),'utf8');
  const ast=acorn.parse(source,{ecmaVersion:'latest'}),bootstrapStart=source.lastIndexOf('var $9=document.getElementById');
  const skipped=[];
  const statements=ast.body.filter(node=>{const code=source.slice(node.start,node.end);if(node.start>=bootstrapStart||code.startsWith('(function(){let e=document.createElement')){skipped.push(code.slice(0,85));return false;}return true;});

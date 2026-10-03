@@ -1,4 +1,4 @@
-const fs=require('fs'),assert=require('assert/strict'),{loadApp}=require('./harness.cjs');
+const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{loadApp}=require('./harness.cjs');
 const results=[],noop=()=>{};
 async function test(name,fn){try{await fn();results.push({name,status:'pass'});}catch(error){results.push({name,status:'fail',error:error.stack});console.error(name,error);}}
 const server={rows:new Map(),archives:new Map(),fail:false,loseResponse:false,readFail:false,requests:[],release:null};
@@ -47,5 +47,5 @@ function client(owner='account-a'){
  await test('Complete backup remains portable with its archives',()=>{const w=c.Aj(),point={id:'test',at:new Date().toISOString(),reason:'test',workspace:w};const restored=c.SR63.parseBackup(c.SR63.makeBackup(w,[point]));assert.equal(restored.snapshots.length,1);});
  await test('Full archive export hydrates metadata before backup',async()=>{const full=await c.SR63.listFullSnapshots();assert.ok(full.length>=1&&full.every(point=>point.workspace));});
  await test('Browser persistence functions are never called by cloud adapter',()=>{assert.ok(!server.requests.some(r=>r.owner!=='account-a'));assert.ok(c.SR63.storage.pending);});
- const report={passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,method:'Actual cloud application adapter and bundled logic with simulated SDK network replies; separate database verification ran on Supabase.',results};fs.writeFileSync('tests/output/cloud-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
+ const report={passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,method:'Actual cloud application adapter and bundled logic with simulated SDK network replies; separate database verification ran on Supabase.',results};fs.writeFileSync(path.join(__dirname,'output/cloud-results.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
 })();

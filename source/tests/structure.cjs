@@ -65,8 +65,8 @@ try{
 try{
  const reports=fs.readFileSync(path.join(__dirname,'../src/reports.js'),'utf8'),css=fs.readFileSync(path.join(__dirname,'../src/repair.css'),'utf8'),app=fs.readFileSync(path.join(__dirname,'../../app.js'),'utf8');
  assert.ok(reports.includes('بيان ${metricLabel}')&&reports.includes('grade-subject-matrix-official'),'official two-metric comparison renderer missing');
- assert.ok(reports.includes('إحصائية نتائج القسم — ${tj(n.settings,t).name}')&&reports.includes('department-stats-list'),'department vertical statistics renderer missing');
- assert.ok(css.includes('6.9.17 — official subject comparison and department results list')&&css.includes('.report-context p{justify-content:flex-start!important'),'6.9.17 report CSS missing');
+ assert.ok(reports.includes('إحصائية نتائج القسم — ${tj(n.settings,t).name}')&&reports.includes('department-subject-matrix-official'),'department matrix renderer missing');
+ assert.ok(css.includes('6.9.18 — official department matrix')&&css.includes('.report-context p{justify-content:flex-start!important'),'6.9.18 report CSS missing');
  assert.ok(app.includes('n===`subjects`&&(0,q.jsx)(SRGradeSubjectsReport'),'runtime does not render official subject comparison');
  assert.ok(app.includes('n===`departmentStats`&&(0,q.jsx)(SRDepartmentStatsReport'),'runtime does not render department statistics');
  assert.ok(!app.includes('n===`subjects`&&(0,q.jsx)(bde'),'legacy subjects renderer still active');
@@ -74,4 +74,4 @@ try{
 }catch(error){results.push({name:'officialComparisonAndDepartmentStats6917',status:'fail',error:error.stack});}
 
 const report={method:'Element-tree structural checks with inert hooks. No DOM, browser, layout or interaction test.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results};
-fs.writeFileSync('tests/output/structure-results.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
+fs.writeFileSync(path.join(__dirname,'output/structure-results.json'),JSON.stringify(report,null,2));console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;

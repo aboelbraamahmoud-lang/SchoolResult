@@ -1,6 +1,11 @@
 const fs=require('fs'),path=require('path');
 const acorn=require('internal/deps/acorn/acorn/dist/acorn');
-const base=fs.readFileSync('base/app.js','utf8');
+const sourceRoot=__dirname,projectRoot=path.resolve(sourceRoot,'..'),webRoot=projectRoot;
+const readSource=rel=>fs.readFileSync(path.join(sourceRoot,rel),'utf8');
+const version=JSON.parse(fs.readFileSync(path.join(webRoot,'version.json'),'utf8'));
+const projectPackage=JSON.parse(fs.readFileSync(path.join(projectRoot,'package.json'),'utf8'));
+if(projectPackage.version!==version.version)throw new Error(`Version mismatch: package ${projectPackage.version} / web ${version.version}`);
+const base=readSource('base/app.js');
 const ast=acorn.parse(base,{ecmaVersion:'latest'}),nodes=new Map();
 function index(body,prefix=''){
  for(const node of body){
@@ -10,8 +15,8 @@ function index(body,prefix=''){
 }
 index(ast.body);
 const changes=[];
-for(const filename of fs.readdirSync('src/patches').filter(f=>f.endsWith('.js'))){
- const text=fs.readFileSync(path.join('src/patches',filename),'utf8'),pattern=/\/\* PATCH ([\w$.]+) \*\//g;
+for(const filename of fs.readdirSync(path.join(sourceRoot,'src/patches')).filter(f=>f.endsWith('.js'))){
+ const text=readSource(path.join('src/patches',filename)),pattern=/\/\* PATCH ([\w$.]+) \*\//g;
  const markers=[...text.matchAll(pattern)];
  for(let i=0;i<markers.length;i++){
   const key=markers[i][1],code=text.slice(markers[i].index+markers[i][0].length,markers[i+1]?.index??text.length).trim(),node=nodes.get(key);
@@ -28,8 +33,8 @@ function replace(oldText,newText,expected=1){
  code=code.split(oldText).join(newText);
 }
 // Preserve unmodified parsing paths for ordinary single-subject sheets.
-const importOld=fs.readFileSync('base/ode.js','utf8').replace('function ode(','function srLegacyImport(').replace('hv(e,{type:`array`})','e');
-const qualityOld=fs.readFileSync('base/zN.js','utf8').replace('function zN(','function srLegacyQualityRows(');
+const importOld=readSource('base/ode.js').replace('function ode(','function srLegacyImport(').replace('hv(e,{type:`array`})','e');
+const qualityOld=readSource('base/zN.js').replace('function zN(','function srLegacyQualityRows(');
 // State metadata and compatibility with older scores-only backups.
 // Imported virtual sheets carry their own exam and, where present, per-row totals.
 replace('P=(0,v.useCallback)(e=>g[A9(e.sourceFile,e.sourceSheet)]??m,[g,m])','P=(0,v.useCallback)(e=>e.totalOverride??g[A9(e.sourceFile,e.sourceSheet)]??m,[g,m])');
@@ -61,11 +66,11 @@ replace('يوجد تعارض بين نسخة هذا الجهاز والنسخة 
 replace('تم إيقاف الحفظ السحابي حتى تختار.','حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.');
 replace('تحميل النسخة السحابية','تحميل أحدث نسخة محلية');
 replace('اعتماد نسخة هذا الجهاز','اعتماد نسخة هذه النافذة');
-replace('الإصدار 6.2 الاحترافي','الإصدار 6.9.17 — إصلاح مقارنة المواد وإحصائية نتائج القسم');
+replace('الإصدار 6.2 الاحترافي',`الإصدار ${version.version} — نسخة مستقرة`);
 replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
 // 6.9.17 — reports use Western digits; value-added cells do not repeat the Arabic abbreviation.
 // Official report terminology: clear administrative labels.
-code=code.split('طلاب فريدون').join('عدد الطلاب').split('نتائج ناجحة').join('ناجح').split('نتائج راسبة').join('راسب').split('نتائج مقيمة').join('حاضر/مقيم');
+code=code.split('طلاب فريدون').join('عدد الطلاب').split('نتائج ناجحة').join('ناجح').split('نتائج راسبة').join('راسب').split('نتائج مقيمة').join('حاضر').split('نتيجة مقيمة').join('حاضر').split('حاضر/مقيم').join('حاضر').split('الحضور المقيم').join('الحضور').split('المقيمون').join('الحاضرون');
 replace('var pde=[{id:`summary`,title:`ملخص النتائج`,text:`حضور ونجاح وتحصيل وتوزيع المستويات`,icon:xy},{id:`levels`,title:`تحليل المستويات`,text:`كشف تفصيلي للطلاب مجمّع حسب مستوى الأداء`,icon:Ay},{id:`struggling`,title:`الطلاب ضمن نسبة`,text:`قائمة علاجية حسب حد مئوي تختاره`,icon:Wy},{id:`teachers`,title:`متوسطات المعلمين`,text:`صفوف المعلم ومتوسط النجاح والتحصيل`,icon:Cy},{id:`comparison`,title:`مقارنة اختبارين`,text:`درجة ونسبة وفارق ومستوى لكل طالب`,icon:iy},{id:`subjects`,title:`مقارنة المواد`,text:`مواد الصف ومعلموها ونسب النجاح والتحصيل`,icon:oy}]','var pde=[{id:`summary`,title:`ملخص النتائج`,text:`حضور ونجاح وتحصيل وتوزيع المستويات`,icon:xy},{id:`levels`,title:`تحليل المستويات`,text:`مجموعات فوق المتوسط وفي المتوسط وتحت المتوسط`,icon:Ay},{id:`struggling`,title:`الطلاب ضمن نسبة`,text:`قائمة علاجية حسب حد مئوي تختاره`,icon:Wy},{id:`teachers`,title:`متوسطات المعلمين`,text:`صفوف المعلم ومتوسط النجاح والتحصيل`,icon:Cy},{id:`comparison`,title:`مقارنة اختبارين`,text:`درجة ونسبة وفارق ومستوى لكل طالب`,icon:iy},{id:`subjects`,title:`مقارنة المواد`,text:`بيان رسمي منفصل لنسب النجاح والتحصيل: الشعبة × المادة × المعلم`,icon:oy},{id:`departmentStats`,title:`إحصائية نتائج القسم`,text:`الشعبة × المواد: المعلم ونسبة النجاح والتحصيل في صفحة عرضية`,icon:xy}]');
 // 6.7 grade-wide subject comparison: one grade per landscape page.
 replace('if(i===`subjects`){let t=e;return(n===`الكل`?P9(t.map(e=>hj(e,a))):[n]).forEach(e=>{let n=t.filter(t=>hj(t,a)===e),r=P9(n.map(e=>`${e.subject}\\u0000${mj(e,a)}`)),i=r.length?Array.from({length:Math.ceil(r.length/18)},(e,t)=>r.slice(t*18,(t+1)*18)):[[]];i.forEach((t,r)=>f.push({key:`subjects-${e}-${r}`,title:e,entity:e,scope:`className`,className:e,teacher:``,subject:`كل المواد`,rows:n.filter(e=>t.includes(`${e.subject}\\u0000${mj(e,a)}`)),allRows:n,rowOffset:r*18,part:r+1,totalParts:i.length}))}),f}','if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);');
@@ -126,9 +131,9 @@ replace('SR63.currentWorkspace=e},[e])','SR63.currentWorkspace=e},[e]);(0,v.useE
 replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)(()=>structuredClone(zj().settings))','function Nde(){let[e,t]=(0,v.useState)(()=>Aj()),[n,r]=(0,v.useState)(()=>structuredClone(Aj().settings))');
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
 code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
-const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync('src/'+f)).map(f=>fs.readFileSync('src/'+f,'utf8')).join('\n');
+const services=['engine.js','catalog.js','master-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
-fs.writeFileSync('../app.js',code);
-fs.writeFileSync('../style.css',fs.readFileSync('base/style.css','utf8')+'\n'+fs.readFileSync('src/repair.css','utf8'));
+fs.writeFileSync(path.join(webRoot,'app.js'),code);
+fs.writeFileSync(path.join(webRoot,'style.css'),readSource('base/style.css')+'\n'+readSource('src/repair.css'));
 console.log(`Built ${changes.length} replacements; ${Buffer.byteLength(code)} bytes; JavaScript syntax valid.`);

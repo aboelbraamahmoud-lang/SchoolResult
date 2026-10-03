@@ -24,7 +24,7 @@ SR63.Dashboard=function({workspace,onNavigate}){
   const kpis=[
     {label:'نسبة النجاح',value:wj(metric.success),hint:`${metric.passed} نتيجة ناجحة من ${metric.evaluated}`,tone:SR63.metricTone(metric.success,workspace.settings.pass)},
     {label:'نسبة التحصيل',value:wj(metric.achievement),hint:tj(workspace.settings,workspace.activeExam).name,tone:SR63.metricTone(metric.achievement,workspace.settings.pass)},
-    {label:'الطلاب',value:Q(metric.students),hint:`${Q(metric.evaluated)} نتيجة مقيمة`,tone:'navy'},
+    {label:'الطلاب',value:Q(metric.students),hint:`${Q(metric.evaluated)} حاضر`,tone:'navy'},
     {label:'اكتمال النتائج',value:wj(completion,0),hint:`${model.rows.length-metric.evaluated} نتيجة غير مكتملة`,tone:completion>=95?'excellent':'mid'},
     {label:'جاهزية التقارير',value:reportReady?'جاهز':'يحتاج مراجعة',hint:reportReady?'لا توجد عوائق حرجة':`${model.issues.critical} مشكلة حرجة · ${model.coverage.missing} تكليف ناقص`,tone:reportReady?'excellent':'low'}
   ];

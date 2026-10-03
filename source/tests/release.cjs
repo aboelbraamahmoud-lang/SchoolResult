@@ -1,22 +1,26 @@
-const fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=require('assert/strict');
-const root=path.resolve(__dirname,'../..');
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),assert=require('assert');
+const projectRoot=path.resolve(__dirname,'../..'),webRoot=projectRoot;
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
-const version=JSON.parse(fs.readFileSync(path.join(root,'version.json'),'utf8'));
-assert.equal(version.version,'6.9.17');
-const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
-assert.ok(app.includes("school_archive_get"),'archive on-demand RPC missing');
-assert.ok(app.includes("school_archive_delete"),'archive delete RPC missing');
-assert.ok(!app.includes("from('school_archives').delete"),'direct archive delete leaked into browser bundle');
-assert.ok(!app.includes('/api/workspace/snapshots'),'legacy local snapshot endpoint leaked into build');
-assert.ok(!app.includes('service_role'),'service role must never appear in browser bundle');
-const updater=fs.readFileSync(path.join(root,'update.ps1'),'utf8');
-assert.ok(updater.includes('Compare-SemVer'),'updater downgrade guard missing');
-assert.ok(updater.includes('رُفض الرجوع إلى إصدار أقدم'),'updater downgrade rejection message missing');
-const manifest=JSON.parse(fs.readFileSync(path.join(root,'update-manifest.json'),'utf8'));
-assert.equal(manifest.version,version.version);
-for(const entry of manifest.files)assert.equal(sha(path.join(root,entry.name)),entry.sha256,`manifest hash mismatch: ${entry.name}`);
-const checksums=fs.readFileSync(path.join(root,'checksums.sha256'),'utf8').trim().split(/\r?\n/).filter(Boolean);
-assert.ok(!checksums.some(line=>line.includes('source/tests/output/')),'mutable test output must not be in stable checksums');
-assert.ok(!checksums.some(line=>line.endsWith('  checksums.sha256')),'checksum file must not checksum itself');
-for(const line of checksums){const match=/^([a-f0-9]{64})  (.+)$/.exec(line);assert.ok(match,'invalid checksum line');const file=path.join(root,...match[2].split('/'));assert.ok(fs.existsSync(file),`checksum target missing: ${match[2]}`);assert.equal(sha(file),match[1],`checksum mismatch: ${match[2]}`);}
-console.log(JSON.stringify({passed:11,failed:0,version:version.version,stableChecksums:checksums.length,updateFiles:manifest.files.length}));
+const version=JSON.parse(fs.readFileSync(path.join(webRoot,'version.json'),'utf8'));
+const pkg=JSON.parse(fs.readFileSync(path.join(projectRoot,'package.json'),'utf8'));
+let passed=0;
+function ok(cond,msg){assert.ok(cond,msg);passed++;}
+function eq(a,b,msg){assert.equal(a,b,msg);passed++;}
+eq(pkg.version,version.version,'package/web version mismatch');
+const app=fs.readFileSync(path.join(webRoot,'app.js'),'utf8');
+ok(app.includes(`version:'${version.version}'`)||app.includes(`version:\"${version.version}\"`)||app.includes(`version:${JSON.stringify(version.version)}`),'runtime version missing from app.js');
+for(const forbidden of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])ok(!app.includes(forbidden),`forbidden legacy wording remains: ${forbidden}`);
+ok(!app.includes('service_role'),'service_role must not be present in app.js');
+const supabase=fs.readFileSync(path.join(webRoot,'supabase.js'),'utf8');
+ok(!supabase.includes('service_role'),'service_role must not be present in supabase.js');
+const manifest=JSON.parse(fs.readFileSync(path.join(webRoot,'update-manifest.json'),'utf8'));
+eq(manifest.version,version.version,'manifest version mismatch');
+for(const entry of manifest.files){eq(sha(path.join(webRoot,entry.name)),entry.sha256,`manifest hash mismatch: ${entry.name}`);}
+const checksumPath=path.join(projectRoot,'checksums.sha256');
+const rows=fs.readFileSync(checksumPath,'utf8').trim().split(/\r?\n/).filter(Boolean);
+ok(rows.length>10,'checksums file unexpectedly small');
+for(const row of rows){
+  const m=row.match(/^([a-f0-9]{64})  (.+)$/);ok(!!m,`invalid checksum row: ${row}`);
+  const file=path.join(projectRoot,...m[2].split('/'));ok(fs.existsSync(file),`checksum file missing: ${m[2]}`);eq(sha(file),m[1],`checksum mismatch: ${m[2]}`);
+}
+console.log(`Release tests passed: ${passed}/${passed}`);

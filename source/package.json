@@ -8,8 +8,9 @@
     "test:regression": "node --expose-internals tests/regression.cjs",
     "test:cloud": "node --expose-internals tests/cloud.cjs",
     "test:structure": "node --expose-internals tests/structure.cjs",
+    "test:reports": "node --expose-internals tests/report-logic-current.cjs",
+    "test": "npm run build && npm run test:reports && npm run test:regression && npm run test:cloud && npm run test:structure",
     "release": "node release.cjs",
-    "test:release": "node tests/release.cjs",
-    "test:reports": "node --expose-internals tests/report-logic-current.cjs"
+    "test:release": "node tests/release.cjs"
   }
 }
