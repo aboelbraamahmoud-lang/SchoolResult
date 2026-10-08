@@ -3,7 +3,7 @@ SR63.stableId=function(prefix,value){
   let h=2166136261;for(const ch of String(value??'')){h^=ch.codePointAt(0);h=Math.imul(h,16777619);}return `${prefix}-${(h>>>0).toString(36)}`;
 };
 SR63.ensureCatalog=function(workspace){
-  const source=workspace??{}, rows=Array.isArray(source.rows)?source.rows:[], oldAssignments=Array.isArray(source.teacherAssignments)?source.teacherAssignments:[], oldTeachers=Array.isArray(source.teachers)?source.teachers:[];
+  const source=workspace??{}, detached=source.catalogDetached===true, rows=Array.isArray(source.rows)?source.rows:[], oldAssignments=Array.isArray(source.teacherAssignments)?source.teacherAssignments:[], oldTeachers=Array.isArray(source.teachers)?source.teachers:[];
   const gradeMap=new Map(), classMap=new Map(), subjectMap=new Map();
   const addGrade=(value,seed={})=>{const name=String(value??'').trim();if(!name)return null;const key=ij(name);let item=gradeMap.get(key);if(!item){item={id:seed.id||SR63.stableId('grade',key),name,order:Number.isFinite(seed.order)?seed.order:gradeMap.size+1,active:seed.active!==false};gradeMap.set(key,item);}else if(seed.active===true)item.active=true;return item;};
   const addClass=(value,gradeValue,seed={})=>{const className=lj(String(value??''));if(!className)return null;const gradeName=String(gradeValue??uj(className)??'').trim()||uj(className),grade=addGrade(gradeName),key=ij(className);let item=classMap.get(key);if(!item){item={id:seed.id||SR63.stableId('class',key),name:seed.name||className,className,gradeId:seed.gradeId||grade?.id||'',grade:grade?.name||gradeName,order:Number.isFinite(seed.order)?seed.order:classMap.size+1,active:seed.active!==false};classMap.set(key,item);}else{item.gradeId=item.gradeId||grade?.id||'';item.grade=item.grade||grade?.name||gradeName;if(seed.active===true)item.active=true;}return item;};
@@ -12,7 +12,7 @@ SR63.ensureCatalog=function(workspace){
   for(const c of source.classes??[])addClass(typeof c==='string'?c:c?.className??c?.name,c?.grade,c&&typeof c==='object'?c:{});
   for(const s of source.subjects??[])addSubject(typeof s==='string'?s:s?.name,s?.department,s&&typeof s==='object'?s:{});
   for(const teacher of oldTeachers){const subject=addSubject(teacher.subject,teacher.department,{coordinatorName:teacher.coordinator||''});for(const className of teacher.classes??[]){const cls=addClass(className,uj(className)),grade=cls?gradeMap.get(ij(cls.grade)):null;if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);}}
-  for(const row of rows){const grade=addGrade(row.grade||uj(row.className)),cls=addClass(row.className,grade?.name),subject=addSubject(row.subject,row.department);if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);if(cls&&grade){cls.gradeId=grade.id;cls.grade=grade.name;}}
+  if(!detached)for(const row of rows){const grade=addGrade(row.grade||uj(row.className)),cls=addClass(row.className,grade?.name),subject=addSubject(row.subject,row.department);if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);if(cls&&grade){cls.gradeId=grade.id;cls.grade=grade.name;}}
   for(const a of oldAssignments){const grade=addGrade(a.grade||uj(a.className)),cls=addClass(a.className,grade?.name),subject=addSubject(a.subject,a.department);if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);if(cls&&grade){cls.gradeId=grade.id;cls.grade=grade.name;}}
   const teachers=oldTeachers.map((t,index)=>({...t,id:t.id||`profile-${crypto.randomUUID()}`,teacherId:String(t.teacherId??'').trim()||`T-${String(index+1).padStart(3,'0')}`,teacher:String(t.teacher??'').trim(),active:t.active!==false,subjects:Array.isArray(t.subjects)?[...new Set(t.subjects.filter(Boolean))]:t.subject?[t.subject]:[],classes:Array.isArray(t.classes)?[...new Set(t.classes.map(lj).filter(Boolean))]:[]}));
   const teacherById=new Map(teachers.map(t=>[t.id,t]));
@@ -25,7 +25,8 @@ SR63.ensureCatalog=function(workspace){
 };
 SR63.subjectCoordinator=function(workspace,subjectName){const c=SR63.ensureCatalog(workspace),subject=c.subjects.find(s=>ij(s.name)===ij(subjectName));if(!subject)return '';if(subject.coordinatorId){const teacher=c.teachers.find(t=>t.id===subject.coordinatorId);if(teacher?.teacher)return teacher.teacher;}return String(subject.coordinatorName??'').trim();};
 SR63.subjectCoordinatorMap=function(workspace){const c=SR63.ensureCatalog(workspace);return Object.fromEntries(c.subjects.map(subject=>[subject.name,SR63.subjectCoordinator({...workspace,...c},subject.name)]));};
-SR63.withCatalog=function(workspace){const c=SR63.ensureCatalog(workspace);return {...workspace,version:7,...c};};
+SR63.withCatalog=function(workspace){const c=SR63.ensureCatalog(workspace);return {...workspace,version:7,catalogDetached:workspace?.catalogDetached===true,...c};};
+SR63.clearAcademicStructure=function(workspace){return SR63.withCatalog({...workspace,catalogDetached:true,grades:[],classes:[],subjects:[],teachers:[],teacherAssignments:[]});};
 SR63.assignmentMatches=function(workspace,subject,className){const c=SR63.ensureCatalog(workspace),key=dj(subject,className);return c.teacherAssignments.filter(a=>a.active!==false&&dj(a.subject,a.className)===key&&c.teachers.some(t=>t.id===a.profileId&&t.active!==false));};
 SR63.setAssignment=function(workspace,classId,subjectId,profileId){
   const c=SR63.ensureCatalog(workspace),cls=c.classes.find(x=>x.id===classId),subject=c.subjects.find(x=>x.id===subjectId);if(!cls||!subject)SR63.fail('الشعبة أو المادة غير موجودة.');

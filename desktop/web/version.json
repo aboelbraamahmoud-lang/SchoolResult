@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.9.20",
+  "version": "6.9.22",
   "released": "2026-10-08",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "استيراد موحد للهيكل الأكاديمي من ملف Excel واحد: إنشاء الصفوف والشعب والمواد والأقسام والمنسقين والمعلمين والتكليفات تلقائيًا، مع اعتبار أول معلم في كل مادة منسقًا عند عدم تحديد منسق صراحة."
+  "notes": "إضافة حذف جماعي آمن لقاعدة الهيكل الأكاديمي: المعلمون والصفوف والشعب والمواد والمنسقون والتكليفات، مع الاحتفاظ بنتائج الطلاب ومنع إعادة إنشاء الهيكل تلقائيًا من النتائج التاريخية حتى رفع قاعدة جديدة."
 }

@@ -1,7 +1,7 @@
 {
   "name": "schoolresult-web",
   "private": true,
-  "version": "6.9.20",
+  "version": "6.9.22",
   "description": "مرصد النتائج المدرسية - نسخة الويب",
   "scripts": {
     "install:source": "npm --prefix source ci",

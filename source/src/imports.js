@@ -1,4 +1,39 @@
 SR63.linkKey=item=>dj(item.subject,item.className)+(item.exam?'|'+item.exam+'|'+ij(item.teacher??''):'');
+SR63.stableStudentId=(name,className)=>SR63.stableId('auto-student',`${ij(name)}|${lj(className)}`);
+SR63.subjectAliasKey=function(value){
+  const key=ij(value);if(!key)return '';
+  const groups=[
+    ['شرعية',['شرعية','التربية الاسلامية','التربية الإسلامية','تربية اسلامية','تربية إسلامية','اسلامية','إسلامية','دين','التربية الدينية']],
+    ['عربي',['عربي','اللغة العربية','لغة عربية','العربية']],
+    ['e',['e','english','انجليزي','إنجليزي','اللغة الانجليزية','اللغة الإنجليزية','لغة انجليزية','لغة إنجليزية']],
+    ['رياضيات',['رياضيات','الرياضيات']],
+    ['علوم',['علوم','العلوم']],
+    ['اجتماعية',['اجتماعية','الدراسات الاجتماعية','دراسات اجتماعية','الاجتماعيات']],
+    ['حاسب',['حاسب','الحاسب','الحاسب الآلي','حاسب آلي','الحوسبة','تقنية المعلومات','تكنولوجيا المعلومات']],
+    ['فنية',['فنية','التربية الفنية','تربية فنية']],
+    ['بدنية',['بدنية','التربية البدنية','تربية بدنية','رياضة','التربية الرياضية']],
+    ['مهارات2',['مهارات 2','مهارات2','المهارات 2','مهارات ثانية']],
+    ['مهارات',['مهارات','المهارات']],
+    ['برامجداعمة',['برامج داعمة','البرامج الداعمة','برنامج داعم']]
+  ];
+  for(const [canonical,aliases] of groups)if(aliases.some(alias=>ij(alias)===key))return ij(canonical);
+  return key;
+};
+SR63.subjectEquivalent=(a,b)=>!!a&&!!b&&SR63.subjectAliasKey(a)===SR63.subjectAliasKey(b);
+SR63.subjectMatchScore=function(a,b){
+  const left=SR63.subjectAliasKey(a),right=SR63.subjectAliasKey(b);if(!left||!right)return 0;if(left===right)return 1;
+  if(left.length>=4&&right.length>=4&&(left.includes(right)||right.includes(left)))return .9;
+  return cde(left,right);
+};
+SR63.resolveSubjectAssignment=function(subject,className,assignments){
+  const classKey=lj(className),active=(assignments??[]).filter(a=>a.active!==false&&lj(a.className)===classKey),raw=ij(subject);
+  if(!raw)return {subject:String(subject??'').trim(),assignments:[]};
+  const exact=active.filter(a=>ij(a.subject)===raw);if(exact.length)return {subject:exact[0].subject,assignments:exact};
+  const alias=active.filter(a=>SR63.subjectEquivalent(a.subject,subject));if(alias.length){const names=[...new Set(alias.map(a=>a.subject))];if(names.length===1)return {subject:names[0],assignments:alias};}
+  const scored=active.map(a=>({a,score:SR63.subjectMatchScore(subject,a.subject)})).filter(x=>x.score>=.72).sort((x,y)=>y.score-x.score);
+  if(scored.length){const best=scored[0].score,bestRows=scored.filter(x=>Math.abs(x.score-best)<1e-9).map(x=>x.a),names=[...new Set(bestRows.map(a=>a.subject))];if(names.length===1)return {subject:names[0],assignments:bestRows};}
+  return {subject:String(subject??'').trim(),assignments:[]};
+};
 SR63.readWideWorkbook=function(book,fileName,settings){
   const result=[],meta={exams:{}};
   for(const sheetName of book.SheetNames){if(!/إعدادات|اعدادات/.test(sheetName))continue;
@@ -74,37 +109,39 @@ SR63.mergeTeachers=function(workspace,preview,policy){
   }
   const importedCellKeys=new Set(importedAssignments.map(a=>dj(a.subject,a.className)));
   const assignments=policy==='replace'?importedAssignments:[...base.teacherAssignments.filter(a=>!importedCellKeys.has(dj(a.subject,a.className))),...importedAssignments];
-  let catalog=SR63.ensureCatalog({...workspace,teachers,teacherAssignments:assignments});
+  let catalog=SR63.ensureCatalog({...workspace,catalogDetached:false,teachers,teacherAssignments:assignments});
   const info=new Map();
   for(const profile of preview.profiles){if(!profile.subject)continue;const key=ij(profile.subject),current=info.get(key)??{name:profile.subject,department:'',coordinator:'',grades:new Set};if(!current.department&&profile.department)current.department=profile.department;if(!current.coordinator&&profile.coordinator)current.coordinator=profile.coordinator;for(const cls of profile.classes??[]){const grade=uj(cls);if(grade)current.grades.add(grade);}info.set(key,current);}
   for(const [name,coordinator] of Object.entries(preview.subjectCoordinators??{})){const key=ij(name),current=info.get(key)??{name,department:name,coordinator:'',grades:new Set};if(coordinator)current.coordinator=coordinator;info.set(key,current);}
   const gradeIdByName=new Map(catalog.grades.map(g=>[ij(g.name),g.id]));
   const subjects=catalog.subjects.map(subject=>{const data=info.get(ij(subject.name));if(!data)return subject;const coordinatorName=data.coordinator||subject.coordinatorName||'',coordinatorTeacher=teacherByName.get(ij(coordinatorName));const gradeIds=[...new Set([...subject.gradeIds,...[...data.grades].map(g=>gradeIdByName.get(ij(g))).filter(Boolean)])];return {...subject,department:data.department||subject.department||subject.name,coordinatorName,coordinatorId:coordinatorTeacher?.id??'',gradeIds,active:true};});
-  catalog=SR63.ensureCatalog({...workspace,...catalog,teachers,teacherAssignments:assignments,subjects});
+  catalog=SR63.ensureCatalog({...workspace,catalogDetached:false,...catalog,teachers,teacherAssignments:assignments,subjects});
   const imported={id:crypto.randomUUID(),name:preview.fileName,at:new Date().toISOString(),rows:importedAssignments.length,warnings:preview.issues.filter(i=>i.severity==='warning').length,kind:'teachers'};
-  const result={...workspace,...catalog,imports:[imported,...workspace.imports]};
+  const result={...workspace,catalogDetached:false,...catalog,imports:[imported,...workspace.imports]};
   const coordinatorCount=subjects.filter(s=>info.has(ij(s.name))&&(s.coordinatorId||s.coordinatorName)).length;
   return jj(result,'استيراد الهيكل الأكاديمي',`${preview.fileName} — ${catalog.grades.length} صفوف، ${catalog.classes.length} شعب، ${catalog.subjects.length} مواد، ${catalog.teachers.length} معلمين، ${importedAssignments.length} تكليفًا، ${coordinatorCount} منسقين`);
 };
 SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTotal,policy){
-  const batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),rows=new Map(workspace.rows.map(row=>[_j(row),row])),changes=[];let skipped=0,created=0,updated=0;
-  const usedExams=new Set(),originalKeys=new Set(rows.keys()),seen=new Set();
+  const batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),rows=new Map(workspace.rows.map(row=>[_j(row),row])),aliasRows=new Map(workspace.rows.map(row=>[`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`,_j(row)])),originalAliases=new Set(workspace.rows.map(row=>`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`)),changes=[];let skipped=0,created=0,updated=0;
+  const usedExams=new Set(),seen=new Set();
   for(const item of items){
     const target=item.exam??exam,link=links.get(SR63.linkKey(item))??links.get(dj(item.subject,item.className)),profile=profiles.get(link?.selectedProfileId),total=getTotal(item);
-    if(!profile)SR63.fail('يوجد إسناد غير مكتمل.');
-    const itemKey=_j(item)+'|'+target;if(seen.has(itemKey))SR63.fail('توجد نتيجة مكررة للطالب والمادة والاختبار.');seen.add(itemKey);
+    if(!profile)SR63.fail('يوجد إسناد غير مكتمل. أكمل خريطة التكليفات أولًا.');
+    const subject=String(link?.subject??item.subject??'').trim();if(!subject)SR63.fail('تعذر تحديد المادة في ملف النتيجة.');
+    const className=lj(item.className),assignment=workspace.teacherAssignments.find(a=>a.active!==false&&a.profileId===profile.id&&lj(a.className)===className&&SR63.subjectEquivalent(a.subject,subject)),catalogSubject=(workspace.subjects??[]).find(s=>s.active!==false&&SR63.subjectEquivalent(s.name,subject)),department=assignment?.department||catalogSubject?.department||profile.department||subject;
+    const itemKey=`${ij(item.studentId)}|${SR63.subjectAliasKey(subject)}|${target}`;if(seen.has(itemKey))SR63.fail('توجد نتيجة مكررة للطالب والمادة والاختبار.');seen.add(itemKey);
     if(!['present','absent','excused','unexcused','deprived','not_enrolled','unentered'].includes(item.status)||!XA.includes(target)||!item.recognized||!Number.isFinite(total)||total<=0||item.status==='present'&&(!Number.isFinite(item.score)||item.score<0||item.score>total)||item.status!=='present'&&item.score!==null)SR63.fail('توجد درجة أو حالة غير صالحة في الملف.');
-    usedExams.add(target);const key=_j(item),previous=rows.get(key),hasScore=previous&&(previous.scores[target]!==null||previous.statuses[target]!=='unentered');
-    if(policy==='skip'&&originalKeys.has(key)||policy==='empty'&&hasScore){skipped++;continue;}
-    const row=previous??{id:`row-${crypto.randomUUID()}`,studentId:item.studentId,studentName:item.studentName,className:item.className,grade:uj(item.className),subject:item.subject,department:profile.department||item.subject,teacher:profile.teacher,scores:Object.fromEntries(XA.map(k=>[k,null])),statuses:Object.fromEntries(XA.map(k=>[k,'unentered'])),totals:Object.fromEntries(XA.map(k=>[k,null])),examTeachers:Object.fromEntries(XA.map(k=>[k,''])),examClasses:Object.fromEntries(XA.map(k=>[k,''])),importBatches:Object.fromEntries(XA.map(k=>[k,null]))};
-    const next={...row,studentName:item.studentName,className:lj(item.className),grade:uj(item.className),subject:item.subject,department:profile.department||item.department||item.subject,teacher:profile.teacher,scores:{...row.scores,[target]:item.score},statuses:{...row.statuses,[target]:item.status},totals:{...row.totals,[target]:total},examTeachers:{...row.examTeachers,[target]:profile.teacher},examClasses:{...row.examClasses,[target]:lj(item.className)}};
+    usedExams.add(target);const key=`${ij(item.studentId)}|${ij(subject)}`,aliasKey=`${ij(item.studentId)}|${SR63.subjectAliasKey(subject)}`,previousKey=rows.has(key)?key:(aliasRows.get(aliasKey)??key),previous=rows.get(previousKey),hasScore=previous&&(previous.scores[target]!==null||previous.statuses[target]!=='unentered');
+    if((policy==='skip'&&originalAliases.has(aliasKey))||(policy==='empty'&&hasScore)){skipped++;continue;}
+    const row=previous??{id:`row-${crypto.randomUUID()}`,studentId:item.studentId,studentName:item.studentName,className,grade:uj(className),subject,department,teacher:profile.teacher,scores:Object.fromEntries(XA.map(k=>[k,null])),statuses:Object.fromEntries(XA.map(k=>[k,'unentered'])),totals:Object.fromEntries(XA.map(k=>[k,null])),examTeachers:Object.fromEntries(XA.map(k=>[k,''])),examClasses:Object.fromEntries(XA.map(k=>[k,''])),importBatches:Object.fromEntries(XA.map(k=>[k,null]))};
+    const next={...row,studentName:item.studentName,className,grade:uj(className),subject,department,teacher:profile.teacher,scores:{...row.scores,[target]:item.score},statuses:{...row.statuses,[target]:item.status},totals:{...row.totals,[target]:total},examTeachers:{...row.examTeachers,[target]:profile.teacher},examClasses:{...row.examClasses,[target]:className}};
     if(previous&&SR63.equal(previous,next)){skipped++;continue;}
-    next.importBatches={...row.importBatches,[target]:batchId};rows.set(key,next);
+    next.importBatches={...row.importBatches,[target]:batchId};if(previousKey!==key)rows.delete(previousKey);rows.set(key,next);aliasRows.set(aliasKey,key);
     changes.push({key,rowId:next.id,exam:target,before:previous?{score:previous.scores[target],status:previous.statuses[target],total:previous.totals[target],teacher:previous.examTeachers[target],className:previous.examClasses[target],batch:previous.importBatches[target]}:null});
     if(previous)updated++;else created++;
   }
   if(rows.size>100000)SR63.fail('سيزيد إجمالي القاعدة عن 100 ألف سجل؛ لم يُعتمد الاستيراد.');
-  const manual=[...new Map(matches.filter(m=>m.status==='manual'&&!m.exam).map(m=>{const p=profiles.get(m.selectedProfileId);return [dj(m.subject,m.className),{id:`assignment-${p.id}-${dj(m.subject,m.className)}`,profileId:p.id,teacher:p.teacher,subject:m.subject,department:p.department||m.subject,className:lj(m.className),grade:uj(m.className)}];})).values()];
+  const manual=[...new Map(matches.filter(m=>m.status==='manual'&&!m.exam).map(m=>{const p=profiles.get(m.selectedProfileId),subject=m.subject;return [dj(subject,m.className),{id:`assignment-${p.id}-${dj(subject,m.className)}`,profileId:p.id,teacher:p.teacher,subject,department:(workspace.subjects??[]).find(s=>SR63.subjectEquivalent(s.name,subject))?.department||p.department||subject,className:lj(m.className),grade:uj(m.className)}];})).values()];
   const assignments=[...workspace.teacherAssignments.filter(a=>!manual.some(m=>dj(m.subject,m.className)===dj(a.subject,a.className))),...manual];
   const definitions=new Map(files.flatMap(file=>file.sheets.filter(s=>s.selected&&s.wide&&s.examDefinition).map(s=>[s.exam,s.examDefinition])));
   const wide=definitions.size>0,exams=workspace.settings.exams.map(def=>definitions.has(def.key)?{...def,...definitions.get(def.key)}:!wide&&def.key===exam?{...def,total:defaultTotal}:def);

@@ -1,15 +1,26 @@
 /* PATCH lde */
 function lde(items,profiles,assignments,manual={}){
-  const groups=new Map(),byKey=new Map(),byClass=new Map(),byTeacher=new Map(),byProfileSubject=new Map(),activeProfiles=profiles.filter(p=>p.active!==false),ids=new Set(activeProfiles.map(p=>p.id));
+  const groups=new Map(),activeProfiles=profiles.filter(p=>p.active!==false),ids=new Set(activeProfiles.map(p=>p.id)),activeAssignments=assignments.filter(a=>a.active!==false&&ids.has(a.profileId));
   for(const item of items){const key=SR63.linkKey(item);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);}
-  for(const profile of activeProfiles){for(const subject of new Set([profile.subject,...(profile.subjects??[])])){if(!subject)continue;const key=`${ij(profile.teacher)}|${w9(subject)}`;if(!byProfileSubject.has(key))byProfileSubject.set(key,[]);byProfileSubject.get(key).push(profile.id);}}
-  for(const assignment of assignments.filter(a=>a.active!==false)){for(const [map,key] of [[byKey,dj(assignment.subject,assignment.className)],[byClass,lj(assignment.className)]]){if(!map.has(key))map.set(key,[]);map.get(key).push(assignment);}const tkey=ij(assignment.teacher);if(!byTeacher.has(tkey))byTeacher.set(tkey,[]);byTeacher.get(tkey).push(assignment);}
-  return [...groups].map(([key,rows])=>{const first=rows[0],exactAssignments=(byKey.get(dj(first.subject,first.className))??[]).filter(a=>ids.has(a.profileId)),exact=[...new Set(exactAssignments.map(a=>a.profileId))],named=first.teacher?[...new Set([...(byProfileSubject.get(`${ij(first.teacher)}|${w9(first.subject)}`)??[]),...(byTeacher.get(ij(first.teacher))??[]).filter(a=>ij(a.subject)===ij(first.subject)&&ids.has(a.profileId)).map(a=>a.profileId)])]:[],candidates=first.teacher?named:exact;
-    const result={key,exam:first.exam,inputTeacher:first.teacher,subject:first.subject,grade:first.grade,className:first.className,rows:rows.length,candidateProfileIds:candidates,selectedProfileId:'',status:'missing'};
+  return [...groups].map(([key,rows])=>{
+    const first=rows[0],resolution=SR63.resolveSubjectAssignment(first.subject,first.className,activeAssignments),resolvedSubject=resolution.subject||first.subject;
+    let candidates;
+    if(first.teacher){
+      const teacherKey=ij(first.teacher),subjectKey=SR63.subjectAliasKey(resolvedSubject||first.subject);
+      const namedProfiles=activeProfiles.filter(profile=>{
+        if(ij(profile.teacher)!==teacherKey)return false;
+        const subjects=[profile.subject,...(profile.subjects??[])].filter(Boolean);
+        return subjects.some(subject=>SR63.subjectAliasKey(subject)===subjectKey);
+      }).map(profile=>profile.id);
+      const namedAssignments=activeAssignments.filter(assignment=>ij(assignment.teacher)===teacherKey&&lj(assignment.className)===lj(first.className)&&SR63.subjectEquivalent(assignment.subject,resolvedSubject||first.subject)).map(assignment=>assignment.profileId);
+      candidates=[...new Set([...namedProfiles,...namedAssignments])];
+    }else candidates=[...new Set(resolution.assignments.map(assignment=>assignment.profileId))];
+    const result={key,exam:first.exam,inputTeacher:first.teacher,sourceSubject:first.subject,subject:resolvedSubject,grade:first.grade,className:first.className,rows:rows.length,candidateProfileIds:candidates,selectedProfileId:'',status:'missing'};
     if(manual[key]&&ids.has(manual[key]))return {...result,status:'manual',selectedProfileId:manual[key]};
     if(candidates.length===1)return {...result,status:'matched',selectedProfileId:candidates[0]};
     if(candidates.length>1)return {...result,status:'ambiguous'};
-    const similar=(byClass.get(lj(first.className))??[]).filter(a=>cde(w9(first.subject),w9(a.subject))>=.72&&ids.has(a.profileId)).map(a=>a.profileId);
-    return {...result,status:similar.length?'mismatch':'missing',candidateProfileIds:[...new Set([...named,...similar,...exact]) ]};
+    const classAssignments=activeAssignments.filter(a=>lj(a.className)===lj(first.className));
+    const similar=classAssignments.filter(a=>SR63.subjectMatchScore(first.subject,a.subject)>=.72).map(a=>a.profileId);
+    return {...result,status:similar.length?'mismatch':'missing',candidateProfileIds:[...new Set(similar)]};
   }).sort((a,b)=>a.className.localeCompare(b.className,'ar',{numeric:true})||a.subject.localeCompare(b.subject,'ar')||String(a.exam??'').localeCompare(String(b.exam??'')));
 }

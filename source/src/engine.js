@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.9.20', release:'2026-10-08', formDirty:false};
+var SR63 = {version:'6.9.22', release:'2026-10-08', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.fail = message => { throw new Error(message); };
@@ -74,6 +74,7 @@ SR63.validate = function(raw) {
   must(raw&&typeof raw==='object'&&!Array.isArray(raw),'النسخة ليست كائن بيانات صالحًا.');
   must(raw.settings&&typeof raw.settings==='object'&&!Array.isArray(raw.settings),'إعدادات النسخة غير صالحة.');
   must(Array.isArray(raw.rows)&&raw.rows.length<=100000,'عدد سجلات النسخة غير صالح أو يتجاوز 100 ألف سجل.');
+  must(raw.catalogDetached===undefined||typeof raw.catalogDetached==='boolean','حالة فصل الهيكل الأكاديمي غير صالحة.');
   const settings={...ej,...raw.settings};
   must(Array.isArray(settings.exams)&&settings.exams.length===4,'يجب أن تحتوي النسخة تعريف الاختبارات الأربعة.');
   const examSet=new Set();for(const exam of settings.exams){must(exam&&XA.includes(exam.key)&&!examSet.has(exam.key),'مفاتيح الاختبارات ناقصة أو مكررة.');examSet.add(exam.key);must(typeof exam.name==='string'&&exam.name.trim()&&Number.isFinite(exam.total)&&exam.total>0,'اسم الاختبار أو درجته الكلية غير صالح.');}

@@ -33,7 +33,13 @@ function replace(oldText,newText,expected=1){
  code=code.split(oldText).join(newText);
 }
 // Preserve unmodified parsing paths for ordinary single-subject sheets.
-const importOld=readSource('base/ode.js').replace('function ode(','function srLegacyImport(').replace('hv(e,{type:`array`})','e');
+const importOld=readSource('base/ode.js')
+ .replace('function ode(','function srLegacyImport(')
+ .replace('hv(e,{type:`array`})','e')
+ .replace('[`studentId`,`studentName`,`className`].every(e=>t[e]!==void 0)','[`studentName`,`className`].every(e=>t[e]!==void 0)')
+ .replace('if(!a||!o||!c){u.push({severity:`warning`,row:e+1,sheet:i,message:`تم تجاهل صف ناقص الرقم أو الاسم أو الشعبة.`});continue}','if(!o||!c){u.push({severity:`warning`,row:e+1,sheet:i,message:`تم تجاهل صف ناقص الاسم أو الشعبة.`});continue}')
+ .replace('studentId:a,studentName:o,grade:uj(d),className:d','studentId:a||SR63.stableStudentId(o,d),studentName:o,grade:uj(d),className:d')
+ .replace('لم أجد أي ورقة تحتوي الأعمدة: الرقم، الاسم، الشعبة الصفية.','لم أجد أي ورقة تحتوي عمودي الاسم والشعبة الصفية.');
 const qualityOld=readSource('base/zN.js').replace('function zN(','function srLegacyQualityRows(');
 // State metadata and compatibility with older scores-only backups.
 // Imported virtual sheets carry their own exam and, where present, per-row totals.

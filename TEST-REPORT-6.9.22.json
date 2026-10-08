@@ -1,0 +1,12 @@
+{
+  "version": "6.9.22",
+  "date": "2026-10-08",
+  "status": "passed",
+  "report_logic": "229/229",
+  "regression": "74/74",
+  "cloud": "22/22",
+  "structure": "58/58",
+  "release": "292/292",
+  "desktop_startup": "passed",
+  "feature": "Bulk academic structure reset preserving historical student results"
+}

@@ -18,7 +18,7 @@ function walk(dir,prefix='',exclude=()=>false){
   return out;
 }
 const repoFiles=walk(projectRoot,'',(rel,entry)=>
-  rel==='checksums.sha256'||
+  rel.endsWith('checksums.sha256')||
   rel.startsWith('source/node_modules/')||
   rel.startsWith('source/tests/output/')||
   rel.startsWith('.git/')||

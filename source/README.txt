@@ -1,4 +1,4 @@
-SchoolResult 6.9.20 — current maintainable source
+SchoolResult 6.9.22 — current maintainable source
 
 Build from this directory with Node 22+:
 node --expose-internals build.cjs

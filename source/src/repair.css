@@ -536,3 +536,6 @@
 .department-matrix-caption strong{font-size:7px!important}.department-matrix-caption span{font-size:5.2px!important}
 .department-matrix-summary{font-size:4.4px!important;gap:4mm!important}
 @media print{.department-subject-matrix-official,.department-subject-matrix-official .report-meter{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+
+/* 6.9.22 bulk academic-structure reset */
+.sr68-danger-action{border:1px solid #fecaca;background:#fff1f2;color:#b91c1c;border-radius:12px;padding:10px 14px;font-weight:800;cursor:pointer;transition:.18s ease}.sr68-danger-action:hover{background:#ffe4e6;border-color:#fda4af}.sr68-danger-action:focus-visible{outline:3px solid rgba(225,29,72,.18);outline-offset:2px}
