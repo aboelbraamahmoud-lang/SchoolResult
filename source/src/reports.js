@@ -324,3 +324,81 @@ function SRLevelAnalysisReport({page:e,exam:t,workspace:n}){
     (0,q.jsxs)(`div`,{className:`level-analysis-summary`,children:[(0,q.jsxs)(`span`,{children:[`عدد الطلاب: `,(0,q.jsx)(`b`,{children:metric.students})]}),(0,q.jsxs)(`span`,{children:[`حاضر: `,(0,q.jsx)(`b`,{children:metric.evaluated})]}),(0,q.jsxs)(`span`,{children:[`ناجح: `,(0,q.jsx)(`b`,{children:metric.passed})]}),(0,q.jsxs)(`span`,{children:[`راسب: `,(0,q.jsx)(`b`,{children:metric.failed})]}),(0,q.jsxs)(`span`,{children:[`نسبة النجاح: `,(0,q.jsx)(`b`,{children:wj(metric.success)})]}),(0,q.jsxs)(`span`,{children:[`التحصيل: `,(0,q.jsx)(`b`,{children:wj(metric.achievement)})]})]})
   ]});
 }
+
+/* 6.9.19 — custom report builder follows the currently active exam. */
+SR63.customDetailColumns=function(exam){
+  const key=XA.includes(exam)?exam:'exam1';
+  return [
+    {key:'studentId',label:'الرقم'},
+    {key:'studentName',label:'اسم الطالب'},
+    {key:'className',label:'الشعبة'},
+    {key:'teacher',label:'المعلم'},
+    {key:`score:${key}`,label:'الدرجة'},
+    {key:`percent:${key}`,label:'النسبة'},
+    {key:`band:${key}`,label:'المستوى'}
+  ];
+};
+SR63.previousExamKey=function(exam){
+  const index=XA.indexOf(exam);
+  return index>0?XA[index-1]:(XA.includes(exam)?exam:'exam1');
+};
+SR63.customReportDefault=function(workspace){
+  const exam=XA.includes(workspace?.activeExam)?workspace.activeExam:'exam1';
+  return {
+    id:'',
+    name:'تقرير مخصص جديد',
+    title:'تقرير مخصص',
+    subtitle:'',
+    mode:'detail',
+    groupBy:'className',
+    secondaryGroupBy:'none',
+    subject:'الكل',
+    entityDimension:'className',
+    entity:'الكل',
+    exam,
+    compareExam:SR63.previousExamKey(exam),
+    minPercent:0,
+    maxPercent:100,
+    resultScope:'evaluated',
+    sortBy:'studentName',
+    sortDirection:'asc',
+    columns:SR63.customDetailColumns(exam),
+    orientation:'portrait',
+    footerText:''
+  };
+};
+SR63.remapCustomExamColumns=function(columns,fromExam,toExam){
+  const target=XA.includes(toExam)?toExam:'exam1';
+  const source=Array.isArray(columns)?columns:SR63.customDetailColumns(target);
+  return source.map(column=>{
+    const item={...column};
+    const match=/^(score|status|percent|band):(exam[1-4])$/.exec(item.key??'');
+    if(match&&match[2]===fromExam)item.key=`${match[1]}:${target}`;
+    return item;
+  });
+};
+SR63.customReportRows=function(workspace,config){
+  return workspace.rows.filter(row=>{
+    const value=config.entityDimension==='teacher'?mj(row,config.exam)
+      :config.entityDimension==='className'?hj(row,config.exam)
+      :config.entityDimension==='grade'?gj(row,config.exam)
+      :row[config.entityDimension];
+    return (config.subject==='الكل'||row.subject===config.subject)
+      &&(config.entity==='الكل'||value===config.entity);
+  }).filter(row=>{
+    const pct=vj(row,config.exam,workspace.settings);
+    return config.resultScope==='all'
+      ?pct===null||(pct>=config.minPercent&&pct<=config.maxPercent)
+      :config.resultScope==='notEvaluated'
+        ?pct===null
+        :pct!==null&&pct>=config.minPercent&&pct<=config.maxPercent;
+  });
+};
+SR63.customReportEmptyHint=function(workspace,config){
+  const selected=workspace.rows.filter(row=>vj(row,config.exam,workspace.settings)!==null).length;
+  const active=workspace.rows.filter(row=>vj(row,workspace.activeExam,workspace.settings)!==null).length;
+  if(!selected&&config.exam!==workspace.activeExam&&active){
+    return `لا توجد نتائج حاضرة في ${tj(workspace.settings,config.exam).name}. الاختبار النشط ${tj(workspace.settings,workspace.activeExam).name} يحتوي على ${active.toLocaleString('en-US')} نتيجة حاضرة.`;
+  }
+  return 'غيّر حالة النتائج أو المادة أو نطاق التصفية أو الاختبار.';
+};

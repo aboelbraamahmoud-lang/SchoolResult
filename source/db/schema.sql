@@ -103,3 +103,16 @@ declare uid uuid:=auth.uid(); result jsonb; begin
 end; $$;
 revoke all on function public.school_save(bigint,jsonb,uuid,jsonb),public.school_snapshot(jsonb),public.school_archive_list(),public.school_archive_get(text),public.school_archive_delete(text) from public,anon;
 grant execute on function public.school_save(bigint,jsonb,uuid,jsonb),public.school_snapshot(jsonb),public.school_archive_list(),public.school_archive_get(text),public.school_archive_delete(text) to authenticated,service_role;
+
+-- SchoolResult health endpoint for scheduled keep-alive.
+create table public.school_health (
+  id smallint primary key check (id = 1),
+  service text not null default 'schoolresult'
+);
+insert into public.school_health(id,service) values (1,'schoolresult');
+alter table public.school_health enable row level security;
+revoke all on public.school_health from public,anon,authenticated;
+grant select on public.school_health to anon,authenticated;
+create policy school_health_public_read on public.school_health
+for select to anon,authenticated using (id=1);
+

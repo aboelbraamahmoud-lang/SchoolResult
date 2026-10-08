@@ -1,4 +1,4 @@
-SchoolResult 6.9.18 — GitHub Windows Setup Build
+SchoolResult 6.9.20 — GitHub Windows Setup Build
 
 هذه الحزمة كاملة وجاهزة لرفع محتوياتها إلى جذر مستودع SchoolResult على GitHub.
 
@@ -6,8 +6,8 @@ SchoolResult 6.9.18 — GitHub Windows Setup Build
 1) افتح Actions.
 2) اختر Build Windows Setup.
 3) اضغط Run workflow.
-4) بعد النجاح نزّل Artifact باسم SchoolResult-Windows-Setup-v6.9.18.
-5) فك الـArtifact وشغّل SchoolResult-Setup-6.9.18-x64.exe.
+4) بعد النجاح نزّل Artifact باسم SchoolResult-Windows-Setup-v6.9.20.
+5) فك الـArtifact وشغّل SchoolResult-Setup-6.9.20-x64.exe.
 
 مهم: مجلد desktop/web لا يُرفع إلى GitHub؛ يتم إنشاؤه تلقائيًا أثناء الـWorkflow من نسخة الويب الموجودة في جذر المستودع.
 راجع GITHUB-SETUP-GUIDE.md للتفاصيل.

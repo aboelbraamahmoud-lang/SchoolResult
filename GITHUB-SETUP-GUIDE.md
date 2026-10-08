@@ -24,7 +24,7 @@
 2. اختر **Build Windows Setup**.
 3. اضغط **Run workflow** ثم **Run workflow**.
 4. بعد نجاح البناء افتح نفس الـRun.
-5. من قسم **Artifacts** نزّل `SchoolResult-Windows-Setup-v6.9.18`.
-6. فك ملف الـArtifact ثم شغّل `SchoolResult-Setup-6.9.18-x64.exe`.
+5. من قسم **Artifacts** نزّل `SchoolResult-Windows-Setup-v6.9.20`.
+6. فك ملف الـArtifact ثم شغّل `SchoolResult-Setup-6.9.20-x64.exe`.
 
 لا يحتاج البناء إلى مفتاح Supabase سري أو `service_role`، ولا يتم تضمين أي مفتاح خدمة في تطبيق Desktop.

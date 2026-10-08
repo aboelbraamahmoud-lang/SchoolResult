@@ -26,7 +26,23 @@ const deptPages=ctx.SR63.buildReportPages(workspace.rows,'grade','الكل','ا�
 const sample=workspace.rows.filter(r=>ctx.mj(r,exam)===teacher).slice(0,3).map((r,i)=>({...structuredClone(r),id:r.id+'-second-'+i,subject:'مادة إضافية'}));
 const mixed=[...workspace.rows,...sample];
 pages=ctx.SR63.buildReportPages(mixed,'teacher',teacher,'الكل','summary',exam,pass,workspace.settings);assert.ok(pages.some(p=>p.subject==='مادة إضافية'));oneSubject(pages);
-const app=require('fs').readFileSync(APP_PATH,'utf8');assert.ok(app.includes('SR63.buildReportPages(e.rows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');
+
+// 6.9.19 — custom report builder must follow the globally active exam.
+const customWorkspace={...workspace,activeExam:'exam1'};
+const customConfig=ctx.SR63.customReportDefault(customWorkspace);
+assert.equal(customConfig.exam,'exam1','custom report did not start from active exam');checks++;
+assert.ok(customConfig.columns.some(c=>c.key==='score:exam1'),'custom score column is not bound to active exam');checks++;
+assert.ok(customConfig.columns.some(c=>c.key==='percent:exam1'),'custom percent column is not bound to active exam');checks++;
+assert.ok(customConfig.columns.some(c=>c.key==='band:exam1'),'custom band column is not bound to active exam');checks++;
+assert.ok(ctx.SR63.customReportRows(customWorkspace,customConfig).length>0,'custom report default produced no rows for active exam');checks++;
+const remapped=ctx.SR63.remapCustomExamColumns(customConfig.columns,'exam1','exam2');
+assert.ok(remapped.some(c=>c.key==='score:exam2')&&remapped.some(c=>c.key==='percent:exam2')&&remapped.some(c=>c.key==='band:exam2'),'custom exam columns did not follow exam change');checks++;
+assert.ok(!remapped.some(c=>/^(score|percent|band):exam1$/.test(c.key)),'old custom exam-bound columns remained after exam change');checks++;
+
+const app=require('fs').readFileSync(APP_PATH,'utf8');assert.ok(app.includes('SR63.buildReportPages(e.rows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');assert.ok(app.includes('H9=e=>SR63.customReportDefault(e)'),'custom report runtime still hard-codes its default exam');checks++;
+assert.ok(app.includes('(0,v.useState)(()=>H9(e))'),'custom report state does not receive workspace active exam');checks++;
+assert.ok(app.includes('SR63.remapCustomExamColumns(n.columns,n.exam,t)'),'custom report columns do not follow exam changes');checks++;
+assert.ok(!app.includes('النتائج المقيمة فقط')&&!app.includes('غير المقيمة فقط'),'legacy evaluated terminology remains in custom report builder');checks++;
 
 // 6.9.17 runtime route and official report contracts.
 const runtime=require('fs').readFileSync(APP_PATH,'utf8');

@@ -70,7 +70,7 @@ replace('الإصدار 6.2 الاحترافي',`الإصدار ${version.versio
 replace('le.length,`/10`','le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`');
 // 6.9.17 — reports use Western digits; value-added cells do not repeat the Arabic abbreviation.
 // Official report terminology: clear administrative labels.
-code=code.split('طلاب فريدون').join('عدد الطلاب').split('نتائج ناجحة').join('ناجح').split('نتائج راسبة').join('راسب').split('نتائج مقيمة').join('حاضر').split('نتيجة مقيمة').join('حاضر').split('حاضر/مقيم').join('حاضر').split('الحضور المقيم').join('الحضور').split('المقيمون').join('الحاضرون');
+code=code.split('طلاب فريدون').join('عدد الطلاب').split('نتائج ناجحة').join('ناجح').split('نتائج راسبة').join('راسب').split('النتائج المقيمة فقط').join('حاضر فقط').split('غير المقيمة فقط').join('دون نسبة محتسبة').split('نتائج مقيمة').join('حاضر').split('نتيجة مقيمة').join('حاضر').split('حاضر/مقيم').join('حاضر').split('الحضور المقيم').join('الحضور').split('المقيمون').join('الحاضرون');
 replace('var pde=[{id:`summary`,title:`ملخص النتائج`,text:`حضور ونجاح وتحصيل وتوزيع المستويات`,icon:xy},{id:`levels`,title:`تحليل المستويات`,text:`كشف تفصيلي للطلاب مجمّع حسب مستوى الأداء`,icon:Ay},{id:`struggling`,title:`الطلاب ضمن نسبة`,text:`قائمة علاجية حسب حد مئوي تختاره`,icon:Wy},{id:`teachers`,title:`متوسطات المعلمين`,text:`صفوف المعلم ومتوسط النجاح والتحصيل`,icon:Cy},{id:`comparison`,title:`مقارنة اختبارين`,text:`درجة ونسبة وفارق ومستوى لكل طالب`,icon:iy},{id:`subjects`,title:`مقارنة المواد`,text:`مواد الصف ومعلموها ونسب النجاح والتحصيل`,icon:oy}]','var pde=[{id:`summary`,title:`ملخص النتائج`,text:`حضور ونجاح وتحصيل وتوزيع المستويات`,icon:xy},{id:`levels`,title:`تحليل المستويات`,text:`مجموعات فوق المتوسط وفي المتوسط وتحت المتوسط`,icon:Ay},{id:`struggling`,title:`الطلاب ضمن نسبة`,text:`قائمة علاجية حسب حد مئوي تختاره`,icon:Wy},{id:`teachers`,title:`متوسطات المعلمين`,text:`صفوف المعلم ومتوسط النجاح والتحصيل`,icon:Cy},{id:`comparison`,title:`مقارنة اختبارين`,text:`درجة ونسبة وفارق ومستوى لكل طالب`,icon:iy},{id:`subjects`,title:`مقارنة المواد`,text:`بيان رسمي منفصل لنسب النجاح والتحصيل: الشعبة × المادة × المعلم`,icon:oy},{id:`departmentStats`,title:`إحصائية نتائج القسم`,text:`الشعبة × المواد: المعلم ونسبة النجاح والتحصيل في صفحة عرضية`,icon:xy}]');
 // 6.7 grade-wide subject comparison: one grade per landscape page.
 replace('if(i===`subjects`){let t=e;return(n===`الكل`?P9(t.map(e=>hj(e,a))):[n]).forEach(e=>{let n=t.filter(t=>hj(t,a)===e),r=P9(n.map(e=>`${e.subject}\\u0000${mj(e,a)}`)),i=r.length?Array.from({length:Math.ceil(r.length/18)},(e,t)=>r.slice(t*18,(t+1)*18)):[[]];i.forEach((t,r)=>f.push({key:`subjects-${e}-${r}`,title:e,entity:e,scope:`className`,className:e,teacher:``,subject:`كل المواد`,rows:n.filter(e=>t.includes(`${e.subject}\\u0000${mj(e,a)}`)),allRows:n,rowOffset:r*18,part:r+1,totalParts:i.length}))}),f}','if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);');
@@ -101,8 +101,24 @@ reportCode=reportCode.split('window.print()').join('SR63.print(e,w?[f,m]:[u])');
 reportCode=reportCode.split('فحص الطباعة: جاهز').join('المعاينة جاهزة — راجع معاينة PDF');
 reportCode=reportCode.split('`صفحة `').join('`جزء `');
 code=code.slice(0,reportStart)+reportCode+code.slice(reportEnd);
+// 6.9.20 — one-file academic master import: grades, classes, subjects, coordinators, teachers and assignments.
+replace('title:`١ — قاعدة بيانات المعلمين`,desc:`يقبل النموذج المرفق: اسم المعلم، المادة، القسم، منسق المادة، ثم الصفوف. يستخدم منسق المادة تلقائيًا في توقيع تقاريرها.`','title:`١ — قاعدة الهيكل الأكاديمي والمعلمين`,desc:`ارفع ملفًا واحدًا فقط. ينشئ البرنامج الصفوف والشعب والمواد والأقسام والمنسقين والمعلمين وخريطة التكليفات تلقائيًا. إذا تُرك المنسق فارغًا يُعتمد أول معلم ظاهر في المادة منسقًا لها.`');
+replace('`اختيار ملف المعلمين`','`اختيار ملف الهيكل الأكاديمي`');
+replace('`اعتماد قاعدة المعلمين`','`اعتماد الهيكل والتكليفات`');
+replace('[D,O]=(0,v.useState)(`merge`)','[D,O]=(0,v.useState)(`replace`)');
+replace('label:`استبدال القاعدة كاملة`','label:`اعتماد الملف كهيكل رئيسي (موصى به)`');
+replace("eb.success('تم تحديث المعلمين مع الحفاظ على معرفاتهم والإسنادات التاريخية.')","eb.success('تم توزيع الهيكل الأكاديمي والمعلمين والتكليفات والمنسقين تلقائيًا.')");
+replace('kicker:`بوابة الاستيراد الذكية`,title:`من ملف المدرسة إلى تحليل موثوق`,desc:`استورد قاعدة المعلمين مرة واحدة، ثم ارفع ملفات النتائج كما تصدر من المدرسة. لن تُعتمد أي نتيجة قبل مراجعة المادة والشعبة والمعلم والدرجة الكلية.`','kicker:`بوابة الاستيراد الذكية`,title:`ملف واحد يبني الهيكل الأكاديمي كاملًا`,desc:`ابدأ بملف الهيكل الأكاديمي والمعلمين: الصفوف والشعب والمواد والأقسام والمنسقون والمعلمون والتكليفات تُوزع تلقائيًا، ثم ارفع ملفات النتائج.`');
+// 6.9.19 — custom report builder defaults to the globally active exam and keeps exam-bound columns aligned.
+replace('H9=()=>({id:``,name:`تقرير مخصص جديد`,title:`تقرير مخصص`,subtitle:``,mode:`detail`,groupBy:`className`,secondaryGroupBy:`none`,subject:`الكل`,entityDimension:`className`,entity:`الكل`,exam:`exam4`,compareExam:`exam3`,minPercent:0,maxPercent:100,resultScope:`evaluated`,sortBy:`studentName`,sortDirection:`asc`,columns:V9,orientation:`portrait`,footerText:``})','H9=e=>SR63.customReportDefault(e)');
 const customStart=code.indexOf('function Dde('),customEnd=code.indexOf('function ',customStart+10);
 let customCode=code.slice(customStart,customEnd).split('window.print()').join('SR63.print(e,SR63.reportExamKeys(n))');
+customCode=customCode
+  .split('(0,v.useState)(H9)').join('(0,v.useState)(()=>H9(e))')
+  .split('m=()=>{r(H9()),a(`studentName`)}').join('m=()=>{r(H9(e)),a(`studentName`)}')
+  .split('onChange:t=>p({mode:t,columns:t===`summary`?U9(e,`summary`).slice(0,8):V9})').join('onChange:t=>p({mode:t,columns:t===`summary`?U9(e,`summary`).slice(0,8):SR63.customDetailColumns(n.exam)})')
+  .split('value:n.exam,onChange:e=>p({exam:e}),items:e.settings.exams.map').join('value:n.exam,onChange:t=>p({exam:t,columns:n.mode===`detail`?SR63.remapCustomExamColumns(n.columns,n.exam,t):n.columns,compareExam:n.compareExam===n.exam?SR63.previousExamKey(t):n.compareExam}),items:e.settings.exams.map')
+  .split('children:`غيّر نطاق النتائج أو المادة أو الاختبار.`').join('children:SR63.customReportEmptyHint(e,n)');
 code=code.slice(0,customStart)+customCode+code.slice(customEnd);
 // Inform users that report design changes are pending before navigating away.
 replace('a(t=>({...t,reportDesign:{...t.reportDesign,...e}})),s(!0)','a(t=>({...t,reportDesign:{...t.reportDesign,...e}})),SR63.formDirty=true,s(!0)');

@@ -1,0 +1,46 @@
+{
+  "product": "مرصد النتائج المدرسية",
+  "version": "6.9.19",
+  "released": "2026-10-08",
+  "testedAt": "2026-10-08T06:43:01.972866+00:00",
+  "results": {
+    "reportLogic": {
+      "passed": 229,
+      "failed": 0
+    },
+    "regression": {
+      "passed": 66,
+      "failed": 0
+    },
+    "cloudAdapter": {
+      "passed": 22,
+      "failed": 0
+    },
+    "structure": {
+      "passed": 58,
+      "failed": 0
+    },
+    "release": {
+      "passed": 244,
+      "failed": 0
+    },
+    "desktopStartupSmoke": {
+      "passed": 1,
+      "failed": 0
+    },
+    "keepAliveScriptSyntax": {
+      "passed": 1,
+      "failed": 0
+    }
+  },
+  "customReportFix": [
+    "New report follows workspace.activeExam.",
+    "Score/percent/band columns follow the selected main exam.",
+    "Changing the main exam remaps exam-bound detail columns.",
+    "Legacy evaluated terminology removed from the custom report filter."
+  ],
+  "notes": [
+    "No production Supabase data was modified during this build.",
+    "The 6.9.19 keep-alive SQL migration must be applied once before the scheduled health workflow is expected to succeed."
+  ]
+}
