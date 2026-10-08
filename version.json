@@ -1,0 +1,18 @@
+{
+  "product": "مرصد النتائج المدرسية",
+  "edition": "cloud",
+  "version": "6.9.24",
+  "released": "2026-10-08",
+  "updateFiles": [
+    "app.js",
+    "style.css",
+    "version.json",
+    "index.html",
+    "supabase.js",
+    "moehe.png"
+  ],
+  "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
+  "project": "school-results",
+  "workspaceSchema": 7,
+  "notes": "نسخة أساس نظيفة للمستودع: إزالة الملفات التاريخية والمخرجات المولدة والنسخ المكررة، مع الإبقاء على تشغيل الويب والسورس والاختبارات وSQL migrations وبناء Windows Setup وSupabase Keep-Alive. جميع وظائف 6.9.23 محفوظة."
+}

@@ -1,0 +1,14 @@
+{
+  "name": "schoolresult-web",
+  "private": true,
+  "version": "6.9.24",
+  "description": "مرصد النتائج المدرسية - نسخة الويب",
+  "scripts": {
+    "install:source": "npm --prefix source ci",
+    "build": "npm --prefix source run build",
+    "test": "npm --prefix source test",
+    "release": "npm --prefix source run release",
+    "test:release": "npm --prefix source run test:release",
+    "verify": "npm run build && npm run test && npm run release && npm run test:release"
+  }
+}
