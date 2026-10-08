@@ -1,8 +1,0 @@
-هذه هي حزمة الويب الجاهزة لمستودع GitHub.
-
-بعد فك الضغط:
-ارفع محتويات هذا المجلد نفسها إلى جذر المستودع SchoolResult.
-
-يجب أن يظهر index.html و app.js و style.css و supabase.js و version.json مباشرة في جذر GitHub، وليس داخل مجلد web.
-
-الإصدار: 6.9.22
