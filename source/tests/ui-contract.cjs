@@ -4,7 +4,7 @@ function test(name,fn){try{fn();results.push({name,status:'pass'});console.log('
 const app=read('app.js'),css=read('source/src/repair.css'),reports=read('source/src/reports.js'),student=read('source/src/student-results-print.js'),patch=read('source/src/patches/reports.js');
 
 test('student print includes academic ID and calculation disclosure',()=>{assert.match(student,/الرقم الأكاديمي/);assert.match(student,/النتائج المرصودة للحضور فقط/);assert.match(student,/النائب الأكاديمي/);assert.match(student,/مدير المدرسة/);});
-test('import page contains reconciliation before commit',()=>{assert.match(app,/مصالحة الدفعة قبل الاعتماد/);assert.match(app,/الطالب يُحسب مرة واحدة/);assert.match(css,/\.sr610-import-reconciliation/);});
+test('import page contains reconciliation before commit',()=>{assert.match(app,/مصالحة الدفعة قبل الاعتماد/);assert.match(app,/الطالب يُحسب مرة واحدة/);assert.match(app,/توزيع النتائج على الشعب/);assert.match(css,/\.sr610-import-reconciliation/);});
 test('executive report is wired into report center',()=>{assert.match(app,/id:`executive`/);assert.match(reports,/function SRExecutiveReport/);assert.match(css,/\.executive-report-grid/);});
 test('quality issues can navigate directly to academic structure',()=>{assert.match(app,/onClick:\(\)=>s\(e\.category===`المعلمون`\|\|e\.category===`الإسناد`\?`masterData`:`data`\)/);assert.match(app,/فتح موضع الإصلاح/);});
 test('teacher analytics carries fairness disclaimer',()=>{assert.match(app,/قراءة وصفية لأداء المعلمين/);assert.match(reports,/لا تُستخدم منفردة للحكم على أداء المعلم/);});
@@ -14,7 +14,7 @@ test('official logo is external and patch payload is compact',()=>{assert.match(
 test('wide report CSS keeps readable floor and pagination support',()=>{assert.match(css,/grade-subject-matrix-official/);assert.match(css,/department-subject-matrix-official/);assert.ok(!/font-size:\s*[1-4](?:\.\d+)?px!important/.test(css.slice(css.lastIndexOf('6.10.0'))));});
 test('subject comparison print uses compact cells with bold black subject and grade labels',()=>{const block=css.slice(css.lastIndexOf('6.10.3'));assert.match(block,/official-subject-head[\s\S]*color:#000!important/);assert.match(block,/grade-matrix-class[\s\S]*color:#000!important/);assert.match(block,/official-comparison-caption[\s\S]*color:#050505!important/);assert.match(block,/grade-matrix-percent-head[\s\S]*width:6\.4mm!important/);});
 test('legacy misleading terminology is absent from generated runtime',()=>{for(const term of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])assert.ok(!app.includes(term),term);});
-test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.3/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
+test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.5/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
 
 
 test('dashboard supports persistent subject scope for main summaries',()=>{assert.match(app,/المواد المحتسبة في ملخصات ورسوم الرئيسية/);assert.match(app,/dashboardSubjects/);assert.match(css,/\.sr610-dashboard-scope/);});

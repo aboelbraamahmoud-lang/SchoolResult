@@ -1,11 +1,14 @@
 /* PATCH RN */
 function RN(workspace,exam){
   const issues=[],add=(id,severity,category,title,details,count)=>{if(count)issues.push({id,severity,category,title,details,count});};
-  const profiles=new Set(workspace.teachers.map(p=>p.id)),bindings=new Map(),names=new Map(),duplicates=new Map(),identityRefs=new Map();
-  add('teachers-incomplete','warning','المعلمون','سجلات معلمين غير مكتملة','راجع الاسم والمادة والقسم والصفوف.',workspace.teachers.filter(p=>!p.teacher.trim()||!p.subject.trim()||!p.department.trim()||!p.classes.length).length);
-  add('orphan-assignments','critical','الإسناد','إسنادات تشير إلى معلم غير موجود','أعد ربط الإسنادات بمعرف معلم ثابت.',workspace.teacherAssignments.filter(a=>!profiles.has(a.profileId)).length);
-  for(const a of workspace.teacherAssignments){const key=dj(a.subject,a.className);if(!bindings.has(key))bindings.set(key,new Set());bindings.get(key).add(ij(a.teacher));}
-  add('assignment-conflicts','critical','الإسناد','إسنادات لها أكثر من معلم','احسم المعلم الحالي للمادة والشعبة.',[...bindings.values()].filter(set=>set.size>1).length);
+  const catalogHealth=SR63.catalogHealth(workspace),names=new Map(),duplicates=new Map(),identityRefs=new Map();
+  add('teachers-incomplete','warning','المعلمون','سجلات معلمين غير مكتملة','راجع الاسم والمادة والقسم والصفوف.',workspace.teachers.filter(p=>!String(p.teacher??'').trim()||!String(p.subject??'').trim()||!String(p.department??'').trim()||!(p.classes??[]).length).length);
+  add('missing-assignments','critical','الإسناد','تكليفات أكاديمية ناقصة',`هناك ${catalogHealth.coverage.missing} خلية مادة × شعبة بلا معلم. أكمل خريطة التكليفات قبل اعتماد النتائج أو التقارير.`,catalogHealth.coverage.missing);
+  add('orphan-assignments','critical','الإسناد','إسنادات تشير إلى معلم غير موجود','أعد ربط الإسنادات بمعرف معلم ثابت.',catalogHealth.orphanAssignments);
+  add('assignment-conflicts','critical','الإسناد','إسنادات لها أكثر من معلم','احسم معلمًا واحدًا فقط لكل مادة وشعبة.',catalogHealth.assignmentConflicts);
+  add('empty-classes','warning','الإسناد','شعب بلا أي تكليفات','أكمل تكليفات المواد للشعب قبل استيراد نتائجها.',catalogHealth.classesWithoutAssignments);
+  add('duplicate-teachers','warning','المعلمون','أسماء معلمين مكررة','راجع المعرف الثابت للمعلم حتى لا تتكرر التكليفات لنفس الشخص.',catalogHealth.duplicateTeacherNames);
+  add('coordinators','info','المعلمون','مواد بلا منسق','لا يمنع الحسابات، لكنه يؤثر في اكتمال بيانات التقارير والتوقيعات.',catalogHealth.subjectsWithoutCoordinator);
   add('unlinked','critical','الإسناد','نتائج غير مرتبطة بمعلم','أكمل ربط المعلم قبل اعتماد التقرير.',workspace.rows.filter(row=>row.statuses[exam]!=='not_enrolled'&&(mj(row,exam)==='غير محدد'||!mj(row,exam).trim())).length);
   add('unentered','warning','النتائج','درجات لم تُرصد','لا تدخل في النسب؛ تظهر التقارير بوصفها مسودة.',workspace.rows.filter(row=>row.statuses[exam]==='unentered').length);
   add('invalid-scores','critical','النتائج','درجة أو حالة نتيجة غير متسقة','الحاضر يحتاج درجة صحيحة؛ حالات الغياب تحتاج درجة فارغة وإجماليًا صحيحًا.',workspace.rows.filter(row=>!SR63.validResult(row,exam,workspace.settings)).length);
@@ -14,8 +17,8 @@ function RN(workspace,exam){
   add('identity-collision','critical','الطلاب','اسم وشعبة مرتبطان بأكثر من رقم طالب','لم يتم الدمج تلقائيًا حمايةً للبيانات. راجع الأرقام الأكاديمية أو أضف رقم الطالب لملفات النتائج.',[...identityRefs.values()].filter(set=>set.size>1).length);
   add('duplicates','critical','الطلاب','طالب ومادة مكرران','يوجد أكثر من سجل للطالب والمادة نفسها.',[...duplicates.values()].filter(count=>count>1).length);
   const count=workspace.rows.length,complete=key=>workspace.rows.filter(row=>row.statuses[key]!=='unentered'&&SR63.validResult(row,key,workspace.settings)).length;
-  const coverage=Object.fromEntries(XA.map(key=>[key,count?complete(key)/count*100:0])),critical=issues.filter(i=>i.severity==='critical').reduce((n,i)=>n+i.count,0);
-  return {issues,critical,completion:coverage[exam],evaluated:workspace.rows.filter(row=>vj(row,exam,workspace.settings)!==null).length,examCoverage:coverage,ready:count>0&&critical===0&&complete(exam)===count};
+  const coverage=Object.fromEntries(XA.map(key=>[key,count?complete(key)/count*100:0])),critical=issues.filter(i=>i.severity==='critical').reduce((n,i)=>n+i.count,0),criticalGroups=issues.filter(i=>i.severity==='critical').length;
+  return {issues,critical,criticalGroups,completion:coverage[exam],evaluated:workspace.rows.filter(row=>vj(row,exam,workspace.settings)!==null).length,examCoverage:coverage,structure:catalogHealth,ready:count>0&&critical===0&&complete(exam)===count};
 }
 /* PATCH zN */
 function zN(workspace,exam,issue){
