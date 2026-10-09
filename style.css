@@ -601,3 +601,120 @@
 .sr610-support-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.sr610-support-grid article{background:#fff;border:1px solid #d6e4f2;border-radius:17px;padding:15px;display:grid;gap:10px}.sr610-support-grid article>div:first-child{display:flex;justify-content:space-between;gap:10px}.sr610-support-grid article b{color:#183f62}.sr610-support-grid article small{direction:ltr;color:#6b8298}.sr610-support-grid article>strong{font-size:21px;color:#1d527f}.sr610-support-grid article p{display:flex;justify-content:space-between;gap:10px;margin:0;font-size:12px;color:#506c86}.sr610-support-bars{display:grid;gap:6px}.sr610-support-bars i{height:7px;background:#edf2f7;border-radius:999px;overflow:hidden}.sr610-support-bars em{display:block;height:100%;border-radius:inherit}.sr610-support-bars .success{background:#18a87e}.sr610-support-bars .achievement{background:#388fda}
 .support-report-banner{display:flex;justify-content:space-between;align-items:center;gap:20px;border:1px solid #bdd5eb;background:linear-gradient(135deg,#f2f8ff,#fff);border-radius:14px;padding:14px 17px;margin-bottom:10px}.support-report-banner span{font-size:11px;color:#486b89;font-weight:800}.support-report-banner h2{margin:2px 0;font-size:19px;color:#173e61}.support-report-banner p{margin:0;font-size:11px;color:#698097}.support-report-banner>strong{background:#e6f2ff;color:#245c8a;border-radius:999px;padding:7px 12px;font-size:11px}.support-report-note{border-right:4px solid #397fb9;background:#f4f9fd;padding:9px 12px;margin:9px 0 13px;color:#365f7d;font-size:11px;font-weight:700}.support-report-table th:first-child,.support-report-table td:first-child{text-align:right}.support-report-kpis{margin-bottom:12px}
 @media(max-width:900px){.sr610-support-panel>header{flex-direction:column}.sr610-support-grid{grid-template-columns:1fr}}
+
+/* 6.10.3 — landscape subject-comparison print clarity: compact cells, bold black labels. */
+.grade-subjects-landscape .report-title{
+  background:linear-gradient(180deg,#f7fbfc,#e8f4f6)!important;
+  color:#050505!important;
+  border:1px solid #9fbfc8!important;
+  box-shadow:none!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .report-title *{color:#050505!important;font-weight:1000!important;text-shadow:none!important}
+.grade-subjects-landscape .official-comparison-caption{
+  min-height:5.8mm!important;
+  margin:.55mm 2mm .65mm!important;
+  padding:.55mm 1.4mm!important;
+  background:linear-gradient(180deg,#f7fbfc,#e7f3f5)!important;
+  color:#050505!important;
+  border:1px solid #7599a5!important;
+  box-shadow:none!important;
+}
+.grade-subjects-landscape .official-comparison-caption strong,
+.grade-subjects-landscape .official-comparison-caption span{
+  color:#050505!important;
+  opacity:1!important;
+  text-shadow:none!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .official-comparison-caption strong{font-size:7.8px!important}
+.grade-subjects-landscape .official-comparison-caption span{font-size:6.4px!important}
+
+.grade-subjects-landscape .grade-subject-matrix-official{
+  font-size:6.8px!important;
+  line-height:1.08!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official th,
+.grade-subjects-landscape .grade-subject-matrix-official td{
+  padding:.22mm .20mm!important;
+  height:auto!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .official-subject-head{
+  padding:.30mm .18mm!important;
+  background:#dceff3!important;
+  color:#000!important;
+  font-weight:1000!important;
+  text-shadow:none!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-subject b{
+  color:#000!important;
+  font-size:6.8px!important;
+  line-height:1.05!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class-head,
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class{
+  width:11.5mm!important;
+  min-width:11.5mm!important;
+  max-width:11.5mm!important;
+  color:#000!important;
+  font-weight:1000!important;
+  text-shadow:none!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class-head{background:#c4e2e9!important}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class{background:#f2f8fa!important;font-size:6.6px!important}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-teacher-head{
+  width:12.5mm!important;
+  padding:.24mm .16mm!important;
+  background:#edf6f8!important;
+  color:#000!important;
+  font-size:5.9px!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-percent-head{
+  width:6.4mm!important;
+  padding:.24mm .12mm!important;
+  background:#edf6f8!important;
+  color:#000!important;
+  font-size:5.9px!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-teacher{
+  padding:.20mm .18mm!important;
+  color:#090909!important;
+  font-size:6.05px!important;
+  line-height:1.07!important;
+  font-weight:950!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-value{
+  padding:.08mm!important;
+  font-size:6.15px!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-value .report-meter{
+  min-height:3.65mm!important;
+  padding:.05mm .18mm!important;
+  font-size:6.05px!important;
+  line-height:1!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official tfoot th,
+.grade-subjects-landscape .grade-subject-matrix-official tfoot td{
+  color:#000!important;
+  font-weight:1000!important;
+}
+.grade-subjects-landscape .grade-subject-matrix-official tfoot th{background:#dceff3!important}
+.grade-subjects-landscape .grade-matrix-summary,
+.grade-subjects-landscape .grade-matrix-summary b{color:#111!important;font-weight:950!important}
+
+@media print{
+  .grade-subjects-landscape .report-title,
+  .grade-subjects-landscape .official-comparison-caption,
+  .grade-subjects-landscape .grade-subject-matrix-official .official-subject-head,
+  .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class-head,
+  .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-teacher-head,
+  .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-percent-head{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+}

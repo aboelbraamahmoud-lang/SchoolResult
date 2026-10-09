@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.2",
+  "version": "6.10.3",
   "released": "2026-10-09",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "دعم طلاب الدمج ESE: 07/ESE و08/ESE و09/ESE تحت قسم الدعم الإضافي، مع نسب وتقارير مستقلة واستبعاد كامل من المؤشرات العامة."
+  "notes": "تحسين طباعة مقارنة المواد بالعرض: خلايا أكثر إحكامًا، وخطوط سوداء عريضة وواضحة لأسماء المواد والصفوف والشعب، مع تحسين وضوح اسم المعلم والنسبة في PDF والطباعة."
 }

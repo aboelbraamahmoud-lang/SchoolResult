@@ -1,4 +1,4 @@
-/* School Results 6.10.2 — executive dashboard with isolated Additional Support / ESE analytics. */
+/* School Results 6.10.3 — executive dashboard with isolated Additional Support / ESE analytics. */
 SR63.metricTone=function(value,pass){if(value===null||value===undefined)return 'neutral';if(value>=85)return 'excellent';if(value>=70)return 'good';if(value>=pass)return 'mid';return 'low';};
 SR63.dashboardIncludedSubjects=function(workspace){
   const catalog=SR63.ensureCatalog(workspace),all=catalog.subjects.filter(s=>s.active!==false).map(s=>s.name),saved=workspace.settings?.dashboardSubjects;
