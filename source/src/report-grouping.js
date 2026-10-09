@@ -10,6 +10,7 @@ SR63.reportClassOrder=function(rows,exam){
 };
 SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mode,exam,threshold,settings){
   const allRows=Array.isArray(rows)?rows:[];
+  if(mode==='executive')return [{key:`executive-${exam}`,title:'الملخص التنفيذي',entity:'المدرسة',scope:'school',grade:'',className:'',teacher:'',subject:'كل المواد',rows:allRows,allRows,rowOffset:0,part:1,totalParts:1}];
   if(mode==='subjects')return SR63.gradeSubjectPages(allRows,exam,selectedEntity);
   if(mode==='departmentStats')return SR63.departmentStatsPages(allRows,exam,selectedEntity||'الكل');
   const subjectSelected=selectedSubject&&![`الكل`,`كل المواد`].includes(selectedSubject);

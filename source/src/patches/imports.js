@@ -60,7 +60,7 @@ async function re(){
 async function se(){
   if(!j.length||N.length||F.length||L||I||!C||ne.length&&!x)return;
   if(!await Kj(e,'قبل استيراد النتائج'))return eb.error('تعذر إنشاء نقطة استعادة؛ لم تُعتمد النتائج.');
-  try{const next=SR63.commitImport(e,j,M,c,f,m,P,T);t(next);r?.();l([]);_({});S(false);w(false);b({});eb.success('تم اعتماد النتائج وتوثيق القيم السابقة لكل اختبار.');n();}catch(error){eb.error(error.message);}
+  try{const next=SR63.commitImport(e,j,M,c,f,m,P,T),batch=next.imports?.[0];t(next);r?.();l([]);_({});S(false);w(false);b({});if(batch?.rows>0)eb.success(`تم اعتماد ${batch.rows} نتيجة: ${batch.created??0} جديدة، ${batch.updated??0} محدثة، ${batch.skipped??0} دون تغيير.`);else eb.info(`لم تُضف نتائج جديدة؛ تم تخطي ${batch?.skipped??0} نتيجة لأنها مطابقة أو سبق رصدها.`);n();}catch(error){eb.error(error.message);}
 }
 /* PATCH fde.ie */
 async function ie(files){

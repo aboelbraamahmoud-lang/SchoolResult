@@ -46,7 +46,7 @@ SR63.archivePreview=function(snapshot){
   const workspace=snapshot.workspace,esc=SR63.escape,rows=workspace.rows.slice(0,2000);
   const summaries=workspace.settings.exams.map(exam=>{const m=bj(workspace.rows,exam.key,workspace.settings);return `<tr><td>${esc(exam.name)}</td><td>${m.students}</td><td>${m.evaluated}</td><td>${esc(wj(m.success))}</td><td>${esc(wj(m.achievement))}</td></tr>`;}).join('');
   const detail=rows.map(row=>`<tr><td>${esc(row.studentId)}</td><td>${esc(row.studentName)}</td><td>${esc(row.subject)}</td>${XA.map(exam=>`<td>${esc(hj(row,exam))} — ${esc(row.statuses[exam]==='present'?row.scores[exam]+'/'+pj(row,exam,workspace.settings):Dj(row.statuses[exam]))}</td>`).join('')}</tr>`).join('');
-  const documentText=`<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>أرشيف ${esc(workspace.settings.academicYear)}</title><style>body{font:16px/1.8 Tahoma,Arial;margin:30px;color:#173b4c}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{border:1px solid #ccd8de;padding:8px;text-align:right}th{background:#edf5f6}h1{font-size:26px}thead{display:table-header-group}tr{break-inside:avoid}</style><h1>${esc(workspace.settings.schoolName)} — ${esc(workspace.settings.academicYear)}</h1><p>أرشيف دائم للقراءة فقط. وقت الحفظ: ${esc(new Date(snapshot.at).toLocaleString('ar-EG'))}.</p><table><thead><tr><th>الاختبار</th><th>عدد الطلاب</th><th>حاضر</th><th>النجاح</th><th>التحصيل</th></tr></thead><tbody>${summaries}</tbody></table><h2>سجلات النتائج</h2><p>معاينة ${rows.length} من ${workspace.rows.length} سجل. نسخة JSON المحفوظة تتضمن جميع السجلات.</p><table><thead><tr><th>الرقم</th><th>الاسم</th><th>المادة</th>${workspace.settings.exams.map(exam=>`<th>${esc(exam.name)}</th>`).join('')}</tr></thead><tbody>${detail}</tbody></table></html>`;
+  const documentText=`<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>أرشيف ${esc(workspace.settings.academicYear)}</title><style>body{font:16px/1.8 Tahoma,Arial;margin:30px;color:#173b4c}table{border-collapse:collapse;width:100%;margin:20px 0}th,td{border:1px solid #ccd8de;padding:8px;text-align:right}th{background:#edf5f6}h1{font-size:26px}thead{display:table-header-group}tr{break-inside:avoid}</style><h1>${esc(workspace.settings.schoolName)} — ${esc(workspace.settings.academicYear)}</h1><p>أرشيف دائم للقراءة فقط. وقت الحفظ: ${esc(new Date(snapshot.at).toLocaleString('ar-EG'))}.</p><table><thead><tr><th>الاختبار</th><th>عدد الطلاب</th><th>النتائج المرصودة</th><th>نسبة نجاح النتائج</th><th>نسبة التحصيل</th></tr></thead><tbody>${summaries}</tbody></table><h2>سجلات النتائج</h2><p>معاينة ${rows.length} من ${workspace.rows.length} سجل. نسخة JSON المحفوظة تتضمن جميع السجلات.</p><table><thead><tr><th>الرقم</th><th>الاسم</th><th>المادة</th>${workspace.settings.exams.map(exam=>`<th>${esc(exam.name)}</th>`).join('')}</tr></thead><tbody>${detail}</tbody></table></html>`;
   SR63.download(documentText,`أرشيف-${workspace.settings.academicYear}-للقراءة.html`,'text/html;charset=utf-8');
 };
 
@@ -77,13 +77,23 @@ SR63.renderReportValue=function(value,key=''){
 };
 SR63.macroLabel=macro=>macro==='above'?'فوق المتوسط':macro==='average'?'في المتوسط':macro==='below'?'دون المتوسط':'غير مصنف';
 SR63.macroTone=macro=>macro==='above'?'above':macro==='average'?'average':macro==='below'?'below':'na';
+
+SR63.reportSubjectCount=rows=>new Set((rows||[]).map(row=>SR63.subjectAliasKey?SR63.subjectAliasKey(row.subject):ij(row.subject||'')).filter(Boolean)).size;
+SR63.metricVocabulary=function(rows){
+  const multi=SR63.reportSubjectCount(rows)>1;
+  return multi?{multi:true,students:'عدد الطلاب',evaluated:'النتائج المرصودة',passed:'النتائج الناجحة',failed:'النتائج الراسبة',absent:'نتائج غائب/غير مقيم'}:{multi:false,students:'عدد الطلاب',evaluated:'حاضر',passed:'ناجح',failed:'راسب',absent:'غائب/غير مقيم'};
+};
+SR63.metricDisclosure=function(rows){
+  return SR63.reportSubjectCount(rows)>1?'الأعداد الخاصة بالحضور والنجاح والرسوب تمثل نتائج المواد، بينما عدد الطلاب يحسب كل طالب مرة واحدة فقط.':'الأعداد تمثل طلاب المادة المحددة في التقييم المختار.';
+};
+
 SR63.gradeSubjectPages=function(rows,exam,selected='الكل'){
   const grades=[...new Set(rows.map(row=>gj(row,exam)).filter(Boolean))].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||String(a).localeCompare(String(b),'ar',{numeric:true}));
   const target=selected==='الكل'?grades:grades.filter(value=>ij(value)===ij(selected));
   const pages=[];
   for(const grade of target){
     const subset=rows.filter(row=>ij(gj(row,exam))===ij(grade)),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
-    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/10)},(_,i)=>subjects.slice(i*10,(i+1)*10)):[[]];
+    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/4)},(_,i)=>subjects.slice(i*4,(i+1)*4)):[[]];
     for(const metricType of ['success','achievement'])chunks.forEach((subjectChunk,index)=>pages.push({
       key:`subjects-${grade}-${metricType}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',
       rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,metricType,rowOffset:0,part:index+1,totalParts:chunks.length
@@ -202,8 +212,23 @@ function SRDepartmentStatsReport({page:e,exam:t,workspace:n}){
     ]})
   ]});
 }
+function SRExecutiveReport({page:e,exam:t,workspace:n}){
+  const rows=e.allRows||e.rows||[],metric=bj(rows,t,n.settings),vocab=SR63.metricVocabulary(rows),subjects=Sj(rows,'subject',t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null).sort((a,b)=>(b.metric.achievement??-1)-(a.metric.achievement??-1)),classes=Sj(rows,'className',t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null).sort((a,b)=>(b.metric.achievement??-1)-(a.metric.achievement??-1)),quality=RN(n,t),top=subjects.filter(x=>x.metric.achievement!==null).slice(0,3),low=[...subjects].filter(x=>x.metric.achievement!==null).sort((a,b)=>a.metric.achievement-b.metric.achievement).slice(0,3),cell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
+  return(0,q.jsxs)(q.Fragment,{children:[
+    (0,q.jsxs)(`div`,{className:`executive-report-intro`,children:[(0,q.jsx)(`b`,{children:`ملخص تنفيذي لاتخاذ القرار`}),(0,q.jsx)(`span`,{children:`قراءة مدرسية مختصرة للتقييم المختار، مع حجم البيانات وجودتها وأولويات المتابعة.`})]}),
+    (0,q.jsx)(`div`,{className:`report-kpis executive-report-kpis`,children:[[vocab.students,metric.students,'students'],[vocab.evaluated,metric.evaluated,'present'],['نسبة نجاح النتائج',cell(metric.success,'success'),'success'],['نسبة التحصيل',cell(metric.achievement,'achievement'),'achievement'],['مشكلات حرجة',quality.critical,'failed'],['اكتمال الرصد',cell(quality.completion,'percent'),'present']].map(([label,value,tone])=>(0,q.jsxs)(`div`,{className:`kpi-${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},label))}),
+    (0,q.jsx)(`p`,{className:`report-method-note`,children:SR63.metricDisclosure(rows)}),
+    (0,q.jsxs)(`div`,{className:`executive-report-grid`,children:[
+      (0,q.jsxs)(`section`,{children:[(0,q.jsx)(`h2`,{className:`report-section-title`,children:`أعلى المواد تحصيلًا`}),(0,q.jsx)(`table`,{className:`report-table executive-ranking`,children:(0,q.jsx)(`tbody`,{children:top.map((x,i)=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:i+1}),(0,q.jsx)(`td`,{children:x.name}),(0,q.jsx)(`td`,{children:cell(x.metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:cell(x.metric.success,'success')})]},x.name))})})]}),
+      (0,q.jsxs)(`section`,{children:[(0,q.jsx)(`h2`,{className:`report-section-title`,children:`أولويات التحسين`}),(0,q.jsx)(`table`,{className:`report-table executive-ranking`,children:(0,q.jsx)(`tbody`,{children:low.map((x,i)=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:i+1}),(0,q.jsx)(`td`,{children:x.name}),(0,q.jsx)(`td`,{children:cell(x.metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:cell(x.metric.success,'success')})]},x.name))})})]})
+    ]}),
+    (0,q.jsx)(`h2`,{className:`report-section-title`,children:`مؤشرات الصفوف والشعب`}),(0,q.jsxs)(`table`,{className:`report-table executive-class-table`,children:[(0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`الصف/الشعبة`}),(0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`النتائج المرصودة`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`})]})}),(0,q.jsx)(`tbody`,{children:classes.map(x=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:SR63.displayClass(x.name)}),(0,q.jsx)(`td`,{children:x.metric.students}),(0,q.jsx)(`td`,{children:x.metric.evaluated}),(0,q.jsx)(`td`,{children:cell(x.metric.success,'success')}),(0,q.jsx)(`td`,{children:cell(x.metric.achievement,'achievement')})]},x.name))})]}),
+    (0,q.jsxs)(`div`,{className:`executive-quality-strip`,children:[(0,q.jsxs)(`span`,{children:[`جاهزية البيانات: `,(0,q.jsx)(`b`,{children:quality.ready?'جاهزة':'تحتاج مراجعة'})]}),(0,q.jsxs)(`span`,{children:[`مشكلات حرجة: `,(0,q.jsx)(`b`,{children:quality.critical})]}),(0,q.jsxs)(`span`,{children:[`مواد مرصودة: `,(0,q.jsx)(`b`,{children:subjects.filter(x=>x.metric.evaluated>0).length})]})]})
+  ]});
+}
+
 function SRSummaryReport({page:e,exam:t,workspace:n}){
-  const metric=bj(e.allRows,t,n.settings),dimension=e.scope===`teacher`?`className`:`teacher`,groups=Sj(e.rows,dimension,t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null),subject=SR63.reportDisplaySubject(e,t);
+  const metric=bj(e.allRows,t,n.settings),vocab=SR63.metricVocabulary(e.allRows),dimension=e.scope===`teacher`?`className`:`teacher`,groups=Sj(e.rows,dimension,t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null),subject=SR63.reportDisplaySubject(e,t);
   const metricCell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
   return(0,q.jsxs)(q.Fragment,{children:[
     (0,q.jsxs)(`div`,{className:`report-meta-grid`,children:[
@@ -212,7 +237,7 @@ function SRSummaryReport({page:e,exam:t,workspace:n}){
       (0,q.jsxs)(`span`,{children:[tj(n.settings,t).name,` · `,I9(e.allRows,t,n.settings)]})
     ]}),
     (0,q.jsx)(`div`,{className:`report-kpis`,children:[
-      [`عدد الطلاب`,metric.students,`students`],[`حاضر`,metric.evaluated,`present`],[`غائب/غير مقيم`,metric.absent+metric.excused+metric.unexcused,`absent`],[`ناجح`,metric.passed,`passed`],[`راسب`,metric.failed,`failed`],[`نسبة النجاح`,metricCell(metric.success,'success'),`success`],[`نسبة التحصيل`,metricCell(metric.achievement,'achievement'),`achievement`]
+      [vocab.students,metric.students,`students`],[vocab.evaluated,metric.evaluated,`present`],[vocab.absent,metric.absent+metric.excused+metric.unexcused,`absent`],[vocab.passed,metric.passed,`passed`],[vocab.failed,metric.failed,`failed`],[vocab.multi?`نسبة نجاح النتائج`:`نسبة النجاح`,metricCell(metric.success,'success'),`success`],[`نسبة التحصيل`,metricCell(metric.achievement,'achievement'),`achievement`]
     ].map(([label,value,tone])=>(0,q.jsxs)(`div`,{className:`kpi-${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},String(label)))}),
     (0,q.jsx)(`h2`,{className:`report-section-title`,children:`ملخص الأداء`}),
     (0,q.jsxs)(`table`,{className:`report-table`,children:[
@@ -220,6 +245,7 @@ function SRSummaryReport({page:e,exam:t,workspace:n}){
       (0,q.jsx)(`tbody`,{children:groups.map(group=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:group.name}),(0,q.jsx)(`td`,{children:group.metric.students}),(0,q.jsx)(`td`,{children:group.metric.passed}),(0,q.jsx)(`td`,{children:group.metric.failed}),(0,q.jsx)(`td`,{children:metricCell(group.metric.success,'success')}),(0,q.jsx)(`td`,{children:metricCell(group.metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:group.va?SR63.renderReportValue(group.va.delta,'valueAdded'):`خط أساس`})]},group.name))}),
       (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:`الإجمالي / المتوسط`}),(0,q.jsx)(`td`,{children:metric.students}),(0,q.jsx)(`td`,{children:metric.passed}),(0,q.jsx)(`td`,{children:metric.failed}),(0,q.jsx)(`td`,{children:metricCell(metric.success,'success')}),(0,q.jsx)(`td`,{children:metricCell(metric.achievement,'achievement')}),(0,q.jsx)(`td`,{children:`—`})]})})
     ]}),
+    (0,q.jsx)(`p`,{className:`report-method-note`,children:SR63.metricDisclosure(e.allRows)}),
     (0,q.jsx)(`h2`,{className:`report-section-title`,children:`توزيع مستويات الأداء`}),(0,q.jsx)(L9,{rows:e.allRows,exam:t,workspace:n})
   ]});
 }
@@ -229,6 +255,7 @@ function SRTeacherReport({page:e,exam:t,workspace:n}){
   const metricCell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
   return(0,q.jsxs)(q.Fragment,{children:[
     (0,q.jsxs)(`div`,{className:`report-meta-grid`,children:[(0,q.jsxs)(`b`,{children:[`اسم المعلم: `,teacher]}),(0,q.jsxs)(`span`,{children:[`المادة: `,subject]}),(0,q.jsx)(`span`,{children:tj(n.settings,t).name})]}),
+    (0,q.jsx)(`p`,{className:`report-method-note teacher-analysis-note`,children:`قراءة وصفية لدعم اتخاذ القرار؛ لا تُستخدم منفردة للحكم على أداء المعلم لأن الصفوف والمواد وأحجام العينات تختلف.`}),
     (0,q.jsxs)(`table`,{className:`report-table teacher-table`,children:[
       (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`الصف/الشعبة`}),(0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`}),(0,q.jsx)(`th`,{children:`مؤشر الأداء`}),(0,q.jsx)(`th`,{children:`القيمة المضافة`})]})}),
       (0,q.jsx)(`tbody`,{children:groups.length?groups.map(group=>{const band=yj(group.metric.achievement,n.settings.bands),macro=band?.macro||'na';return(0,q.jsxs)(`tr`,{children:[
@@ -243,7 +270,7 @@ function SRTeacherReport({page:e,exam:t,workspace:n}){
 /* 6.9.9 — premium targeted-student and two-exam comparison reports. */
 function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
   const targeted=e.rows.map(row=>({row,value:vj(row,t,r.settings)})).filter(item=>item.value!==null&&item.value<n).sort((a,b)=>a.value-b.value);
-  const uniqueStudents=new Set(targeted.map(item=>item.row.studentId)).size,avg=targeted.length?targeted.reduce((sum,item)=>sum+item.value,0)/targeted.length:null,lowest=targeted.length?targeted[0].value:null;
+  const uniqueStudents=new Set(targeted.map(item=>SR63.studentIdentityFromRow(item.row,t))).size,avg=targeted.length?targeted.reduce((sum,item)=>sum+item.value,0)/targeted.length:null,lowest=targeted.length?targeted[0].value:null;
   const urgent=targeted.filter(item=>item.value<30).length,support=targeted.filter(item=>item.value>=30&&item.value<r.settings.pass).length,reinforce=targeted.filter(item=>item.value>=r.settings.pass).length;
   const intervention=value=>value<30?['تدخل عاجل','urgent','خطة فردية + متابعة مكثفة']:value<r.settings.pass?['دعم علاجي','support','متابعة أسبوعية + تدريب علاجي']:['تعزيز','reinforce','أنشطة إثرائية + تثبيت الإتقان'];
   return(0,q.jsxs)(q.Fragment,{children:[
@@ -255,7 +282,7 @@ function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
     (0,q.jsxs)(`div`,{className:`target-range-split`,children:[(0,q.jsxs)(`span`,{className:`urgent`,children:[`تدخل عاجل `,(0,q.jsx)(`b`,{children:urgent})]}),(0,q.jsxs)(`span`,{className:`support`,children:[`دعم علاجي `,(0,q.jsx)(`b`,{children:support})]}),(0,q.jsxs)(`span`,{className:`reinforce`,children:[`تعزيز `,(0,q.jsx)(`b`,{children:reinforce})]})]}),
     (0,q.jsxs)(`div`,{className:`report-meta-grid target-meta`,children:[(0,q.jsxs)(`b`,{children:[`الصف: `,e.className]}),(0,q.jsxs)(`span`,{children:[`المعلم: `,e.teacher||`غير مربوط`]}),(0,q.jsxs)(`span`,{children:[`المادة: `,e.subject||`كل المواد`]})]}),
     (0,q.jsxs)(`table`,{className:`report-table student-table target-student-table`,children:[
-      (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`م`}),(0,q.jsx)(`th`,{children:`اسم الطالب`}),(0,q.jsx)(`th`,{children:`الصف`}),(0,q.jsx)(`th`,{children:`الدرجة`}),(0,q.jsx)(`th`,{children:`النسبة`}),(0,q.jsx)(`th`,{children:`مستوى المتابعة`}),(0,q.jsx)(`th`,{children:`الإجراء المقترح`})]})}),
+      (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`م`}),(0,q.jsx)(`th`,{children:`اسم الطالب`}),(0,q.jsx)(`th`,{children:`الصف`}),(0,q.jsx)(`th`,{children:`الدرجة`}),(0,q.jsx)(`th`,{children:`النسبة`}),(0,q.jsx)(`th`,{children:`مستوى المتابعة`}),(0,q.jsx)(`th`,{children:`الإجراء المقترح`}),(0,q.jsx)(`th`,{children:`مسؤول المتابعة`}),(0,q.jsx)(`th`,{children:`الحالة / الموعد`})]})}),
       (0,q.jsx)(`tbody`,{children:targeted.length?targeted.map(({row,value},index)=>{const tone=SR63.metricTone(value),[label,state,plan]=intervention(value);return(0,q.jsxs)(`tr`,{className:`target-row target-${state}`,children:[
         (0,q.jsx)(`td`,{children:e.rowOffset+index+1}),
         (0,q.jsxs)(`td`,{className:`target-student-name`,children:[(0,q.jsx)(`b`,{children:row.studentName}),(0,q.jsx)(`small`,{children:row.studentId})]}),
@@ -263,8 +290,10 @@ function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
         (0,q.jsx)(`td`,{className:`target-score`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:F9(row,t)})]})}),
         (0,q.jsx)(`td`,{className:`target-percent`,children:(0,q.jsxs)(`div`,{className:`report-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:wj(value,0)})]})}),
         (0,q.jsx)(`td`,{children:(0,q.jsx)(`span`,{className:`target-status ${state}`,children:label})}),
-        (0,q.jsx)(`td`,{className:`target-plan`,children:plan})
-      ]},row.id)}):(0,q.jsx)(`tr`,{children:(0,q.jsx)(`td`,{colSpan:7,className:`target-empty`,children:`لا يوجد طلاب ضمن النسبة المحددة.`})})})
+        (0,q.jsx)(`td`,{className:`target-plan`,children:plan}),
+        (0,q.jsx)(`td`,{className:`target-followup-owner`,children:mj(row,t)||row.teacher||`معلم المادة`}),
+        (0,q.jsx)(`td`,{className:`target-followup-state`,children:`قيد المتابعة`})
+      ]},row.id)}):(0,q.jsx)(`tr`,{children:(0,q.jsx)(`td`,{colSpan:9,className:`target-empty`,children:`لا يوجد طلاب ضمن النسبة المحددة.`})})})
     ]})
   ]});
 }
@@ -289,6 +318,7 @@ function SRComparisonReport({page:e,from:t,to:n,workspace:r}){
         (0,q.jsx)(`td`,{})
       ]},row.id)})})
     ]}),
+    (0,q.jsx)(`p`,{className:`report-method-note comparison-sample-note ${change.paired<r.settings.minSampleSize?'is-warning':''}`,children:change.paired<r.settings.minSampleSize?`تنبيه: العينة المشتركة ${change.paired} فقط، وهي أقل من الحد الأدنى المعتمد (${r.settings.minSampleSize})؛ تُقرأ القيمة المضافة بحذر.`:`العينة المشتركة للمقارنة: ${change.paired} طالب/نتيجة متطابقة بين الاختبارين.`}),
     (0,q.jsxs)(`div`,{className:`report-comparison-summary comparison-summary-697`,children:[
       (0,q.jsxs)(`div`,{className:`summary-trends`,children:[(0,q.jsx)(`b`,{children:`مؤشرات الإنجاز`}),(0,q.jsxs)(`p`,{className:`positive`,children:[(0,q.jsx)(`span`,{children:`↑ تحسن`}),(0,q.jsx)(`strong`,{children:change.improved})]}),(0,q.jsxs)(`p`,{className:`stable`,children:[(0,q.jsx)(`span`,{children:`→ ثبات`}),(0,q.jsx)(`strong`,{children:change.stable})]}),(0,q.jsxs)(`p`,{className:`negative`,children:[(0,q.jsx)(`span`,{children:`↓ تراجع`}),(0,q.jsx)(`strong`,{children:change.declined})]})]}),
       (0,q.jsxs)(`div`,{children:[(0,q.jsx)(`b`,{children:`نسبة النجاح`}),(0,q.jsxs)(`p`,{children:[(0,q.jsx)(`span`,{children:fromExam.name}),SR63.renderReportValue(fromMetric.success,'success')]}),(0,q.jsxs)(`p`,{children:[(0,q.jsx)(`span`,{children:toExam.name}),SR63.renderReportValue(toMetric.success,'success')]})]}),

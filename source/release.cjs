@@ -21,6 +21,10 @@ const repoFiles=walk(projectRoot,'',(rel,entry)=>
   rel.endsWith('checksums.sha256')||
   rel.startsWith('source/node_modules/')||
   rel.startsWith('source/tests/output/')||
+  rel.startsWith('public/')||
+  rel.startsWith('desktop/web/')||
+  rel.startsWith('desktop/dist/')||
+  rel.startsWith('desktop/node_modules/')||
   rel.startsWith('.git/')||
   entry.name==='.DS_Store'
 ).map(rel=>`${sha(path.join(projectRoot,...rel.split('/')))}  ${rel}`);

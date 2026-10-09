@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.9.24', release:'2026-10-08', formDirty:false};
+var SR63 = {version:'6.10.0', release:'2026-10-09', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.fail = message => { throw new Error(message); };
@@ -85,7 +85,7 @@ SR63.validate = function(raw) {
   must(Array.isArray(settings.bands)&&settings.bands.length>0&&settings.bands.every(b=>b&&typeof b.id==='string'&&typeof b.label==='string'&&Number.isFinite(b.min)&&Number.isFinite(b.max)&&['above','average','below'].includes(b.macro)),'مستويات الأداء غير صالحة.');
   must(new Set(settings.bands.map(b=>b.id)).size===settings.bands.length&&!Ej(settings.bands).length,'حدود مستويات الأداء مكررة أو متداخلة أو بها فجوات.');
   for(const field of ['schoolName','academicYear','principalName','academicViceName','coordinatorName','schoolVision'])must(typeof settings[field]==='string',`الحقل ${field} غير صالح.`);
-  for(const [field,limit] of [['grades',100],['classes',1000],['subjects',1000],['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
+  for(const [field,limit] of [['students',100000],['grades',100],['classes',1000],['subjects',1000],['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
   if(settings.reportDesign!==undefined){const design=settings.reportDesign;must(design&&typeof design==='object'&&!Array.isArray(design),'تصميم التقرير غير صالح.');for(const [key,value] of Object.entries(ZA)){if(design[key]===undefined)continue;must(typeof design[key]===typeof value,`إعداد تصميم غير صالح: ${key}`);if(typeof value==='object')must(design[key]&&!Array.isArray(design[key])&&Object.values(design[key]).every(item=>typeof item==='string'),'مسميات التقرير غير صالحة.');}}
   const ids=new Set(),keys=new Set();
   for(const [index,row] of raw.rows.entries()){
@@ -111,9 +111,10 @@ SR63.validate = function(raw) {
 // Only a unique exact teacher/subject match can repair a legacy local reference.
 // External backups still pass through the strict validator without this migration.
 SR63.migrateLocal=function(raw){
-  const profiles=raw?.teachers??[],assignments=raw?.teacherAssignments??[];if(!Array.isArray(profiles)||!Array.isArray(assignments))return {workspace:raw,repaired:0};
+  const profiles=raw?.teachers??[],assignments=raw?.teacherAssignments??[],sourceRows=Array.isArray(raw?.rows)?raw.rows:[],studentRows=SR63.reconcileStudentRows(sourceRows);let studentRepairs=0;for(let i=0;i<sourceRows.length;i++)if(sourceRows[i]?.studentId!==studentRows[i]?.studentId)studentRepairs++;
+  if(!Array.isArray(profiles)||!Array.isArray(assignments)){const workspace=SR63.withCatalog({...raw,rows:studentRows});return {workspace,repaired:studentRepairs,studentRepairs,assignmentRepairs:0};}
   const ids=new Set(profiles.map(profile=>profile?.id)),byName=new Map();for(const profile of profiles){if(!profile||typeof profile.teacher!=='string')continue;const keys=new Set([profile.subject,...(profile.subjects??[])]);for(const subject of keys){if(typeof subject!=='string'||!subject.trim())continue;const key=dj(profile.teacher,subject);if(!byName.has(key))byName.set(key,[]);byName.get(key).push(profile);}}
-  let repaired=0;const next=assignments.map(assignment=>{if(!assignment||ids.has(assignment.profileId)||typeof assignment.teacher!=='string'||typeof assignment.subject!=='string')return assignment;const matches=[...new Map((byName.get(dj(assignment.teacher,assignment.subject))??[]).map(p=>[p.id,p])).values()];if(matches.length!==1)return assignment;repaired++;return {...assignment,profileId:matches[0].id};});
-  const workspace=SR63.withCatalog({...raw,teacherAssignments:next});
-  return {workspace,repaired};
+  let assignmentRepairs=0;const next=assignments.map(assignment=>{if(!assignment||ids.has(assignment.profileId)||typeof assignment.teacher!=='string'||typeof assignment.subject!=='string')return assignment;const matches=[...new Map((byName.get(dj(assignment.teacher,assignment.subject))??[]).map(p=>[p.id,p])).values()];if(matches.length!==1)return assignment;assignmentRepairs++;return {...assignment,profileId:matches[0].id};});
+  const workspace=SR63.withCatalog({...raw,rows:studentRows,students:SR63.studentRegistry({rows:studentRows}),teacherAssignments:next}),repaired=studentRepairs+assignmentRepairs;
+  return {workspace,repaired,studentRepairs,assignmentRepairs};
 };
