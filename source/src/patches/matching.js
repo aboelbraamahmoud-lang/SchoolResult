@@ -3,7 +3,9 @@ function lde(items,profiles,assignments,manual={}){
   const groups=new Map(),activeProfiles=profiles.filter(p=>p.active!==false),ids=new Set(activeProfiles.map(p=>p.id)),activeAssignments=assignments.filter(a=>a.active!==false&&ids.has(a.profileId));
   for(const item of items){const key=SR63.linkKey(item);if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);}
   return [...groups].map(([key,rows])=>{
-    const first=rows[0],resolution=SR63.resolveSubjectAssignment(first.subject,first.className,activeAssignments),resolvedSubject=resolution.subject||first.subject;
+    const first=rows[0],support=SR63.supportClassInfo(first.className);
+    if(support)return {key,exam:first.exam,inputTeacher:first.teacher,sourceSubject:first.subject,subject:first.subject,grade:support.grade,className:support.className,department:SR63.SUPPORT_DEPARTMENT,rows:rows.length,candidateProfileIds:[],selectedProfileId:'__support__',status:'support'};
+    const resolution=SR63.resolveSubjectAssignment(first.subject,first.className,activeAssignments),resolvedSubject=resolution.subject||first.subject;
     let candidates;
     if(first.teacher){
       const teacherKey=ij(first.teacher),subjectKey=SR63.subjectAliasKey(resolvedSubject||first.subject);

@@ -13,6 +13,13 @@ test('targeted students report has follow-up workflow columns',()=>{assert.match
 test('official logo is external and patch payload is compact',()=>{assert.match(patch,/src:'\.\/moehe\.png'/);assert.ok(!patch.includes('data:image/png;base64,'));assert.ok(Buffer.byteLength(patch)<20000);});
 test('wide report CSS keeps readable floor and pagination support',()=>{assert.match(css,/grade-subject-matrix-official/);assert.match(css,/department-subject-matrix-official/);assert.ok(!/font-size:\s*[1-4](?:\.\d+)?px!important/.test(css.slice(css.lastIndexOf('6.10.0'))));});
 test('legacy misleading terminology is absent from generated runtime',()=>{for(const term of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])assert.ok(!app.includes(term),term);});
-test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.0/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
+test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.2/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
 
+
+test('dashboard supports persistent subject scope for main summaries',()=>{assert.match(app,/المواد المحتسبة في ملخصات ورسوم الرئيسية/);assert.match(app,/dashboardSubjects/);assert.match(css,/\.sr610-dashboard-scope/);});
+test('results clearing can target one assessment',()=>{assert.match(app,/تفريغ الاختبار المحدد/);assert.match(app,/SR63\.clearResults/);assert.match(app,/جميع الاختبارات/);});
+test('heavy report previews are prepared on demand',()=>{assert.match(app,/تجهيز المعاينة/);assert.match(app,/المعاينة تُنشأ عند الطلب/);assert.match(student,/المعاينة لم تُنشأ بعد/);});
+test('coordinator is not rendered in report header',()=>{assert.ok(!patch.includes("className:'report-coordinator'"));assert.match(app,/منسق المادة/);});
+test('comparison page contains a dedicated visual trend chart',()=>{assert.match(app,/SR63\.AssessmentComparisonChart/);assert.match(app,/الاتجاه البصري للاختبارات/);});
+test('ESE support cohort is wired into dashboard and reports',()=>{assert.match(app,/قسم الدعم الإضافي/);assert.match(app,/id:`support`/);assert.match(reports,/function SRSupportDepartmentReport/);assert.match(reports,/SR63\.supportReportPages/);assert.match(css,/\.sr610-support-panel/);});
 const report={passed:results.filter(x=>x.status==='pass').length,failed:results.filter(x=>x.status==='fail').length,results};console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;

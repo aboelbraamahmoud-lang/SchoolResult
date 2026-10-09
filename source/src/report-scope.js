@@ -4,7 +4,7 @@ SR63.reportScopeValue=function(row,scope,exam){
   if(scope==='className')return hj(row,exam)||'';
   if(scope==='grade')return gj(row,exam)||'';
   if(scope==='subject')return row.subject||'';
-  if(scope==='department')return row.department||row.subject||'';
+  if(scope==='department')return SR63.isSupportRow(row,exam)?SR63.SUPPORT_DEPARTMENT:(row.department||row.subject||'');
   return '';
 };
 SR63.reportScopeRows=function(rows,{scope='',entity='',teacher='',className='',grade='',subject='',department='',exam}={}){

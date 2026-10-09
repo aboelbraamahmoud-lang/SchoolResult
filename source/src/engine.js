@@ -1,7 +1,15 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.0', release:'2026-10-09', formDirty:false};
+var SR63 = {version:'6.10.2', release:'2026-10-09', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
+SR63.clearResults=function(workspace,exam='all'){
+  if(exam!=='all'&&!XA.includes(exam))SR63.fail('الاختبار المحدد غير صالح.');
+  if(exam==='all')return jj({...workspace,rows:[],students:[],imports:(workspace.imports??[]).filter(item=>item.kind==='teachers')},'تفريغ جميع النتائج','حذف نتائج جميع الاختبارات مع الإبقاء على قاعدة المعلمين والهيكل والإعدادات');
+  const label=tj(workspace.settings,exam)?.name??exam;
+  const rows=(workspace.rows??[]).map(row=>({...row,scores:{...row.scores,[exam]:null},statuses:{...row.statuses,[exam]:'unentered'},totals:{...row.totals,[exam]:null},examTeachers:{...row.examTeachers,[exam]:''},examClasses:{...row.examClasses,[exam]:''},importBatches:{...row.importBatches,[exam]:null}}));
+  const imports=(workspace.imports??[]).flatMap(item=>{if(item.kind!=='results')return [item];if(item.exam===exam)return [];if(item.exam!=='multi')return [item];const changes=(item.changes??[]).filter(change=>change.exam!==exam);if(!changes.length)return [];const exams=[...new Set(changes.map(change=>change.exam).filter(Boolean))];return [{...item,changes,rows:changes.length,exam:exams.length===1?exams[0]:'multi'}];});
+  return jj(SR63.withCatalog({...workspace,rows,imports}),`تفريغ نتائج ${label}`,`حذف نتائج ${label} فقط مع الحفاظ على نتائج بقية الاختبارات`);
+};
 SR63.fail = message => { throw new Error(message); };
 SR63.escape = value => String(value??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 SR63.download = function(value,name,type='application/json') {
@@ -23,6 +31,38 @@ SR63.validResult = function(row,exam,settings) {
   if(!['present','absent','excused','unexcused','deprived','not_enrolled','unentered'].includes(status))return false;
   if(!Number.isFinite(total)||total<=0)return false;
   return status==='present'?typeof score==='number'&&Number.isFinite(score)&&score>=0&&score<=total:score===null;
+};
+
+/* 6.10.2 — Additional Support / ESE cohort isolation. */
+SR63.SUPPORT_DEPARTMENT='الدعم الإضافي';
+SR63.supportClassInfo=function(value){
+  const className=lj(String(value??'')),match=/^([789])\/ESE$/i.exec(className);
+  if(!match)return null;
+  const gradeNo=Number(match[1]),grade={7:'السابع',8:'الثامن',9:'التاسع'}[gradeNo],label={7:'طلاب الدمج سابع',8:'طلاب الدمج ثامن',9:'طلاب الدمج تاسع'}[gradeNo];
+  return {gradeNo,grade,className:`${gradeNo}/ESE`,label,department:SR63.SUPPORT_DEPARTMENT};
+};
+SR63.isSupportClass=value=>!!SR63.supportClassInfo(value);
+SR63.isSupportRow=function(row,exam){
+  const className=exam?(row?.examClasses?.[exam]||row?.className):(row?.className||'');
+  return SR63.isSupportClass(className);
+};
+SR63.supportRows=(rows,exam)=>Array.isArray(rows)?rows.filter(row=>SR63.isSupportRow(row,exam)):[];
+SR63.generalRows=(rows,exam)=>Array.isArray(rows)?rows.filter(row=>!SR63.isSupportRow(row,exam)):[];
+SR63.metricRows=function(rows,exam){
+  const list=Array.isArray(rows)?rows:[],general=SR63.generalRows(list,exam);
+  return general.length?general:SR63.supportRows(list,exam);
+};
+SR63.normalizeSupportRows=function(rows){
+  return (Array.isArray(rows)?rows:[]).map(row=>{
+    const info=SR63.supportClassInfo(row?.className);if(!info)return row;
+    const examClasses={...(row.examClasses??{})},examTeachers={...(row.examTeachers??{})};
+    for(const exam of XA){if(!examClasses[exam])examClasses[exam]=info.className;if(!examTeachers[exam])examTeachers[exam]=SR63.SUPPORT_DEPARTMENT;}
+    return {...row,className:info.className,grade:info.grade,department:SR63.SUPPORT_DEPARTMENT,teacher:String(row.teacher??'').trim()||SR63.SUPPORT_DEPARTMENT,examClasses,examTeachers};
+  });
+};
+SR63.supportSummary=function(workspace,exam=workspace?.activeExam){
+  const rows=SR63.supportRows(workspace?.rows??[],exam).filter(row=>row.statuses?.[exam]&&row.statuses[exam]!=='unentered'),settings=workspace?.settings;
+  return [7,8,9].map(gradeNo=>{const info=SR63.supportClassInfo(`${gradeNo}/ESE`),subset=rows.filter(row=>SR63.supportClassInfo(row.examClasses?.[exam]||row.className)?.gradeNo===gradeNo);return {...info,rows:subset,metric:bj(subset,exam,settings)};}).filter(group=>group.rows.length);
 };
 SR63.auditChanges = function(before,after) {
   if(before===after||!before||!after||before.auditLog!==after.auditLog||before.rows===after.rows)return after;

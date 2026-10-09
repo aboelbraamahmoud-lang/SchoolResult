@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.0",
+  "version": "6.10.2",
   "released": "2026-10-09",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "حزمة Hardening + UX: توحيد دلالات الطلاب والنتائج، مصالحة الاستيراد قبل الاعتماد، تحسين جودة البيانات والطباعة، تقرير تنفيذي، Security Headers، وتنظيف بنية التقارير مع اختبارات إضافية."
+  "notes": "دعم طلاب الدمج ESE: 07/ESE و08/ESE و09/ESE تحت قسم الدعم الإضافي، مع نسب وتقارير مستقلة واستبعاد كامل من المؤشرات العامة."
 }
