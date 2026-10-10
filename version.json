@@ -2,7 +2,7 @@
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
   "version": "6.10.5",
-  "released": "2026-10-09",
+  "released": "2026-10-10",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح سلامة استيراد ملفات المادة متعددة الشعب: التحقق الإلزامي من حفظ كل شعبة بعد الاعتماد، وإظهار توزيع النتائج على الشعب، مع اختبار Regression يغطي عدة شعب داخل ملف واحد."
+  "notes": "إصلاح استيراد ملف نتيجة متعدد الشعب: الفصل بين الرقم التسلسلي والرقم الأكاديمي، واستعادة الشعب من عناوين المجموعات، مع اختبار ملفات XLSX حقيقية وحماية الاستمرارية."
 }

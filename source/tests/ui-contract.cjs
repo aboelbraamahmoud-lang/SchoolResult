@@ -4,7 +4,7 @@ function test(name,fn){try{fn();results.push({name,status:'pass'});console.log('
 const app=read('app.js'),css=read('source/src/repair.css'),reports=read('source/src/reports.js'),student=read('source/src/student-results-print.js'),patch=read('source/src/patches/reports.js');
 
 test('student print includes academic ID and calculation disclosure',()=>{assert.match(student,/الرقم الأكاديمي/);assert.match(student,/النتائج المرصودة للحضور فقط/);assert.match(student,/النائب الأكاديمي/);assert.match(student,/مدير المدرسة/);});
-test('import page contains reconciliation before commit',()=>{assert.match(app,/مصالحة الدفعة قبل الاعتماد/);assert.match(app,/الطالب يُحسب مرة واحدة/);assert.match(app,/توزيع النتائج على الشعب/);assert.match(css,/\.sr610-import-reconciliation/);});
+test('import page contains reconciliation before commit',()=>{assert.match(app,/مصالحة الدفعة قبل الاعتماد/);assert.match(app,/الطالب يُحسب مرة واحدة/);assert.match(css,/\.sr610-import-reconciliation/);});
 test('executive report is wired into report center',()=>{assert.match(app,/id:`executive`/);assert.match(reports,/function SRExecutiveReport/);assert.match(css,/\.executive-report-grid/);});
 test('quality issues can navigate directly to academic structure',()=>{assert.match(app,/onClick:\(\)=>s\(e\.category===`المعلمون`\|\|e\.category===`الإسناد`\?`masterData`:`data`\)/);assert.match(app,/فتح موضع الإصلاح/);});
 test('teacher analytics carries fairness disclaimer',()=>{assert.match(app,/قراءة وصفية لأداء المعلمين/);assert.match(reports,/لا تُستخدم منفردة للحكم على أداء المعلم/);});

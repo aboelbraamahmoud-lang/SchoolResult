@@ -4,7 +4,7 @@
   "files": [
     {
       "name": "app.js",
-      "sha256": "7562f66e61f51c2fc739bc18669ef3a25f5ce4b5d7183b66505fccea481d7e95"
+      "sha256": "c1cddaf205dc996029239065e9c9e71e893a2c7c0a97fd005c38963086f97eba"
     },
     {
       "name": "style.css",
@@ -12,7 +12,7 @@
     },
     {
       "name": "version.json",
-      "sha256": "663b5ac65d893818a6ca8743cd2a5c293224e71b32b17294f79724bd099a516d"
+      "sha256": "64be1fd805270d97f22dd1ddc3bd7cfe855e238b6ef5f1213c662070f616d12f"
     },
     {
       "name": "index.html",

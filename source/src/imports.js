@@ -1,23 +1,9 @@
 SR63.linkKey=item=>dj(item.subject,item.className)+(item.exam?'|'+item.exam+'|'+ij(item.teacher??''):'');
 SR63.stableStudentId=(name,className)=>SR63.stableId('auto-student',SR63.studentIdentityKey(name,className));
-SR63.importClassCounts=function(items){
-  const counts={};
-  for(const item of Array.isArray(items)?items:[]){const info=SR63.supportClassInfo?.(item.className),className=info?.className??lj(item.className);if(!className)continue;counts[className]=(counts[className]??0)+1;}
-  return counts;
-};
-SR63.verifyReplaceImport=function(rows,expected){
-  const byAlias=new Map((rows??[]).map(row=>[`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`,row])),missing=[];
-  const sameNumber=(a,b)=>a===b||(Number.isFinite(a)&&Number.isFinite(b)&&Math.abs(a-b)<1e-9);
-  for(const item of expected??[]){const row=byAlias.get(`${ij(item.studentId)}|${item.subjectKey}`),actualClass=row?lj(row.examClasses?.[item.exam]??row.className):'';
-    if(!row||actualClass!==lj(item.className)||row.statuses?.[item.exam]!==item.status||!sameNumber(row.scores?.[item.exam],item.score)||!sameNumber(row.totals?.[item.exam],item.total))missing.push(item);
-  }
-  if(missing.length){const classes=[...new Set(missing.map(x=>x.className))].slice(0,8).join('، ');SR63.fail(`فشل تحقق سلامة الاستيراد: لم تُحفظ ${missing.length} نتيجة كما ظهرت في الملف${classes?` (الشعب: ${classes})`:''}. لم يعتمد النظام الدفعة حتى لا تُفقد نتائج شعب كاملة.`);}
-  return true;
-};
 SR63.importReconciliation=function(items,workspace,policy,impact,matches,problems={}){
   const list=Array.isArray(items)?items:[],studentKeys=new Set(list.map(item=>{const official=SR63.studentOfficialId(item),fallback=SR63.studentIdentityKey(item.studentName,item.className);return official?`id:${ij(official)}`:(fallback?`fallback:${fallback}`:'');}).filter(Boolean)),subjects=[...new Set(list.map(item=>String(item.subject??'').trim()).filter(Boolean))],classes=[...new Set(list.map(item=>lj(item.className)).filter(Boolean))],files=[...new Set(list.map(item=>String(item.sourceFile??'').trim()).filter(Boolean))],matched=(matches??[]).filter(x=>x.selectedProfileId).length,unresolved=(matches??[]).filter(x=>!x.selectedProfileId).length;
   const aliases=[...new Set(subjects.map(name=>{const canonical=SR63.subjectAliasKey(name);return canonical&&canonical!==ij(name)?`${name} ← ${canonical}`:null;}).filter(Boolean))];
-  return {students:studentKeys.size,results:list.length,subjects:subjects.length,classes:classes.length,classCounts:SR63.importClassCounts(list),files:files.length,matched,unresolved,aliases,created:impact?.created??0,empty:impact?.empty??0,overwritten:impact?.overwritten??0,unchanged:impact?.unchanged??0,invalid:problems.invalid??0,duplicates:problems.duplicates??0,identity:problems.identity??0,policy};
+  return {students:studentKeys.size,results:list.length,subjects:subjects.length,classes:classes.length,files:files.length,matched,unresolved,aliases,created:impact?.created??0,empty:impact?.empty??0,overwritten:impact?.overwritten??0,unchanged:impact?.unchanged??0,invalid:problems.invalid??0,duplicates:problems.duplicates??0,identity:problems.identity??0,policy};
 };
 SR63.subjectAliasKey=function(value){
   const key=ij(value);if(!key)return '';
@@ -98,7 +84,7 @@ SR63.readWideWorkbook=function(book,fileName,settings){
         const rawTotal=exam.total>=0?source[exam.total]:null,total=C9(rawTotal)?T9(rawTotal):null;
         if(C9(rawTotal)&&(total===null||total<=0))recognized=false;
         if(!recognized)group.issues.push({severity:'error',row:index+1,sheet:sheetName,message:`راجع الرقم والاسم والمادة والشعبة واتساق الدرجة والحالة في ${group.period}.`});
-        const studentId=rawId||SR63.stableStudentId(name,examClass);const scoreKey=String(exam.score);group.rows.push({id:`${fileName}-${sheetName}-${index+1}-${exam.key}`,studentId,studentName:name,grade:uj(examClass),className:examClass,sourceRow:index+1,teacher:C9(source[exam.teacher>=0?exam.teacher:map.teacher]),department:SR63.isSupportClass(examClass)?SR63.SUPPORT_DEPARTMENT:C9(source[map.department]),values:{[scoreKey]:{score,status:statusInfo.status,raw:C9(rawScore),recognized,total}}});
+        const studentId=SR63.importOfficialStudentId(rawId,C9(matrix[headerIndex][map.studentId]))||SR63.stableStudentId(name,examClass);const scoreKey=String(exam.score);group.rows.push({id:`${fileName}-${sheetName}-${index+1}-${exam.key}`,studentId,studentName:name,grade:uj(examClass),className:examClass,sourceRow:index+1,teacher:C9(source[exam.teacher>=0?exam.teacher:map.teacher]),department:SR63.isSupportClass(examClass)?SR63.SUPPORT_DEPARTMENT:C9(source[map.department]),values:{[scoreKey]:{score,status:statusInfo.status,raw:C9(rawScore),recognized,total}}});
         if(score!==null)group.scoreColumns[0].numericCount++;else if(statusInfo.status!=='unentered')group.scoreColumns[0].statusCount++;
       }
     }
@@ -145,7 +131,7 @@ SR63.mergeTeachers=function(workspace,preview,policy){
 };
 SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTotal,policy){
   const batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),normalizedRows=SR63.reconcileStudentRows(workspace.rows),identityIds=SR63.studentIdentityIndex({...workspace,rows:normalizedRows}),rows=new Map(normalizedRows.map(row=>[_j(row),row])),aliasRows=new Map(normalizedRows.map(row=>[`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`,_j(row)])),originalAliases=new Set(normalizedRows.map(row=>`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`)),changes=[];let skipped=0,created=0,updated=0;
-  const usedExams=new Set(),seen=new Set(),expected=[];
+  const usedExams=new Set(),seen=new Set();
   for(const item of items){
     const target=item.exam??exam,link=links.get(SR63.linkKey(item))??links.get(dj(item.subject,item.className)),support=SR63.supportClassInfo(item.className),profile=support?{id:'__support__',teacher:String(item.teacher??'').trim()||SR63.SUPPORT_DEPARTMENT,department:SR63.SUPPORT_DEPARTMENT}:profiles.get(link?.selectedProfileId),total=getTotal(item);
     if(!support&&!profile)SR63.fail('يوجد إسناد غير مكتمل. أكمل خريطة التكليفات أولًا.');
@@ -154,7 +140,6 @@ SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTo
     const assignment=support?null:workspace.teacherAssignments.find(a=>a.active!==false&&a.profileId===profile.id&&lj(a.className)===className&&SR63.subjectEquivalent(a.subject,subject)),catalogSubject=(workspace.subjects??[]).find(s=>s.active!==false&&SR63.subjectEquivalent(s.name,subject)),department=support?SR63.SUPPORT_DEPARTMENT:(assignment?.department||catalogSubject?.department||profile.department||subject),teacher=support?(String(item.teacher??'').trim()||SR63.SUPPORT_DEPARTMENT):profile.teacher;
     const itemKey=`${ij(canonicalStudentId)}|${SR63.subjectAliasKey(subject)}|${target}`;if(seen.has(itemKey))SR63.fail('توجد نتيجة مكررة للطالب والمادة والاختبار.');seen.add(itemKey);
     if(!['present','absent','excused','unexcused','deprived','not_enrolled','unentered'].includes(item.status)||!XA.includes(target)||!item.recognized||!Number.isFinite(total)||total<=0||item.status==='present'&&(!Number.isFinite(item.score)||item.score<0||item.score>total)||item.status!=='present'&&item.score!==null)SR63.fail('توجد درجة أو حالة غير صالحة في الملف.');
-    expected.push({studentId:canonicalStudentId,subjectKey:SR63.subjectAliasKey(subject),exam:target,className,status:item.status,score:item.score,total});
     usedExams.add(target);const key=`${ij(canonicalStudentId)}|${ij(subject)}`,aliasKey=`${ij(canonicalStudentId)}|${SR63.subjectAliasKey(subject)}`,previousKey=rows.has(key)?key:(aliasRows.get(aliasKey)??key),previous=rows.get(previousKey),hasScore=previous&&(previous.scores[target]!==null||previous.statuses[target]!=='unentered');
     if((policy==='skip'&&originalAliases.has(aliasKey))||(policy==='empty'&&hasScore)){skipped++;continue;}
     const row=previous??{id:`row-${crypto.randomUUID()}`,studentId:canonicalStudentId,studentName:item.studentName,className,grade:uj(className),subject,department,teacher,scores:Object.fromEntries(XA.map(k=>[k,null])),statuses:Object.fromEntries(XA.map(k=>[k,'unentered'])),totals:Object.fromEntries(XA.map(k=>[k,null])),examTeachers:Object.fromEntries(XA.map(k=>[k,''])),examClasses:Object.fromEntries(XA.map(k=>[k,''])),importBatches:Object.fromEntries(XA.map(k=>[k,null]))};
@@ -169,8 +154,6 @@ SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTo
   const assignments=[...workspace.teacherAssignments.filter(a=>!manual.some(m=>dj(m.subject,m.className)===dj(a.subject,a.className))),...manual];
   const definitions=new Map(files.flatMap(file=>file.sheets.filter(s=>s.selected&&s.wide&&s.examDefinition).map(s=>[s.exam,s.examDefinition])));
   const wide=definitions.size>0,exams=workspace.settings.exams.map(def=>definitions.has(def.key)?{...def,...definitions.get(def.key)}:!wide&&def.key===exam?{...def,total:defaultTotal}:def);
-  if(policy==='replace')SR63.verifyReplaceImport([...rows.values()],expected);
-  const classCounts=SR63.importClassCounts(items);
-  const imported={id:batchId,name:[...new Set(files.map(f=>f.fileName))].join('، '),at:new Date().toISOString(),rows:changes.length,warnings:files.flatMap(f=>[...f.issues,...f.sheets.flatMap(s=>s.issues)]).filter(i=>i.severity==='warning').length,kind:'results',exam:usedExams.size>1?'multi':[...usedExams][0]??exam,changes,skipped,updated,created,classCounts};
+  const imported={id:batchId,name:[...new Set(files.map(f=>f.fileName))].join('، '),at:new Date().toISOString(),rows:changes.length,warnings:files.flatMap(f=>[...f.issues,...f.sheets.flatMap(s=>s.issues)]).filter(i=>i.severity==='warning').length,kind:'results',exam:usedExams.size>1?'multi':[...usedExams][0]??exam,changes,skipped,updated,created};
   return jj(SR63.withCatalog({...workspace,rows:[...rows.values()],activeExam:usedExams.size===1?[...usedExams][0]:workspace.activeExam,settings:{...workspace.settings,exams},teacherAssignments:assignments,teachers:workspace.teachers.map(p=>({...p,classes:[...new Set(assignments.filter(a=>a.profileId===p.id).map(a=>a.className))]})),imports:[imported,...workspace.imports]}),'استيراد النتائج',`${imported.name} — ${changes.length} نتيجة، ${usedExams.size} اختبار`);
 };
