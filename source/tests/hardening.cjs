@@ -35,8 +35,24 @@ test('import reconciliation does not merge distinct official IDs with same name'
   const r=c.SR63.importReconciliation(items,c.Aj(),'replace',{},[],{});assert.equal(r.students,2);
 });
 
-test('wide grade reports never exceed four subjects per page',()=>{
-  const rows=subjects.flatMap(sub=>[makeRow('S1','أحمد','7/1',sub),makeRow('S2','محمد','7/2',sub)]);const pages=c.SR63.gradeSubjectPages(rows,'exam1','الكل');assert.ok(pages.length);assert.ok(pages.every(p=>p.subjectChunk.length<=4));
+test('ten subjects print on a single landscape sheet per metric per grade',()=>{
+  const allSubjects=[...subjects,'المهارات الحياتية والمهنية'];
+  const rows=allSubjects.flatMap(sub=>[makeRow('S1','أحمد','7/1',sub),makeRow('S2','محمد','7/2',sub)]);
+  const pages=c.SR63.gradeSubjectPages(rows,'exam1','الكل');
+  assert.equal(pages.length,2,'one success sheet and one achievement sheet');
+  assert.deepEqual([...pages].map(page=>page.metricType).join(','),'success,achievement');
+  assert.ok(pages.every(page=>page.totalParts===1&&page.part===1));
+  assert.ok(pages.every(page=>page.subjectChunk.length===10));
+  assert.ok(pages.every(page=>new Set(page.rows.map(row=>row.subject)).size===10));
+  assert.ok(pages.every(page=>page.rows.length===20));
+});
+test('over twelve subjects split safely instead of clipping the print sheet',()=>{
+  const names=[...subjects,...Array.from({length:4},(_,i)=>`اختياري ${i+1}`)];
+  const rows=names.map(sub=>makeRow('S1','أحمد','7/1',sub));
+  const pages=c.SR63.gradeSubjectPages(rows,'exam1','الكل');
+  assert.equal(pages.length,4);
+  assert.ok(pages.every(page=>page.subjectChunk.length<=12));
+  assert.equal([...pages].filter(page=>page.metricType==='success').map(page=>page.subjectChunk.length).join(','),'12,1');
 });
 
 test('department report never exceeds three subjects per page',()=>{

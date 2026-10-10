@@ -103,7 +103,10 @@ SR63.gradeSubjectPages=function(rows,exam,selected='الكل'){
   const pages=[];
   for(const grade of target){
     const subset=rows.filter(row=>ij(gj(row,exam))===ij(grade)),subjects=[...new Set(subset.map(row=>row.subject||'غير محدد'))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
-    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/4)},(_,i)=>subjects.slice(i*4,(i+1)*4)):[[]];
+    // Keep the ten official school subjects together on one A4 landscape sheet.
+    // Exceptional curricula with more than twelve subjects are divided to preserve legibility.
+    const maxSubjectsPerSheet=12;
+    const chunks=subjects.length?Array.from({length:Math.ceil(subjects.length/maxSubjectsPerSheet)},(_,i)=>subjects.slice(i*maxSubjectsPerSheet,(i+1)*maxSubjectsPerSheet)):[[]];
     for(const metricType of ['success','achievement'])chunks.forEach((subjectChunk,index)=>pages.push({
       key:`subjects-${grade}-${metricType}-${index}`,title:grade,entity:grade,scope:'grade',grade,className:'',teacher:'',subject:'كل المواد',
       rows:subset.filter(row=>subjectChunk.includes(row.subject||'غير محدد')),allRows:subset,subjectChunk,metricType,rowOffset:0,part:index+1,totalParts:chunks.length
@@ -157,7 +160,14 @@ function SRGradeSubjectsReport({page:e,exam:t,workspace:n}){
       (0,q.jsx)(`strong`,{children:`بيان ${metricLabel} — ${tj(n.settings,t).name}`}),
       (0,q.jsxs)(`span`,{children:[`الصف: `,grade,e.totalParts>1?` · المواد ${e.part}/${e.totalParts}`:``]})
     ]}),
-    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix grade-subject-matrix-official`,children:[
+    (0,q.jsxs)(`table`,{className:`report-table grade-subject-matrix grade-subject-matrix-official grade-subject-matrix-all`,children:[
+      (0,q.jsxs)(`colgroup`,{children:[
+        (0,q.jsx)(`col`,{style:{width:'4.6%'}}),
+        ...data.subjects.flatMap(subject=>[
+          (0,q.jsx)(`col`,{style:{width:`${95.4*.625/data.subjects.length}%`}},`${subject}-teacher-width`),
+          (0,q.jsx)(`col`,{style:{width:`${95.4*.375/data.subjects.length}%`}},`${subject}-metric-width`)
+        ])
+      ]}),
       (0,q.jsxs)(`thead`,{children:[
         (0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{rowSpan:2,className:`grade-matrix-class-head`,children:`الشعبة`}),...headSubjects]}),
         (0,q.jsx)(`tr`,{children:subheads})

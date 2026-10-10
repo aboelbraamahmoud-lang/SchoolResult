@@ -801,3 +801,29 @@
 .sr610-subject-repair p{font-size:13px;color:#456276;margin-top:6px;line-height:1.8}
 .sr610-subject-repair button{border:0;border-radius:10px;background:#08796f;padding:11px 17px;color:#fff;font-weight:700;cursor:pointer}
 .sr610-subject-repair button:disabled{opacity:.45;cursor:not-allowed}
+
+/* 6.10.10 — print ten school subjects on one landscape A4 sheet without tiny fonts.
+   Explicit colgroup percentages prevent the first colspan header from allocating incorrect widths. */
+.grade-subjects-landscape .grade-subject-matrix-all{table-layout:fixed!important;width:calc(100% - 4mm)!important}
+.grade-subjects-landscape .grade-subject-matrix-all col{box-sizing:border-box}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-class-head,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-class,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher-head,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-percent-head,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-value{width:auto!important;min-width:0!important;max-width:none!important;box-sizing:border-box!important}
+.grade-subjects-landscape .grade-subject-matrix-all th,
+.grade-subjects-landscape .grade-subject-matrix-all td{padding:.11mm .10mm!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher{font-size:7.2px!important;line-height:1.17!important;white-space:normal!important;overflow-wrap:break-word!important;word-break:normal!important;color:#080808!important;font-weight:950!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-subject b{font-size:7.7px!important;line-height:1.12!important;white-space:normal!important;overflow-wrap:break-word!important;color:#000!important;font-weight:1000!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-class{font-size:7.5px!important;color:#000!important;font-weight:1000!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher-head,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-percent-head{font-size:7px!important;font-weight:1000!important;color:#000!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-value{padding:.05mm!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-value .report-meter{min-height:3.05mm!important;font-size:7.2px!important;padding:0!important;border-radius:.25mm!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-value .report-meter b{font-size:inherit!important;white-space:nowrap!important;color:#071a1c!important;text-shadow:none!important}
+@media print{
+  .grade-subjects-landscape .grade-subject-matrix-all{page-break-inside:avoid!important;break-inside:avoid!important}
+  .grade-subjects-landscape .grade-subject-matrix-all th,
+  .grade-subjects-landscape .grade-subject-matrix-all td{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
+}
