@@ -16,7 +16,7 @@ test('subject comparison print uses compact cells with bold black subject and gr
 test('all-subject landscape report uses colgroup for teacher and metric widths',()=>{assert.match(reports,/grade-subject-matrix-all/);assert.match(reports,/95\.4\*\.625\/data\.subjects\.length/);assert.match(css,/6\.10\.10 — print ten school subjects on one landscape A4 sheet/);});
 test('legacy misleading terminology is absent from generated runtime',()=>{for(const term of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])assert.ok(!app.includes(term),term);});
 test('import preview lists real per-class counts and blocks erroneous Excel sheets',()=>{assert.match(app,/توزيع الشعب:/);assert.match(app,/توقف الاعتماد:/);assert.match(app,/importSectionLabel/);});
-test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.10/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
+test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.12/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
 
 
 test('legacy subject repair requires explicit action and pre-change snapshot',()=>{assert.match(app,/إصلاح الربط الحالي بأمان/);assert.match(app,/قبل إصلاح ربط المواد والمعلمين/);assert.match(app,/subjectLinkRepairPreview/);});
@@ -26,4 +26,12 @@ test('heavy report previews are prepared on demand',()=>{assert.match(app,/تج�
 test('coordinator is not rendered in report header',()=>{assert.ok(!patch.includes("className:'report-coordinator'"));assert.match(app,/منسق المادة/);});
 test('comparison page contains a dedicated visual trend chart',()=>{assert.match(app,/SR63\.AssessmentComparisonChart/);assert.match(app,/الاتجاه البصري للاختبارات/);});
 test('ESE support cohort is wired into dashboard and reports',()=>{assert.match(app,/قسم الدعم الإضافي/);assert.match(app,/id:`support`/);assert.match(reports,/function SRSupportDepartmentReport/);assert.match(reports,/SR63\.supportReportPages/);assert.match(css,/\.sr610-support-panel/);});
+test('subject names and order are editable in settings and applied to all report views',()=>{
+  assert.match(app,/SR63\.SubjectPresentationSettings/);
+  assert.match(app,/subjectReportOrder/);
+  assert.match(app,/SR63\.reportSubjectLabel/);
+  assert.match(reports,/SR63\.reportSubjectCompare/);
+  assert.match(css,/sr611-subject-editor/);
+  assert.match(css,/grade-subject-matrix-all \.grade-matrix-teacher/);
+});
 const report={passed:results.filter(x=>x.status==='pass').length,failed:results.filter(x=>x.status==='fail').length,results};console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;

@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.10', release:'2026-10-10', formDirty:false};
+var SR63 = {version:'6.10.12', release:'2026-10-10', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -127,6 +127,17 @@ SR63.validate = function(raw) {
   for(const field of ['schoolName','academicYear','principalName','academicViceName','coordinatorName','schoolVision'])must(typeof settings[field]==='string',`الحقل ${field} غير صالح.`);
   for(const [field,limit] of [['students',100000],['grades',100],['classes',1000],['subjects',1000],['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
   if(settings.reportDesign!==undefined){const design=settings.reportDesign;must(design&&typeof design==='object'&&!Array.isArray(design),'تصميم التقرير غير صالح.');for(const [key,value] of Object.entries(ZA)){if(design[key]===undefined)continue;must(typeof design[key]===typeof value,`إعداد تصميم غير صالح: ${key}`);if(typeof value==='object')must(design[key]&&!Array.isArray(design[key])&&Object.values(design[key]).every(item=>typeof item==='string'),'مسميات التقرير غير صالحة.');}}
+  if(settings.subjectReportOrder!==undefined){
+    const list=settings.subjectReportOrder;
+    must(Array.isArray(list)&&list.length<=1000,'ترتيب المواد في التقارير غير صالح.');
+    const subjectKeys=new Set(),names=new Set();
+    for(const item of list){
+      must(item&&typeof item.key==='string'&&item.key.trim()&&typeof item.label==='string'&&item.label.trim()&&item.label.trim().length<=80,'كل مادة تحتاج اسم عرض صحيحًا حتى 80 حرفًا.');
+      const key=SR63.subjectAliasKey(item.key),name=ij(item.label);
+      must(!subjectKeys.has(key)&&!names.has(name),'تكرار المادة أو اسم العرض في إعدادات التقارير غير مسموح.');
+      subjectKeys.add(key);names.add(name);
+    }
+  }
   const ids=new Set(),keys=new Set();
   for(const [index,row] of raw.rows.entries()){
     must(row&&['id','studentId','studentName','subject','className'].every(k=>typeof row[k]==='string'&&row[k].trim()),`هوية السجل ${index+1} غير مكتملة.`);

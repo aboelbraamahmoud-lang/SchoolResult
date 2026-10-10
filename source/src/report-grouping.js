@@ -1,6 +1,6 @@
 /* 6.9.14 — every ordinary report page owns one subject; subjects comparison is the only all-subject page. */
-SR63.reportSubjectOrder=function(rows){
-  return [...new Set((rows||[]).map(row=>row.subject||'').filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
+SR63.reportSubjectOrder=function(rows,settings){
+  return [...new Set((rows||[]).map(row=>row.subject||'').filter(Boolean))].sort((a,b)=>SR63.reportSubjectCompare(a,b,settings));
 };
 SR63.reportTeacherOrder=function(rows,exam){
   return [...new Set((rows||[]).map(row=>mj(row,exam)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
@@ -13,8 +13,8 @@ SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mod
   if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل');
   const allRows=SR63.generalRows(sourceRows,exam);
   if(mode==='executive')return [{key:`executive-${exam}`,title:'الملخص التنفيذي',entity:'المدرسة',scope:'school',grade:'',className:'',teacher:'',subject:'كل المواد',rows:allRows,allRows,rowOffset:0,part:1,totalParts:1}];
-  if(mode==='subjects')return SR63.gradeSubjectPages(allRows,exam,selectedEntity);
-  if(mode==='departmentStats')return SR63.departmentStatsPages(allRows,exam,selectedEntity||'الكل');
+  if(mode==='subjects')return SR63.gradeSubjectPages(allRows,exam,selectedEntity,settings);
+  if(mode==='departmentStats')return SR63.departmentStatsPages(allRows,exam,selectedEntity||'الكل',settings);
   const subjectSelected=selectedSubject&&![`الكل`,`كل المواد`].includes(selectedSubject);
   const subjectFilter=subjectSelected?allRows.filter(row=>ij(row.subject||'')===ij(selectedSubject)):allRows;
   const detail=['levels','struggling','comparison'].includes(mode);
@@ -29,7 +29,7 @@ SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mod
     chunk(visible,pageSize).forEach((part,index)=>pages.push({key:`${mode}-${scope}-${entity}-${className}-${subject}-${index}`,title:`${className} — ${subject}`,entity,scope,className,teacher,subject,rows:part,allRows:mode==='struggling'?visible:subjectRows,rowOffset:index*pageSize,part:index+1,totalParts:Math.max(1,Math.ceil(Math.max(1,visible.length)/pageSize))}));
   };
   if(dimension==='teacher'){
-    const subjects=subjectSelected?[selectedSubject]:SR63.reportSubjectOrder(subjectFilter);
+    const subjects=subjectSelected?[selectedSubject]:SR63.reportSubjectOrder(subjectFilter,settings);
     for(const subject of subjects){
       const bySubject=subjectFilter.filter(row=>ij(row.subject||'')===ij(subject));
       const teachers=selectedEntity==='الكل'?SR63.reportTeacherOrder(bySubject,exam):SR63.reportTeacherOrder(bySubject,exam).filter(name=>ij(name)===ij(selectedEntity));
@@ -49,7 +49,7 @@ SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mod
   const classes=selectedEntity==='الكل'?SR63.reportClassOrder(subjectFilter,exam):SR63.reportClassOrder(subjectFilter,exam).filter(name=>ij(name)===ij(selectedEntity));
   for(const className of classes){
     const classRows=subjectFilter.filter(row=>ij(hj(row,exam)||'')===ij(className));
-    const subjects=subjectSelected?[selectedSubject]:SR63.reportSubjectOrder(classRows);
+    const subjects=subjectSelected?[selectedSubject]:SR63.reportSubjectOrder(classRows,settings);
     for(const subject of subjects){
       const subjectRows=classRows.filter(row=>ij(row.subject||'')===ij(subject));
       if(!subjectRows.length)continue;

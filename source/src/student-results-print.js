@@ -1,11 +1,11 @@
 /* School Results 6.10.1 — official individual student result sheets, one assessment at a time. */
 SR63.studentResultSubjectOrder=function(subject){
   const key=SR63.subjectAliasKey(subject),order={شرعيه:10,عربي:20,e:30,رياضيات:40,علوم:50,اجتماعيه:60,حاسب:70,فنيه:80,بدنيه:90,مهارات:100,مهارات2:110,برامجداعمه:120};
-  return order[key]??500;
+  return SR63.reportSubjectEntries(SR63.currentWorkspace?.settings).findIndex(e=>e.key===key)===-1?(order[key]??500):SR63.reportSubjectEntries(SR63.currentWorkspace?.settings).findIndex(e=>e.key===key);
 };
 SR63.studentResultSubjectLabel=function(subject){
   const key=SR63.subjectAliasKey(subject),labels={شرعيه:'التربية الإسلامية',عربي:'اللغة العربية',e:'اللغة الإنجليزية',رياضيات:'الرياضيات',علوم:'العلوم',اجتماعيه:'الدراسات الاجتماعية',حاسب:'الحوسبة وتكنولوجيا المعلومات',فنيه:'التربية الفنية',بدنيه:'التربية البدنية'};
-  return labels[key]||String(subject??'').trim()||'مادة غير محددة';
+  return SR63.reportSubjectLabel(subject,SR63.currentWorkspace?.settings)||labels[key]||String(subject??'').trim()||'مادة غير محددة';
 };
 SR63.studentResultPages=function(workspace,exam,filters={}){
   const activeExam=XA.includes(exam)?exam:workspace.activeExam,rows=SR63.reconcileStudentRows(workspace.rows??[]),scoped=rows.filter(row=>{const grade=gj(row,activeExam)||row.grade,className=hj(row,activeExam)||row.className;return(filters.grade==='الكل'||!filters.grade||ij(grade)===ij(filters.grade))&&(filters.className==='الكل'||!filters.className||lj(className)===lj(filters.className));}),byStudent=new Map();
@@ -17,8 +17,8 @@ SR63.studentResultPages=function(workspace,exam,filters={}){
     const subjectRows=new Map();for(const row of studentRows){const key=SR63.subjectAliasKey(row.subject);if(!subjectRows.has(key))subjectRows.set(key,[]);subjectRows.get(key).push(row);}
     const classEntity=catalog.classes.find(cls=>cls.active!==false&&lj(cls.className)===lj(className)),gradeId=classEntity?.gradeId,expected=catalog.subjects.filter(subject=>subject.active!==false&&(!subject.gradeIds?.length||!gradeId||subject.gradeIds.includes(gradeId))).map(subject=>subject.name),byKey=new Map();
     for(const subject of [...expected,...studentRows.map(row=>row.subject).filter(Boolean)]){const key=SR63.subjectAliasKey(subject);if(key&&!byKey.has(key))byKey.set(key,subject);}
-    const subjects=[...byKey.entries()].sort((a,b)=>SR63.studentResultSubjectOrder(a[1])-SR63.studentResultSubjectOrder(b[1])||SR63.studentResultSubjectLabel(a[1]).localeCompare(SR63.studentResultSubjectLabel(b[1]),'ar',{numeric:true}));
-    const results=subjects.map(([key,subject])=>{const matches=subjectRows.get(key)??[],row=matches.find(r=>r.statuses?.[activeExam]!=='unentered'||Number.isFinite(r.scores?.[activeExam]))??matches[0]??null,status=row?.statuses?.[activeExam]??'unentered',score=status==='present'&&Number.isFinite(row?.scores?.[activeExam])?row.scores[activeExam]:null,total=row?pj(row,activeExam,workspace.settings):(tj(workspace.settings,activeExam)?.total??null),percent=row?vj(row,activeExam,workspace.settings):null,band=percent===null?null:yj(percent,workspace.settings.bands);return {key,subject:SR63.studentResultSubjectLabel(subject),rawSubject:row?.subject??subject,status,score,total,percent,band:band?.label??(status==='unentered'?'غير مرصود':Dj(status))};});
+    const subjects=[...byKey.entries()].sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],workspace.settings));
+    const results=subjects.map(([key,subject])=>{const matches=subjectRows.get(key)??[],row=matches.find(r=>r.statuses?.[activeExam]!=='unentered'||Number.isFinite(r.scores?.[activeExam]))??matches[0]??null,status=row?.statuses?.[activeExam]??'unentered',score=status==='present'&&Number.isFinite(row?.scores?.[activeExam])?row.scores[activeExam]:null,total=row?pj(row,activeExam,workspace.settings):(tj(workspace.settings,activeExam)?.total??null),percent=row?vj(row,activeExam,workspace.settings):null,band=percent===null?null:yj(percent,workspace.settings.bands);return {key,subject:SR63.reportSubjectLabel(subject,workspace.settings),rawSubject:row?.subject??subject,status,score,total,percent,band:band?.label??(status==='unentered'?'غير مرصود':Dj(status))};});
     const present=results.filter(item=>item.status==='present'&&Number.isFinite(item.score)&&Number.isFinite(item.total)&&item.total>0),scoreSum=present.reduce((sum,item)=>sum+item.score,0),totalSum=present.reduce((sum,item)=>sum+item.total,0),average=totalSum?scoreSum/totalSum*100:null,overallBand=average===null?null:yj(average,workspace.settings.bands)?.label??null;
     pages.push({studentId,studentName,grade,className,exam:activeExam,results,scoreSum,totalSum,average,overallBand,recordedSubjects:results.filter(item=>item.status!=='unentered').length});
   }

@@ -209,8 +209,34 @@ async function main(){
  await test('رفع قاعدة المعلمين بعد المسح يعيد تفعيل الهيكل الأكاديمي تلقائيًا',()=>{const w=c.SR63.clearAcademicStructure(workspace([{...row(),id:'R1'}]));const preview={fileName:'teachers.xlsx',issues:[],profiles:[{id:'p-new',teacher:'معلم جديد',subject:'العلوم',department:'العلوم',coordinator:'معلم جديد',classes:['7/1']}],assignments:[{id:'a-new',profileId:'p-new',teacher:'معلم جديد',subject:'العلوم',department:'العلوم',className:'7/1'}],subjectCoordinators:{'العلوم':'معلم جديد'}};const n=c.SR63.mergeTeachers(w,preview,'replace');assert.equal(n.catalogDetached,false);assert.equal(n.teachers.length,1);assert.ok(n.classes.some(x=>x.className==='7/1'));assert.equal(n.teacherAssignments.length,1);c.LN(n);});
  await test('مسميات الفنية المختلفة ترتبط بنفس مادة الفنية',()=>{for(const name of ['التربية الفنية','التربية الفنية والبصرية','الفنون البصرية','فنون','التربية الفنية والتصميم'])assert.equal(c.SR63.subjectAliasKey(name),c.SR63.subjectAliasKey('فنية'));});
  await test('مسميات الحوسبة المختلفة ترتبط بنفس مادة الحاسب',()=>{for(const name of ['الحوسبة وتكنولوجيا المعلومات','الحاسوب','الحاسب وتقنية المعلومات','تكنولوجيا المعلومات'])assert.equal(c.SR63.subjectAliasKey(name),c.SR63.subjectAliasKey('حاسب'));});
- await test('كشف نتيجة الطالب يرتب المواد ويعرض الاختبار المحدد فقط',()=>{const subjects=['التربية البدنية','التربية الفنية والبصرية','الحوسبة وتكنولوجيا المعلومات','الدراسات الاجتماعية','العلوم','الرياضيات','اللغة الإنجليزية','اللغة العربية','التربية الإسلامية'],rows=subjects.map((subject,i)=>{const r=row('S-77',subject);r.studentName='طالب التقرير';r.scores.exam1=10+i;r.totals.exam1=20;r.statuses.exam1='present';r.scores.exam2=1;r.totals.exam2=30;r.statuses.exam2='present';return r;}),w=workspace(rows);w.classes=[{id:'C1',className:'7/1',name:'7/1',grade:'السابع',gradeId:'G1',active:true}];w.grades=[{id:'G1',name:'السابع',active:true}];w.subjects=subjects.map((name,i)=>({id:'SUB'+i,name,department:name,gradeIds:['G1'],active:true}));const pages=c.SR63.studentResultPages(w,'exam1',{});assert.equal(pages.length,1);same(pages[0].results.slice(0,9).map(x=>x.subject),['التربية الإسلامية','اللغة العربية','اللغة الإنجليزية','الرياضيات','العلوم','الدراسات الاجتماعية','الحوسبة وتكنولوجيا المعلومات','التربية الفنية','التربية البدنية']);assert.equal(pages[0].results[0].score,18);assert.equal(pages[0].results[0].total,20);assert.equal(pages[0].results[0].band,'ممتاز');});
- fs.writeFileSync(path.join(__dirname,'output/results.json'),JSON.stringify({version:'6.10.10',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
+ await test('ترتيب ومسميات المواد في جميع التقارير مستقلة عن الهوية الأكاديمية',()=>{
+   const w=workspace([row('S-1','العلوم'),row('S-1','التربية الإسلامية'),row('S-1','اللغة العربية')]);
+   const baseline=c.SR63.reportSubjectOrder(w.rows,w.settings);
+   same(baseline,['التربية الإسلامية','اللغة العربية','العلوم']);
+   const entries=c.SR63.reportSubjectEntries(w.settings,w);
+   const target=entries.findIndex(x=>x.key===c.SR63.subjectAliasKey('علوم'));
+   const [science]=entries.splice(target,1);science.label='علوم المستقبل';entries.unshift(science);
+   w.settings.subjectReportOrder=entries;
+   const loaded=c.LN(w).workspace;
+   same(c.SR63.reportSubjectOrder(loaded.rows,loaded.settings),['العلوم','التربية الإسلامية','اللغة العربية']);
+   same(c.SR63.gradeSubjectPages(loaded.rows,'exam1','الكل',loaded.settings).filter(p=>p.metricType==='success').map(p=>p.subjectChunk),[['العلوم','التربية الإسلامية','اللغة العربية']]);
+   assert.equal(c.SR63.reportSubjectLabel('العلوم',loaded.settings),'علوم المستقبل');
+   assert.equal(c.SR63.reportSubjectLabel('علوم',loaded.settings),'علوم المستقبل');
+   assert.equal(c.SR63.reportSubjectLabel('التربية الإسلامية',loaded.settings),'الشرعية');
+   const page=c.SR63.studentResultPages(loaded,'exam1',{studentId:'S-1'})[0];
+   same(page.results.slice(0,3).map(x=>x.subject),['علوم المستقبل','الشرعية','اللغة العربية']);
+   assert.equal(loaded.rows.find(r=>r.subject==='العلوم')?.subject,'العلوم');
+   assert.equal(loaded.rows.find(r=>r.subject==='التربية الإسلامية')?.subject,'التربية الإسلامية');
+   assert.equal(c.SR63.subjectEquivalent('التربية الإسلامية','شرعية'),true);
+ });
+ await test('إعدادات مسميات التقرير ترفض الأسماء المكررة ولا تغيّر أصل المواد',()=>{
+   const w=workspace();const entries=c.SR63.reportSubjectEntries(w.settings,w);
+   entries[1].label=entries[0].label;w.settings.subjectReportOrder=entries;
+   assert.throws(()=>c.LN(w),/تكرار المادة أو اسم العرض/);
+   assert.equal(w.rows[0].subject,'العلوم');
+ });
+ await test('كشف نتيجة الطالب يرتب المواد ويعرض الاختبار المحدد فقط',()=>{const subjects=['التربية البدنية','التربية الفنية والبصرية','الحوسبة وتكنولوجيا المعلومات','الدراسات الاجتماعية','العلوم','الرياضيات','اللغة الإنجليزية','اللغة العربية','التربية الإسلامية'],rows=subjects.map((subject,i)=>{const r=row('S-77',subject);r.studentName='طالب التقرير';r.scores.exam1=10+i;r.totals.exam1=20;r.statuses.exam1='present';r.scores.exam2=1;r.totals.exam2=30;r.statuses.exam2='present';return r;}),w=workspace(rows);w.classes=[{id:'C1',className:'7/1',name:'7/1',grade:'السابع',gradeId:'G1',active:true}];w.grades=[{id:'G1',name:'السابع',active:true}];w.subjects=subjects.map((name,i)=>({id:'SUB'+i,name,department:name,gradeIds:['G1'],active:true}));const pages=c.SR63.studentResultPages(w,'exam1',{});assert.equal(pages.length,1);same(pages[0].results.slice(0,9).map(x=>x.subject),['الشرعية','اللغة العربية','الانجليزي','الرياضيات','العلوم','الاجتماعيات','الحاسوب','الفنية','البدنية']);assert.equal(pages[0].results[0].score,18);assert.equal(pages[0].results[0].total,20);assert.equal(pages[0].results[0].band,'ممتاز');});
+ fs.writeFileSync(path.join(__dirname,'output/results.json'),JSON.stringify({version:'6.10.12',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
  console.log(JSON.stringify({passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length}));if(results.some(r=>r.status==='fail'))process.exitCode=1;
 }
 main().catch(error=>{console.error(error);process.exitCode=1});

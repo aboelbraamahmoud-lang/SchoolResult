@@ -161,6 +161,18 @@ replace('استورد قاعدة المعلمين واعتمدها أولًا ح
 // 6.9 premium sidebar: quick actions under search without duplicating navigation.
 replace('placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]})]}),','placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),');
 
+// Subject selector values stay canonical while all user-facing choices show configured labels.
+replace('...Cj(e.rows,`subject`).map(e=>({value:e,label:e}))',
+        '...Cj(e.rows,`subject`).map(name=>({value:name,label:SR63.reportSubjectLabel(name,e.settings)}))',3);
+// Grouped custom reports also honor subject display labels (grouping stays by canonical subject).
+replace('group:e.name,students:e.metric.students',
+        'group:n.groupBy===`subject`?SR63.reportSubjectLabel(e.name,SR63.currentWorkspace?.settings):e.name,students:e.metric.students');
+// Do not alter raw subject values in filters/exports: display the configured label in custom report cells.
+replace('if(t===`teacher`)return mj(e,r);if(t===`className`)',
+        'if(t===`subject`)return SR63.reportSubjectLabel(e.subject,n.settings);if(t===`teacher`)return mj(e,r);if(t===`className`)');
+// 6.10.12 — editable report-only names/order, inside the normal settings save workflow.
+replace('(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`',
+        '(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`');
 // Cloud edition: replace remaining local-only labels and wrap the app with account login.
 code=code.split('تحميل أحدث نسخة محلية').join('تحميل أحدث نسخة سحابية').split('تم تحميل أحدث نسخة محلية.').join('تم تحميل أحدث نسخة سحابية.').split('الحفظ المحلي').join('الحفظ السحابي');
 replace('children:e[t.key]','children:SR63.renderReportValue(e[t.key],t.key)');
@@ -175,7 +187,7 @@ replace('label:`المشكلات الحرجة`,value:Q(be.critical),hint:`يجب
 code=code.split('`نتيجة مقيمة`').join('`نتيجة مرصودة`').split('`نتائج مقيمة`').join('`نتائج مرصودة`');
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
 code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
-const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
+const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','dashboard-pro.js','cloud.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);

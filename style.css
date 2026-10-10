@@ -830,3 +830,144 @@
   .grade-subjects-landscape .grade-subject-matrix-all th,
   .grade-subjects-landscape .grade-subject-matrix-all td{print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}
 }
+
+/* 6.10.11 — improved legibility with all subjects on a landscape A4 page. */
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-subject b{font-size:8.5px!important;font-weight:1000!important;line-height:1.14!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher{font-size:8.1px!important;font-weight:1000!important;line-height:1.17!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-class{font-size:8.6px!important;font-weight:1000!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher-head,
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-percent-head{font-size:7.8px!important;font-weight:1000!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-value .report-meter{font-size:8.1px!important;min-height:3.35mm!important;font-weight:1000!important}
+.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-value .report-meter b{font-size:8.1px!important;font-weight:1000!important;color:#071a1c!important}
+.department-subject-matrix-official .department-subject-head{font-size:7.9px!important;font-weight:1000!important}
+.department-subject-matrix-official .department-teacher{font-size:7px!important;font-weight:1000!important}
+.department-subject-matrix-official .department-metric-cell .report-meter{font-size:7px!important;font-weight:1000!important}
+.sr611-subject-editor{background:#fff;border:1px solid #d0e4e6;border-radius:16px;padding:18px;box-shadow:0 4px 14px rgba(12,67,78,.04)}
+.sr611-subject-editor header{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.sr611-subject-editor header span{color:#08796f;font-size:12px;font-weight:900}
+.sr611-subject-editor h2{font-size:19px;font-weight:900;color:#123247;margin:3px 0 6px}
+.sr611-subject-editor p{font-size:13px;line-height:1.8;color:#546d78;max-width:850px}
+.sr611-subject-editor header button{background:#f0f8f9;border:1px solid #bcd6dd;border-radius:10px;padding:9px 14px;font-weight:800;color:#145466;cursor:pointer}
+.sr611-subject-list{display:grid;gap:7px}
+.sr611-subject-row{display:grid;grid-template-columns:30px minmax(115px,.7fr) minmax(160px,1.5fr) 79px;gap:9px;align-items:center;background:#f8fbfc;border:1px solid #e0e8ea;padding:8px 10px;border-radius:11px}
+.sr611-subject-number{text-align:center;font-weight:900;color:#0c7876}
+.sr611-subject-original{font-size:13px;font-weight:800;color:#243d4d;overflow-wrap:anywhere}
+.sr611-subject-row input{width:100%;min-width:0;padding:9px 11px;border:1px solid #b5cbd1;border-radius:8px;background:#fff;color:#0e3345;font-size:14px;font-weight:800}
+.sr611-subject-row input:focus{outline:2px solid #0e8880;outline-offset:1px}
+.sr611-subject-move{display:flex;justify-content:center;gap:6px}
+.sr611-subject-move button{height:32px;width:32px;border-radius:8px;background:#e5f3f4;color:#064c56;font-size:19px;font-weight:900;cursor:pointer}
+.sr611-subject-move button:disabled{opacity:.3;cursor:not-allowed}
+@media(max-width:640px){.sr611-subject-row{grid-template-columns:26px 1fr 70px}.sr611-subject-original{grid-column:2}.sr611-subject-row input{grid-column:2;grid-row:2}.sr611-subject-move{grid-column:3;grid-row:1/3}}
+
+/* 6.10.12 — unified bold, high-contrast report typography (screen and print).
+   Report-only presentation; never modify academic identifiers, score calculations,
+   report ordering or the single-sheet all-subjects landscape layout. */
+:is(.school-report-page,.custom-report-page,.student-result-page){
+  font-family:Tahoma,Arial,Helvetica,sans-serif!important;
+  font-weight:900!important;
+  color:#102535;
+  font-synthesis:weight;
+  text-rendering:optimizeLegibility;
+}
+:is(.school-report-page,.custom-report-page,.student-result-page)
+:is(h1,h2,h3,h4,h5,h6,p,span,small,em,label,caption,th,td,b,strong,li,div){
+  font-weight:900!important;
+}
+/* Across ordinary report bodies and dense analytic tables, make labels and figures readable. */
+.school-report-page .report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official){
+  font-size:9.6px!important;
+  line-height:1.32!important;
+}
+.school-report-page .report-table :is(th,td){
+  font-weight:900!important;
+  vertical-align:middle!important;
+}
+.school-report-page .report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official) :is(th,td){
+  line-height:1.28!important;
+}
+.school-report-page .report-table tbody :is(th,td),
+.custom-report-page .report-table tbody :is(th,td){
+  color:#101e2d;
+}
+/* Named tables with many columns receive larger readable type without overflowing A4. */
+.school-report-page .report-table.level-analysis-table,
+.school-report-page .report-table.target-student-table,
+.school-report-page .report-table.comparison-table{
+  font-size:8.35px!important;
+  line-height:1.3!important;
+}
+.school-report-page .report-table.department-subject-matrix-official{
+  font-size:7.65px!important;
+  line-height:1.15!important;
+}
+.school-report-page .department-subject-matrix-official .department-teacher{font-size:7.45px!important;line-height:1.12!important}
+.school-report-page .department-subject-matrix-official .department-subject-head{font-size:8.15px!important}
+.school-report-page .department-subject-matrix-official .department-metric-cell .report-meter,
+.school-report-page .department-subject-matrix-official .department-metric-cell .report-meter b{font-size:7.4px!important}
+/* All-subject matrix remains on a single landscape sheet: keep the tested compact widths. */
+.school-report-page.grade-subjects-landscape .grade-subject-matrix-all :is(th,td),
+.school-report-page.grade-subjects-landscape .grade-subject-matrix-all .report-meter b{font-weight:1000!important}
+.school-report-page.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-teacher{color:#070d14!important}
+.school-report-page.grade-subjects-landscape .grade-subject-matrix-all .grade-matrix-subject b{color:#000!important}
+/* Report headers, metadata, footnotes and professional sign-off blocks. */
+.school-report-page .report-title{font-size:11px!important;line-height:1.3!important;font-weight:1000!important}
+.school-report-page .report-head :is(b,strong,span,small,p){font-weight:950!important}
+.school-report-page .report-context{font-size:9.1px!important}
+.school-report-page .report-context p span{font-size:8.8px!important;color:#395466!important}
+.school-report-page .report-context p b{font-size:9.4px!important;color:#102b3a!important}
+.school-report-page .report-meta-grid,
+.school-report-page .report-kpis{font-size:9px!important;line-height:1.35!important}
+.school-report-page .report-method-note,
+.school-report-page .comparison-sample-note,
+.school-report-page .support-report-note{font-size:8.4px!important;line-height:1.45!important}
+.school-report-page .sr-report-status{font-size:8.2px!important;line-height:1.4!important}
+.school-report-page .report-section-title{font-size:10.4px!important;font-weight:1000!important}
+.school-report-page .report-signatures{font-size:8px!important;line-height:1.28!important}
+.school-report-page .report-signatures :is(b,span,small,strong){font-size:8px!important;font-weight:900!important}
+.school-report-page .report-attribution,
+.school-report-page .report-page-number,
+.school-report-page .report-vision{font-size:7.1px!important;line-height:1.28!important;font-weight:900!important}
+.school-report-page .grade-matrix-summary,
+.school-report-page .grade-matrix-legend,
+.school-report-page .department-matrix-summary{font-size:7.7px!important;font-weight:900!important}
+.school-report-page .report-meter b{font-weight:1000!important}
+.school-report-page .target-range-hero :is(span,small),
+.school-report-page .target-range-split span{font-size:8.1px!important;font-weight:900!important}
+.school-report-page .executive-report-intro :is(span,small){font-size:8px!important;color:#365368!important}
+.school-report-page .executive-quality-strip,
+.school-report-page .executive-report-grid{font-size:9px!important}
+.school-report-page .support-report-banner :is(span,p){font-size:9px!important;color:#34556a!important}
+.school-report-page .support-report-banner h2{font-size:16px!important}
+/* Custom reports use the same typographic standard without touching input controls. */
+.custom-report-page .custom-report-table,
+.custom-report-page .report-table{font-size:9.3px!important;line-height:1.35!important}
+.custom-report-page .custom-report-subtitle{font-size:9px!important}
+.custom-report-page .report-title{font-size:11px!important}
+/* Student results: a full portrait A4 page allows stronger, larger text. */
+.student-result-page .student-result-table{font-size:10.5px!important;line-height:1.28!important}
+.student-result-page .student-result-table :is(th,td){font-weight:900!important}
+.student-result-page .student-result-identity span,
+.student-result-page .student-result-summary span{font-size:8.9px!important;color:#354d5b!important}
+.student-result-page .student-result-identity b{font-size:10.7px!important}
+.student-result-page .student-result-summary b{font-size:11.4px!important}
+.student-result-page .student-result-signatures{font-size:9.4px!important;line-height:1.35!important}
+.student-result-page .student-result-footer>small,
+.student-result-page .student-result-method-note{font-size:8.5px!important;line-height:1.45!important}
+/* Avoid changing chart geometry and semantics; only thicken chart text. */
+.school-report-page svg text,
+.custom-report-page svg text{font-weight:900!important}
+@media print{
+  :is(.school-report-page,.custom-report-page,.student-result-page){
+    -webkit-print-color-adjust:exact;
+    print-color-adjust:exact;
+  }
+  .school-report-page .report-table tbody :is(th,td),
+  .custom-report-page .report-table tbody :is(th,td){color:#101e2d}
+  /* Override tiny footer text in older landscape print declarations. */
+  .school-report-page.grade-subjects-landscape .report-signatures,
+  .school-report-page.grade-subjects-landscape .report-signatures :is(b,span){font-size:7px!important}
+  .school-report-page.grade-subjects-landscape .report-attribution,
+  .school-report-page.grade-subjects-landscape .report-page-number,
+  .school-report-page.grade-subjects-landscape .report-vision{font-size:6.8px!important}
+  .school-report-page.grade-subjects-landscape .report-title{font-size:10.4px!important}
+}

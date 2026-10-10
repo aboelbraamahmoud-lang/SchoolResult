@@ -9,11 +9,12 @@
     "test:cloud": "node --expose-internals tests/cloud.cjs",
     "test:structure": "node --expose-internals tests/structure.cjs",
     "test:reports": "node --expose-internals tests/report-logic-current.cjs",
-    "test": "npm run build && npm run test:reports && npm run test:regression && npm run test:cloud && npm run test:structure && npm run test:hardening && npm run test:security && npm run test:ui",
+    "test": "npm run build && npm run test:reports && npm run test:regression && npm run test:cloud && npm run test:structure && npm run test:hardening && npm run test:security && npm run test:ui && npm run test:report-typography",
     "release": "node release.cjs",
     "test:release": "node tests/release.cjs",
     "test:hardening": "node --expose-internals tests/hardening.cjs",
     "test:security": "node tests/security.cjs",
-    "test:ui": "node tests/ui-contract.cjs"
+    "test:ui": "node tests/ui-contract.cjs",
+    "test:report-typography": "node tests/report-typography.cjs"
   }
 }
