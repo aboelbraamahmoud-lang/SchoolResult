@@ -43,7 +43,9 @@ function ide(buffer,fileName,settings){
 }
 /* PATCH ode */
 function ode(buffer,fileName,settings){
-  const config=settings??ej,book=hv(buffer,{type:'array'}),wide=SR63.readWideWorkbook(book,fileName,config);
+  const config=settings??ej,book=hv(buffer,{type:'array'});
+  SR63.repairWorksheetRanges(book);
+  const wide=SR63.readWideWorkbook(book,fileName,config);
   const wideSource=new Set(wide.sheets.map(s=>s.sourceSheet));
   const legacy=SR63.readLegacyWorkbook(book,fileName,config);const sheets=[...wide.sheets,...legacy.sheets.filter(sheet=>!wideSource.has(sheet.sheet))];
   return {fileName,sheets,issues:sheets.length?[]:legacy.issues};
@@ -58,6 +60,8 @@ async function re(){
 }
 /* PATCH fde.se */
 async function se(){
+  const parserErrors=c.flatMap(file=>[...(file.issues??[]),...file.sheets.filter(sheet=>sheet.selected).flatMap(sheet=>sheet.issues??[])]).filter(issue=>issue.severity==='error');
+  if(parserErrors.length){const first=parserErrors[0];return eb.error(`توقف الاعتماد: ${parserErrors.length} مشكلة في قراءة Excel أو تحديد الشعب. ${first.sheet??''}، الصف ${first.row??'?'}: ${first.message}. لم تُحفظ أي نتيجة.`);}
   if(!j.length||N.length||F.length||L||I||!C||ne.length&&!x)return;
   if(!await Kj(e,'قبل استيراد النتائج'))return eb.error('تعذر إنشاء نقطة استعادة؛ لم تُعتمد النتائج.');
   try{const next=SR63.commitImport(e,j,M,c,f,m,P,T),batch=next.imports?.[0];t(next);r?.();l([]);_({});S(false);w(false);b({});if(batch?.rows>0)eb.success(`تم اعتماد ${batch.rows} نتيجة: ${batch.created??0} جديدة، ${batch.updated??0} محدثة، ${batch.skipped??0} دون تغيير.`);else eb.info(`لم تُضف نتائج جديدة؛ تم تخطي ${batch?.skipped??0} نتيجة لأنها مطابقة أو سبق رصدها.`);n();}catch(error){eb.error(error.message);}
@@ -70,7 +74,7 @@ async function ie(files){
   try{const parsed=[];for(const [index,file] of files.entries()){parsed.push(ode(await file.arrayBuffer(),file.name,e.settings));A(Math.round((index+1)/files.length*100));await new Promise(resolve=>setTimeout(resolve,0));}
     if(O9(parsed).length>400000)throw new Error('تجاوزت الدفعة 400 ألف نتيجة اختبار.');
     const totals={};for(const file of parsed)for(const sheet of file.sheets){const column=sheet.scoreColumns.find(c=>c.key===sheet.selectedScoreKey);totals[A9(file.fileName,sheet.sheet)]=column?.totalKnown?column.suggestedTotal:tj(e.settings,sheet.exam??f).total;}
-    l(parsed);b({});S(false);w(false);_(totals);eb.success(`تم فحص ${files.length} ملف؛ راجع المواد والاختبارات والإجماليات قبل الاعتماد.`);
+    l(parsed);b({});S(false);w(false);_(totals);eb.success(`تم فحص ${files.length} ملف: ${O9(parsed).length} نتيجة في ${new Set(O9(parsed).map(item=>item.className)).size} شعبة. راجع التوزيع الظاهر لكل ورقة قبل الاعتماد.`);
   }catch(error){eb.error(`تعذر الاستيراد: ${error.message}`);}finally{d('');A(0);}
 }
 /* PATCH fde.B */

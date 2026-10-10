@@ -130,6 +130,8 @@ SR63.mergeTeachers=function(workspace,preview,policy){
   return jj(result,'استيراد الهيكل الأكاديمي',`${preview.fileName} — ${catalog.grades.length} صفوف، ${catalog.classes.length} شعب، ${catalog.subjects.length} مواد، ${catalog.teachers.length} معلمين، ${importedAssignments.length} تكليفًا، ${coordinatorCount} منسقين`);
 };
 SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTotal,policy){
+  const parserErrors=(files??[]).flatMap(file=>[...(file.issues??[]),...(file.sheets??[]).filter(sheet=>sheet.selected).flatMap(sheet=>sheet.issues??[])]).filter(issue=>issue.severity==='error');
+  if(parserErrors.length)SR63.fail(`توجد ${parserErrors.length} مشكلة مانعة في قراءة ملف Excel؛ لم تُعتمد النتائج. أولها في الصف ${parserErrors[0].row}: ${parserErrors[0].message}`);
   const batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),normalizedRows=SR63.reconcileStudentRows(workspace.rows),identityIds=SR63.studentIdentityIndex({...workspace,rows:normalizedRows}),rows=new Map(normalizedRows.map(row=>[_j(row),row])),aliasRows=new Map(normalizedRows.map(row=>[`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`,_j(row)])),originalAliases=new Set(normalizedRows.map(row=>`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`)),changes=[];let skipped=0,created=0,updated=0;
   const usedExams=new Set(),seen=new Set();
   for(const item of items){

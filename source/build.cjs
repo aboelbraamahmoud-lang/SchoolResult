@@ -49,6 +49,9 @@ replace('let s=o.scores[f],c=o.statuses[f],l=o.totals[f],u=P(e)','let key=e.exam
 replace('!e.recognized||!Number.isFinite(t)||t<=0||e.score!==null&&(e.score<0||e.score>t)||!e.subject','!e.recognized||!Number.isFinite(t)||t<=0||e.status===`present`&&e.score===null||e.score!==null&&(e.score<0||e.score>t)||!e.subject');
 replace('className:e.className,subject:e.subject,department:e.department,teacher:mj(e,r)','className:hj(e,r),subject:e.subject,department:e.department,teacher:mj(e,r)');
 replace('onChange:t=>_(n=>({...n,[A9(e.fileName,e.sheet)]:Number(t.target.value)}))','onChange:t=>{_(n=>({...n,[A9(e.fileName,e.sheet)]:Number(t.target.value)}));w(!1)}');
+// Make the preview show the class breakdown, not just a misleading grand total.
+replace('`ورقة: `,e.sheet,` · `,Q(e.rows.length),` طالب`','`ورقة: `,e.sheet,` · `,Q(e.rows.length),` نتيجة · توزيع الشعب: `,[...new Set(e.rows.map(r=>r.className))].sort((a,b)=>a.localeCompare(b,`ar`)).map(c=>`${c}: ${e.rows.filter(r=>r.className===c).length}`).join(` | `)||`غير محدد`');
+replace('e.headerRow]})]},e.id))','e.headerRow,` · أخطاء القراءة: `,e.issues.filter(i=>i.severity===`error`).length,` · صفوف تحتاج مراجعة: `,e.issues.filter(i=>i.severity===`error`).slice(0,5).map(i=>i.row).join(`، `)||`لا توجد`]})]},e.id))');
 replace('الاختبار المستهدف','اختبار أوراق المادة المفردة');
 replace('الدرجة المقترحة مبنية على أعلى درجة موجودة، لذلك راجعها واكتب الدرجة الأصلية للاختبار قبل الاعتماد.','القالب الشامل يستورد اختباراته الأربعة وحالاتها؛ لكل بطاقة اختبار محدد. الإجمالي من ورقة الإعدادات أو إعدادات البرنامج، ويجب مراجعته قبل الاعتماد.');
 replace('حتى 50 ملفًا · 25MB للملف · 100 ألف سجل للدفعة','حتى 50 ملفًا · 25MB للملف · 100 ألف سجل طالب/مادة · 400 ألف نتيجة اختبار');

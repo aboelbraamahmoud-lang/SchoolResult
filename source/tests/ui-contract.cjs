@@ -14,7 +14,8 @@ test('official logo is external and patch payload is compact',()=>{assert.match(
 test('wide report CSS keeps readable floor and pagination support',()=>{assert.match(css,/grade-subject-matrix-official/);assert.match(css,/department-subject-matrix-official/);assert.ok(!/font-size:\s*[1-4](?:\.\d+)?px!important/.test(css.slice(css.lastIndexOf('6.10.0'))));});
 test('subject comparison print uses compact cells with bold black subject and grade labels',()=>{const block=css.slice(css.lastIndexOf('6.10.3'));assert.match(block,/official-subject-head[\s\S]*color:#000!important/);assert.match(block,/grade-matrix-class[\s\S]*color:#000!important/);assert.match(block,/official-comparison-caption[\s\S]*color:#050505!important/);assert.match(block,/grade-matrix-percent-head[\s\S]*width:6\.4mm!important/);});
 test('legacy misleading terminology is absent from generated runtime',()=>{for(const term of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])assert.ok(!app.includes(term),term);});
-test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.5/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
+test('import preview lists real per-class counts and blocks erroneous Excel sheets',()=>{assert.match(app,/توزيع الشعب:/);assert.match(app,/توقف الاعتماد:/);assert.match(app,/importSectionLabel/);});
+test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.7/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
 
 
 test('dashboard supports persistent subject scope for main summaries',()=>{assert.match(app,/المواد المحتسبة في ملخصات ورسوم الرئيسية/);assert.match(app,/dashboardSubjects/);assert.match(css,/\.sr610-dashboard-scope/);});

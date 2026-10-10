@@ -57,7 +57,7 @@ async function main(){
  await test('إصلاح مرجع محلي قديم عند تطابق المعلم والمادة وحدهما',()=>{const w=workspace();w.teacherAssignments[0].profileId='old-id';const migrated=c.SR63.migrateLocal(w);same([migrated.repaired,migrated.workspace.teacherAssignments[0].profileId],[1,'P1']);c.LN(migrated.workspace);assert.equal(w.teacherAssignments[0].profileId,'old-id');});
  await test('عدم تخمين معلم لإسناد قديم بلا تطابق واضح',()=>{const w=workspace();w.teacherAssignments[0].profileId='old-id';w.teacherAssignments[0].teacher='شخص آخر';const migrated=c.SR63.migrateLocal(w);assert.equal(migrated.repaired,0);assert.throws(()=>c.LN(migrated.workspace));});
 
- // 6.10.5: real binary .xlsx fixtures cover the original multi-class regression.
+ // 6.10.6: real binary .xlsx fixtures cover the original multi-class regression.
  async function checkMultiSectionExcel(fixture,expectedClasses,expectedRows){
    const fileName=fixture+'.xlsx',data=fs.readFileSync(path.join(__dirname,'fixtures',fileName));
    assert.equal(data.subarray(0,2).toString(),'PK','The regression fixture must be a genuine XLSX workbook');
@@ -83,12 +83,54 @@ async function main(){
    const repeated=c.SR63.commitImport(next,items,matches,[parsed],'exam1',20,()=>20,'replace');
    same([repeated.rows.length,repeated.imports[0].rows],[expectedRows,0]);
  }
+ await test('XLSX رسمي بنطاق ورقة تالف A1:CV5 يستخرج الطلاب الـ160 وجميع الشعب',()=>{
+   const file=fs.readFileSync(path.join(__dirname,'fixtures/stale-dimension-160-students.xlsx'));
+   const original=c.hv(file,{type:'buffer'});
+   assert.equal(original.Sheets['التربية الاسلامية']['!ref'],'A1:CV5');
+   assert.equal(c.Gv.sheet_to_json(original.Sheets['التربية الاسلامية'],{header:1,raw:true}).length,5,'fixture must reproduce real workbook truncation');
+   const parsed=c.ode(file,'نموذج-نطاق-تالف.xlsx',c.ej),items=c.O9([parsed]);
+   const expected={'7/1':19,'7/2':17,'7/3':19,'7/4':18,'7/5':18,'7/6':16,'7/7':16,'7/8':17,'7/9':14,'7/ESE':6};
+   const byClass=Object.fromEntries(Object.keys(expected).map(cls=>[cls,items.filter(i=>i.className===cls).length]));
+   same([items.length,new Set(items.map(i=>i.studentId)).size,byClass],[160,160,expected]);
+   assert.ok(items.every(x=>x.recognized&&/^313\d{8}$/.test(x.studentId)),'long student IDs from الرقم must be preserved');
+   assert.equal(parsed.sheets[1].selected,false,'unscored subject must not be committed as zero');
+   assert.ok(parsed.sheets[1].issues.some(i=>i.severity==='warning'&&/لا توجد درجات/.test(i.message)));
+   assert.ok(!parsed.sheets.flatMap(s=>s.issues).some(i=>i.severity==='error'));
+   let w=c.Aj();
+   w.teachers=Object.keys(expected).filter(cls=>cls!=='7/ESE').map((cls,i)=>({id:'P'+i,teacher:'معلم '+cls,subject:'التربية الاسلامية',department:'التربية الاسلامية',classes:[cls]}));
+   w.teacherAssignments=w.teachers.map((t,i)=>({id:'A'+i,profileId:t.id,teacher:t.teacher,subject:t.subject,department:t.department,className:t.classes[0],active:true}));
+   const links=c.lde(items,w.teachers,w.teacherAssignments);
+   const n=c.SR63.commitImport(w,items,links,[parsed],'exam1',20,()=>20,'replace');
+   same([n.rows.length,n.imports[0].rows,new Set(n.rows.map(r=>r.className)).size,n.rows.filter(r=>c.SR63.isSupportRow(r,'exam1')).length],[160,160,10,6]);
+   assert.equal(c.LN(n).workspace.rows.length,160);
+   assert.equal(c.SR63.commitImport(n,items,links,[parsed],'exam1',20,()=>20,'replace').imports[0].rows,0);
+ });
  await test('XLSX متعدد الشعب: 4 شعب × 18 وعمود الرقم التسلسلي المتكرر يستورد 72 نتيجة',()=>checkMultiSectionExcel('multi-class-legacy-serial',['7/1','7/2','7/3','7/4'],72));
  await test('XLSX متعدد الشعب: العناوين المتكررة والشعبة الموروثة لا تُسقط أي طالب',()=>checkMultiSectionExcel('multi-class-legacy-blocks',['7/1','7/2','7/3','7/4'],72));
+
+ await test('XLSX متعدد الشعب: عنوان الشعبة في العمود الأول لا يورث 7/1 إلى بقية الصفوف',()=>checkMultiSectionExcel('multi-class-in-a-header',['7/1','7/2','7/3','7/4'],72));
+ await test('XLSX متعدد الشعب: عنوان الشعبة في خانة الاسم لا يضاف كطالب وهمي',()=>checkMultiSectionExcel('multi-class-caption-name',['7/1','7/2','7/3','7/4'],72));
+ await test('تغيير مكان عنوان الشعبة وعدم وضوح المجموعة التالية يمنع الاعتماد الصامت',async()=>{
+   const workbook=c.hv(fs.readFileSync(path.join(__dirname,'fixtures/multi-class-in-a-header.xlsx')),{type:'buffer'}),sheet=workbook.Sheets[workbook.SheetNames[0]];
+   const matrix=c.Gv.sheet_to_json(sheet,{header:1,raw:true,defval:null,blankrows:true});
+   // The second section marker has been lost in an Excel merge/edit.
+   const marker=matrix.findIndex(row=>String(row[0]??'').includes('7/2'));
+   assert.ok(marker>0);matrix[marker][0]='دفعة جديدة غير محددة الشعبة';
+   const modified=c.Gv.book_new();c.Gv.book_append_sheet(modified,c.Gv.aoa_to_sheet(matrix),'العلوم');
+   const bytes=c.Cv(modified,{type:'array',bookType:'xlsx'}),parsed=c.ode(bytes,'unknown-sections.xlsx',c.ej);
+   assert.ok(parsed.sheets.some(s=>s.issues.some(i=>i.severity==='error')),'silently inherited class from 7/1');
+   let prevented=false,stopped=false;
+   await app.run('fde.se',{c:[parsed],j:c.O9([parsed]),N:[],F:[],L:0,I:0,C:true,ne:[],x:false,eb:{error:()=>{stopped=true}},Kj:async()=>{prevented=true;return true;},e:workspace([])});
+   assert.equal(stopped,true,'UI must report the parser error');
+   assert.equal(prevented,false,'must stop before snapshot/write');
+   assert.throws(()=>c.SR63.commitImport(workspace([]),c.O9([parsed]),[],[parsed],'exam1',20,()=>20,'replace'),/مشكلة مانعة/,'domain commit must refuse malformed source even if invoked directly');
+ });
+
  await test('XLSX شامل: 07/1 إلى 7/4 مع 07/ESE، 90 نتيجة مستقلة',()=>checkMultiSectionExcel('multi-class-wide',['7/1','7/2','7/3','7/4','7/ESE'],90));
  await test('قراءة الرقم الأكاديمي الصريح لا يُستبدل بالهوية التلقائية',()=>{
    assert.equal(c.SR63.importOfficialStudentId('0012345678','الرقم الأكاديمي'),'0012345678');
    assert.equal(c.SR63.importOfficialStudentId('1','الرقم'),'');
+   assert.equal(c.SR63.importOfficialStudentId('31363401505','الرقم'),'31363401505');
  });
  const template=c.ode(fs.readFileSync(path.resolve(__dirname,'../../نموذج-استيراد-نتائج-المدرسة.xlsx')),'wide.xlsx',c.ej),wide=c.O9([template]);
  await test('قراءة XLSX الفعلي بأربعة اختبارات',()=>same([template.sheets.filter(s=>s.selected).length,wide.length],[4,12]));
@@ -133,7 +175,7 @@ async function main(){
  await test('مسميات الفنية المختلفة ترتبط بنفس مادة الفنية',()=>{for(const name of ['التربية الفنية','التربية الفنية والبصرية','الفنون البصرية','فنون','التربية الفنية والتصميم'])assert.equal(c.SR63.subjectAliasKey(name),c.SR63.subjectAliasKey('فنية'));});
  await test('مسميات الحوسبة المختلفة ترتبط بنفس مادة الحاسب',()=>{for(const name of ['الحوسبة وتكنولوجيا المعلومات','الحاسوب','الحاسب وتقنية المعلومات','تكنولوجيا المعلومات'])assert.equal(c.SR63.subjectAliasKey(name),c.SR63.subjectAliasKey('حاسب'));});
  await test('كشف نتيجة الطالب يرتب المواد ويعرض الاختبار المحدد فقط',()=>{const subjects=['التربية البدنية','التربية الفنية والبصرية','الحوسبة وتكنولوجيا المعلومات','الدراسات الاجتماعية','العلوم','الرياضيات','اللغة الإنجليزية','اللغة العربية','التربية الإسلامية'],rows=subjects.map((subject,i)=>{const r=row('S-77',subject);r.studentName='طالب التقرير';r.scores.exam1=10+i;r.totals.exam1=20;r.statuses.exam1='present';r.scores.exam2=1;r.totals.exam2=30;r.statuses.exam2='present';return r;}),w=workspace(rows);w.classes=[{id:'C1',className:'7/1',name:'7/1',grade:'السابع',gradeId:'G1',active:true}];w.grades=[{id:'G1',name:'السابع',active:true}];w.subjects=subjects.map((name,i)=>({id:'SUB'+i,name,department:name,gradeIds:['G1'],active:true}));const pages=c.SR63.studentResultPages(w,'exam1',{});assert.equal(pages.length,1);same(pages[0].results.slice(0,9).map(x=>x.subject),['التربية الإسلامية','اللغة العربية','اللغة الإنجليزية','الرياضيات','العلوم','الدراسات الاجتماعية','الحوسبة وتكنولوجيا المعلومات','التربية الفنية','التربية البدنية']);assert.equal(pages[0].results[0].score,18);assert.equal(pages[0].results[0].total,20);assert.equal(pages[0].results[0].band,'ممتاز');});
- fs.writeFileSync(path.join(__dirname,'output/results.json'),JSON.stringify({version:'6.10.5',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
+ fs.writeFileSync(path.join(__dirname,'output/results.json'),JSON.stringify({version:'6.10.7',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
  console.log(JSON.stringify({passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length}));if(results.some(r=>r.status==='fail'))process.exitCode=1;
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
