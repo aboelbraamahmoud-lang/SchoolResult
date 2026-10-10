@@ -1,7 +1,7 @@
 {
   "name": "schoolresult-desktop",
   "productName": "SchoolResult - مرصد النتائج المدرسية",
-  "version": "6.10.7",
+  "version": "6.10.8",
   "description": "نسخة Windows Desktop من مرصد النتائج المدرسية مبنية من مستودع GitHub",
   "main": "main.cjs",
   "author": "SchoolResult",

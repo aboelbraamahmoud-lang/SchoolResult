@@ -175,7 +175,7 @@ replace('label:`المشكلات الحرجة`,value:Q(be.critical),hint:`يجب
 code=code.split('`نتيجة مقيمة`').join('`نتيجة مرصودة`').split('`نتائج مقيمة`').join('`نتائج مرصودة`');
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
 code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
-const services=['engine.js','legacy-multiclass.js','catalog.js','master-ui.js','student-results-print.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
+const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','dashboard-pro.js','cloud.js','backups.js','imports.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);

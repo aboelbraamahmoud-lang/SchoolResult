@@ -628,16 +628,19 @@
 .grade-subjects-landscape .official-comparison-caption span{font-size:6.4px!important}
 
 .grade-subjects-landscape .grade-subject-matrix-official{
-  font-size:6.8px!important;
-  line-height:1.08!important;
+  table-layout:fixed!important;
+  width:100%!important;
+  font-size:7.4px!important;
+  line-height:1.02!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official th,
 .grade-subjects-landscape .grade-subject-matrix-official td{
-  padding:.22mm .20mm!important;
+  padding:.14mm .12mm!important;
   height:auto!important;
+  vertical-align:middle!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .official-subject-head{
-  padding:.30mm .18mm!important;
+  padding:.22mm .12mm!important;
   background:#dceff3!important;
   color:#000!important;
   font-weight:1000!important;
@@ -645,55 +648,70 @@
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-subject b{
   color:#000!important;
-  font-size:6.8px!important;
-  line-height:1.05!important;
+  font-size:7.25px!important;
+  line-height:1.01!important;
   font-weight:1000!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class-head,
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class{
-  width:11.5mm!important;
-  min-width:11.5mm!important;
-  max-width:11.5mm!important;
+  width:9.8mm!important;
+  min-width:9.8mm!important;
+  max-width:9.8mm!important;
   color:#000!important;
   font-weight:1000!important;
   text-shadow:none!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class-head{background:#c4e2e9!important}
-.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class{background:#f2f8fa!important;font-size:6.6px!important}
+.grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-class{background:#f2f8fa!important;font-size:7px!important}
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-teacher-head{
-  width:12.5mm!important;
-  padding:.24mm .16mm!important;
+  width:9.9mm!important;
+  min-width:9.9mm!important;
+  max-width:9.9mm!important;
+  padding:.18mm .12mm!important;
   background:#edf6f8!important;
   color:#000!important;
-  font-size:5.9px!important;
+  font-size:6.45px!important;
   font-weight:1000!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-percent-head{
-  width:6.4mm!important;
-  padding:.24mm .12mm!important;
+  width:5.15mm!important;
+  min-width:5.15mm!important;
+  max-width:5.15mm!important;
+  padding:.18mm .08mm!important;
   background:#edf6f8!important;
   color:#000!important;
-  font-size:5.9px!important;
+  font-size:6.45px!important;
   font-weight:1000!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-teacher{
-  padding:.20mm .18mm!important;
+  width:9.9mm!important;
+  min-width:9.9mm!important;
+  max-width:9.9mm!important;
+  padding:.10mm .12mm!important;
   color:#090909!important;
-  font-size:6.05px!important;
-  line-height:1.07!important;
+  font-size:6.65px!important;
+  line-height:1.02!important;
   font-weight:950!important;
+  white-space:normal!important;
+  word-break:break-word!important;
+  overflow-wrap:anywhere!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-value{
-  padding:.08mm!important;
-  font-size:6.15px!important;
+  width:5.15mm!important;
+  min-width:5.15mm!important;
+  max-width:5.15mm!important;
+  padding:.04mm!important;
+  font-size:6.7px!important;
   font-weight:1000!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official .grade-matrix-value .report-meter{
-  min-height:3.65mm!important;
-  padding:.05mm .18mm!important;
-  font-size:6.05px!important;
+  min-height:2.82mm!important;
+  border-width:.7px!important;
+  padding:0 .08mm!important;
+  font-size:6.55px!important;
   line-height:1!important;
   font-weight:1000!important;
+  border-radius:.28mm!important;
 }
 .grade-subjects-landscape .grade-subject-matrix-official tfoot th,
 .grade-subjects-landscape .grade-subject-matrix-official tfoot td{
@@ -703,6 +721,67 @@
 .grade-subjects-landscape .grade-subject-matrix-official tfoot th{background:#dceff3!important}
 .grade-subjects-landscape .grade-matrix-summary,
 .grade-subjects-landscape .grade-matrix-summary b{color:#111!important;font-weight:950!important}
+
+.department-subject-matrix-official{
+  table-layout:fixed!important;
+  width:100%!important;
+  font-size:7px!important;
+  line-height:1.03!important;
+}
+.department-subject-matrix-official th,.department-subject-matrix-official td{
+  padding:.14mm .12mm!important;
+  vertical-align:middle!important;
+}
+.department-subject-matrix-official .department-class-head,
+.department-subject-matrix-official .department-class{
+  width:9.8mm!important;
+  min-width:9.8mm!important;
+  max-width:9.8mm!important;
+}
+.department-subject-matrix-official .department-subject-head{
+  font-size:7.05px!important;
+  padding:.22mm .12mm!important;
+}
+.department-subject-matrix-official .department-teacher-head,
+.department-subject-matrix-official .department-success-head,
+.department-subject-matrix-official .department-achievement-head{
+  font-size:6.2px!important;
+  padding:.18mm .08mm!important;
+}
+.department-subject-matrix-official .department-teacher-head,
+.department-subject-matrix-official .department-teacher{
+  width:9.5mm!important;
+  min-width:9.5mm!important;
+  max-width:9.5mm!important;
+}
+.department-subject-matrix-official .department-success-head,
+.department-subject-matrix-official .department-achievement-head,
+.department-subject-matrix-official .department-metric-cell{
+  width:4.9mm!important;
+  min-width:4.9mm!important;
+  max-width:4.9mm!important;
+}
+.department-subject-matrix-official .department-teacher{
+  font-size:6.35px!important;
+  line-height:1.02!important;
+  padding:.10mm .12mm!important;
+  white-space:normal!important;
+  word-break:break-word!important;
+  overflow-wrap:anywhere!important;
+}
+.department-subject-matrix-official .department-metric-cell{
+  padding:.04mm!important;
+}
+.department-subject-matrix-official .department-metric-cell .report-meter{
+  min-height:2.82mm!important;
+  border-width:.7px!important;
+  border-radius:.28mm!important;
+  font-size:6.35px!important;
+  line-height:1!important;
+  padding:0 .08mm!important;
+}
+.department-matrix-caption strong{font-size:8.35px!important}
+.department-matrix-caption span,.department-matrix-summary{font-size:6.35px!important}
 
 @media print{
   .grade-subjects-landscape .report-title,
@@ -715,3 +794,10 @@
     print-color-adjust:exact!important;
   }
 }
+
+/* 6.10.8 – safe historical subject/teacher repair */
+.sr610-subject-repair{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;border:1px solid #b4dce0;background:#f3fafb;border-radius:16px;padding:16px 20px}
+.sr610-subject-repair b{font-weight:800;color:#123247}
+.sr610-subject-repair p{font-size:13px;color:#456276;margin-top:6px;line-height:1.8}
+.sr610-subject-repair button{border:0;border-radius:10px;background:#08796f;padding:11px 17px;color:#fff;font-weight:700;cursor:pointer}
+.sr610-subject-repair button:disabled{opacity:.45;cursor:not-allowed}

@@ -146,6 +146,41 @@ async function main(){
  await test('نموذج النتيجة المعتمد يربط المادة والشعبة مباشرة بمعلم التكليف دون اسم معلم في الملف',()=>{const file=fs.readFileSync(path.resolve(__dirname,'../../نموذج-قاعدة-بيانات-المعلمين.xlsx')),preview=c.ide(file,'master.xlsx',c.ej),w=c.SR63.mergeTeachers(c.Aj(),preview,'replace'),items=[['S-1','طالب 1','07/1'],['S-2','طالب 2','07/4'],['S-3','طالب 3','07/7']].map(([studentId,studentName,className])=>({studentId,studentName,className:c.lj(className),grade:'السابع',subject:'التربية الاسلامية',teacher:'',score:15,status:'present',recognized:true,sourceFile:'شرعية سابع.xlsx',sourceSheet:'التربية الاسلامية'})),links=c.lde(items,w.teachers,w.teacherAssignments);same(links.map(x=>x.status),['matched','matched','matched']);same(links.map(x=>x.subject),['شرعية','شرعية','شرعية']);same(links.map(x=>w.teachers.find(t=>t.id===x.selectedProfileId)?.teacher),['رزق','العلي','الحوري']);const n=c.SR63.commitImport(w,items,links,[{fileName:'شرعية سابع.xlsx',issues:[],sheets:[]}],'exam1',20,()=>20,'replace');assert.ok(n.rows.every(r=>r.subject==='شرعية'));same(n.rows.map(r=>c.mj(r,'exam1')),['رزق','العلي','الحوري']);same(n.rows.map(r=>c.hj(r,'exam1')),['7/1','7/4','7/7']);});
  await test('نموذج النتيجة المدرسي المعتمد يعمل بدون عمود رقم الطالب',()=>{const book=c.Gv.book_new(),sheet=c.Gv.aoa_to_sheet([['0','0',null,null],['0','0',null,null],['الاسم','الشعبة الصفية','التقييم الرئيسي','منتصف الفصل الاول'],['طالب تجريبي','07/1',30,15]]);c.Gv.book_append_sheet(book,sheet,'التربية الاسلامية');const data=c.Cv(book,{type:'array',bookType:'xlsx'}),parsed=c.ode(data,'شرعية سابع.xlsx',c.ej);assert.equal(parsed.sheets.length,1);assert.equal(parsed.sheets[0].subject,'التربية الاسلامية');const rows=c.O9([parsed]);assert.equal(rows.length,1);assert.equal(rows[0].className,'7/1');assert.ok(String(rows[0].studentId).startsWith('auto-student-'));});
  await test('النموذج الشامل بأربعة اختبارات يعمل أيضًا بدون عمود رقم الطالب',()=>{const book=c.Gv.book_new(),sheet=c.Gv.aoa_to_sheet([['اسم الطالب','الشعبة الصفية','المادة','درجة منتصف الفصل الأول'],['طالب شامل','07/1','العلوم',15]]);c.Gv.book_append_sheet(book,sheet,'النتائج');const data=c.Cv(book,{type:'array',bookType:'xlsx'}),parsed=c.ode(data,'مجمع.xlsx',c.ej),rows=c.O9([parsed]);assert.equal(rows.length,1);assert.equal(rows[0].studentName,'طالب شامل');assert.ok(String(rows[0].studentId).startsWith('auto-student-'));});
+ await test('فهرس المواد لا يكرر مسميات Excel فوق مواد الهيكل المختصرة',()=>{
+   const w=workspace([row('S-1','العلوم'),row('S-2','الدراسات الاجتماعية'),row('S-3','الفنون البصرية')]);
+   w.subjects=[{id:'a',name:'علوم',gradeIds:[]},{id:'b',name:'اجتماعية',gradeIds:[]},{id:'c',name:'فنية',gradeIds:[]},{id:'d',name:'العلوم',gradeIds:[]}];
+   const catalog=c.SR63.ensureCatalog(w),keys=catalog.subjects.map(s=>c.SR63.subjectAliasKey(s.name));
+   assert.equal(new Set(keys).size,keys.length);assert.ok(catalog.subjects.some(s=>s.name==='علوم'));assert.ok(!catalog.subjects.some(s=>s.name==='العلوم'));
+ });
+ await test('الاستيراد يحفظ مادة الهيكل المختصرة ولا ينشئ مادة طويلة جديدة',()=>{
+   const w=workspace([]);w.teachers[0].subject='علوم';w.teacherAssignments[0].subject='علوم';
+   const i=item({subject:'العلوم',teacher:'',studentId:'ID-TEST-103'}),links=c.lde([i],w.teachers,w.teacherAssignments);
+   assert.equal(links[0].selectedProfileId,'P1');
+   const next=c.SR63.commitImport(w,[i],links,[{fileName:'subject.xlsx',issues:[],sheets:[]}],'exam1',20,()=>20,'replace');
+   assert.equal(next.rows[0].subject,'علوم');assert.equal(next.rows[0].teacher,'معلم أ');
+   assert.equal(next.subjects.filter(s=>c.SR63.subjectEquivalent(s.name,'العلوم')).length,1);
+ });
+ await test('إصلاح مواد موجودة وتكليفات آخر دفعة يحفظ الدرجات والتاريخ',()=>{
+   const r=row('S-4','العلوم');r.teacher='اسم قديم';r.examTeachers.exam1='اسم قديم';r.examTeachers.exam2='معلم تاريخي';r.importBatches.exam1='LATEST';r.importBatches.exam2='OLD';
+   const w=workspace([r]);w.subjects=[{id:'canonical-science',name:'علوم',gradeIds:[]}];w.teacherAssignments[0].subject='علوم';w.teachers[0].subject='علوم';w.imports=[{id:'LATEST',kind:'results',changes:[]},{id:'OLD',kind:'results',changes:[]}];
+   const plan=c.SR63.subjectLinkRepairPreview(w);assert.equal(plan.renamed,1);assert.equal(plan.teacherFixed,1);assert.equal(plan.conflicts.length,0);
+   const next=c.SR63.repairSubjectLinks(w);assert.equal(next.rows.length,1);assert.equal(next.rows[0].subject,'علوم');
+   assert.equal(next.rows[0].scores.exam1,10);assert.equal(next.rows[0].scores.exam2,24);
+   assert.equal(next.rows[0].examTeachers.exam1,'معلم أ');assert.equal(next.rows[0].examTeachers.exam2,'معلم تاريخي');
+   assert.equal(w.rows[0].subject,'العلوم');assert.equal(w.rows[0].teacher,'اسم قديم');
+ });
+ await test('إصلاح مسميات قديمة يرفض تصادم مادة لنفس الطالب قبل المساس بالنتائج',()=>{
+   const w=workspace([row('S-4','علوم'),row('S-4','العلوم')]);
+   assert.equal(c.SR63.subjectLinkRepairPreview(w).conflicts.length,1);
+   assert.throws(()=>c.SR63.repairSubjectLinks(w),/متعارضة/);
+   assert.equal(w.rows.length,2);
+ });
+ await test('تغطية التكليفات تعترف بمرادف المادة والشعبة نفسها',()=>{
+   const w=workspace([]);w.subjects=[{id:'sub-can',name:'علوم',gradeIds:[]}];w.teacherAssignments[0].subject='العلوم';
+   const catalog=c.SR63.ensureCatalog(w),coverage=c.SR63.catalogCoverage({...w,...catalog});
+   assert.equal(c.SR63.assignmentMatches(w,'علوم','7/1').length,1);
+   assert.equal(coverage.missing>=0,true);
+ });
  await test('مرادفات أسماء المواد الرسمية لا تنشئ مواد مكررة عند ربط النتائج',()=>{assert.equal(c.SR63.subjectAliasKey('التربية الإسلامية'),c.SR63.subjectAliasKey('شرعية'));assert.equal(c.SR63.subjectAliasKey('اللغة العربية'),c.SR63.subjectAliasKey('عربي'));assert.equal(c.SR63.subjectAliasKey('اللغة الإنجليزية'),c.SR63.subjectAliasKey('E'));assert.equal(c.SR63.subjectAliasKey('الدراسات الاجتماعية'),c.SR63.subjectAliasKey('اجتماعية'));assert.equal(c.SR63.subjectAliasKey('الحوسبة وتكنولوجيا المعلومات'),c.SR63.subjectAliasKey('حاسب'));assert.equal(c.SR63.subjectAliasKey('الحاسوب'),c.SR63.subjectAliasKey('حاسب'));assert.equal(c.SR63.subjectAliasKey('التربية البدنية'),c.SR63.subjectAliasKey('بدنية'));});
  await test('دمج المعلمين يحافظ على معرف المعلم والإسنادات',()=>{const w=workspace();w.teacherAssignments.push({...w.teacherAssignments[0],id:'A2',className:'7/2'});const preview={fileName:'teachers.xlsx',issues:[],profiles:[{...w.teachers[0],id:'NEW'}],assignments:[{...w.teacherAssignments[0],profileId:'NEW'}]},n=c.SR63.mergeTeachers(w,preview,'merge');same([n.teachers[0].id,n.teacherAssignments.length,n.teacherAssignments.every(a=>n.teachers.some(p=>p.id===a.profileId))],['P1',2,true]);});
  await test('دمج صفوف المعلم المكررة لا ينشئ إسنادًا يتيمًا',()=>{const w=workspace([]);w.teachers=[];w.teacherAssignments=[];const p={id:'x1',teacher:'معلم',subject:'العلوم',department:'العلوم',classes:['7/1']},preview={fileName:'t.xlsx',issues:[],profiles:[p,{...p,id:'x2',classes:['7/2']}],assignments:[{id:'a1',profileId:'x1',teacher:'معلم',subject:'العلوم',department:'العلوم',className:'7/1'},{id:'a2',profileId:'x2',teacher:'معلم',subject:'العلوم',department:'العلوم',className:'7/2'}]};const n=c.SR63.mergeTeachers(w,preview,'merge');same([n.teachers.length,n.teacherAssignments.length],[1,2]);c.LN(n);});
@@ -175,7 +210,7 @@ async function main(){
  await test('مسميات الفنية المختلفة ترتبط بنفس مادة الفنية',()=>{for(const name of ['التربية الفنية','التربية الفنية والبصرية','الفنون البصرية','فنون','التربية الفنية والتصميم'])assert.equal(c.SR63.subjectAliasKey(name),c.SR63.subjectAliasKey('فنية'));});
  await test('مسميات الحوسبة المختلفة ترتبط بنفس مادة الحاسب',()=>{for(const name of ['الحوسبة وتكنولوجيا المعلومات','الحاسوب','الحاسب وتقنية المعلومات','تكنولوجيا المعلومات'])assert.equal(c.SR63.subjectAliasKey(name),c.SR63.subjectAliasKey('حاسب'));});
  await test('كشف نتيجة الطالب يرتب المواد ويعرض الاختبار المحدد فقط',()=>{const subjects=['التربية البدنية','التربية الفنية والبصرية','الحوسبة وتكنولوجيا المعلومات','الدراسات الاجتماعية','العلوم','الرياضيات','اللغة الإنجليزية','اللغة العربية','التربية الإسلامية'],rows=subjects.map((subject,i)=>{const r=row('S-77',subject);r.studentName='طالب التقرير';r.scores.exam1=10+i;r.totals.exam1=20;r.statuses.exam1='present';r.scores.exam2=1;r.totals.exam2=30;r.statuses.exam2='present';return r;}),w=workspace(rows);w.classes=[{id:'C1',className:'7/1',name:'7/1',grade:'السابع',gradeId:'G1',active:true}];w.grades=[{id:'G1',name:'السابع',active:true}];w.subjects=subjects.map((name,i)=>({id:'SUB'+i,name,department:name,gradeIds:['G1'],active:true}));const pages=c.SR63.studentResultPages(w,'exam1',{});assert.equal(pages.length,1);same(pages[0].results.slice(0,9).map(x=>x.subject),['التربية الإسلامية','اللغة العربية','اللغة الإنجليزية','الرياضيات','العلوم','الدراسات الاجتماعية','الحوسبة وتكنولوجيا المعلومات','التربية الفنية','التربية البدنية']);assert.equal(pages[0].results[0].score,18);assert.equal(pages[0].results[0].total,20);assert.equal(pages[0].results[0].band,'ممتاز');});
- fs.writeFileSync(path.join(__dirname,'output/results.json'),JSON.stringify({version:'6.10.7',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
+ fs.writeFileSync(path.join(__dirname,'output/results.json'),JSON.stringify({version:'6.10.9',date:new Date().toISOString(),method:'Actual application logic in Node; original XLSX parser/writer; simulated storage failures and revisions; no browser visual or Windows execution.',passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length,results},null,2));
  console.log(JSON.stringify({passed:results.filter(r=>r.status==='pass').length,failed:results.filter(r=>r.status==='fail').length}));if(results.some(r=>r.status==='fail'))process.exitCode=1;
 }
 main().catch(error=>{console.error(error);process.exitCode=1});
