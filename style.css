@@ -971,3 +971,243 @@
   .school-report-page.grade-subjects-landscape .report-vision{font-size:6.8px!important}
   .school-report-page.grade-subjects-landscape .report-title{font-size:10.4px!important}
 }
+
+/* 6.10.13 — grade review / missing-score dashboard (RTL, protected edits and A4 print). */
+.sr613-grade-review{display:grid;gap:16px;direction:rtl;color:#173849;font-family:Tahoma,Arial,sans-serif}
+.sr613-hero{border-radius:17px;padding:21px 26px;background:linear-gradient(115deg,#133949,#0b7770);color:#fff}
+.sr613-hero span{display:block;font-size:12px;font-weight:900;color:#b8f2e6}
+.sr613-hero h1{font-size:23px;font-weight:950;margin:5px 0}
+.sr613-hero p{font-size:13px;line-height:1.8;color:#effcfa;max-width:980px}
+.sr613-filters,.sr613-report-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:#fff;border:1px solid #d9e5ea;border-radius:14px;padding:14px}
+.sr613-filter{display:grid;gap:6px;flex:1 1 158px;min-width:148px;font-size:12px;font-weight:900;color:#305362}
+.sr613-filter select,.sr613-filter input{min-height:40px;max-width:100%;border:1px solid #bdcfd5;background:#fff;border-radius:9px;padding:8px 10px;font-size:13px;font-weight:850;color:#173849;direction:rtl}
+.sr613-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.sr613-stats article{border:1px solid #d6e4e8;border-radius:13px;background:#fff;padding:13px;display:grid;gap:5px}
+.sr613-stats span{font-size:11px;font-weight:900;color:#617988}
+.sr613-stats strong{font-size:24px;font-weight:1000;color:#134957;font-variant-numeric:tabular-nums}
+.sr613-tabs{display:flex;gap:7px;border-bottom:2px solid #d9e6e8;padding-bottom:6px}
+.sr613-tabs button{border:0;border-radius:9px;padding:11px 16px;background:transparent;color:#315565;font-size:13px;font-weight:900;cursor:pointer}
+.sr613-tabs button.active{background:#123f50;color:#fff}
+.sr613-layout{display:grid;grid-template-columns:minmax(225px,290px) minmax(0,1fr);gap:13px}
+.sr613-students,.sr613-panel{background:#fff;border:1px solid #d3e2e7;border-radius:15px;padding:14px;min-width:0}
+.sr613-students{display:flex;flex-direction:column;gap:6px;max-height:670px;overflow:auto}
+.sr613-students>b{padding:4px 8px;color:#133d4b;font-size:13px}
+.sr613-students button{display:grid;gap:4px;background:#f8fbfc;border:1px solid #e2eaed;border-radius:9px;padding:11px 12px;text-align:right;cursor:pointer}
+.sr613-students button.active{background:#eaf9f5;border-color:#0b8278}
+.sr613-students strong{font-size:13px;font-weight:950;color:#143d4b}
+.sr613-students small{font-size:11px;color:#5e7885;font-weight:800}
+.sr613-panel header{display:block;border-bottom:1px solid #e2eaee;padding-bottom:12px;margin-bottom:12px}
+.sr613-panel header h2{font-size:19px;font-weight:950;color:#153e4b;margin:0 0 6px}
+.sr613-panel header p{font-size:12px;font-weight:800;color:#5b7684}
+.sr613-table-wrap{overflow:auto;width:100%}
+.sr613-table{border-collapse:collapse;width:100%;min-width:650px;font-size:12.5px;font-weight:900;line-height:1.5}
+.sr613-table :is(th,td){padding:9px 10px;border:1px solid #dce6e9;text-align:right;vertical-align:middle}
+.sr613-table th{background:#e6f1f3;font-weight:1000;color:#133f50;white-space:nowrap}
+.sr613-table tr:nth-child(even) td{background:#f8fafb}
+.sr613-table td small{display:block;color:#607986;font-size:10px;font-weight:800}
+.sr613-table td button,.sr613-report-controls>button{background:#0b746d;border:0;border-radius:8px;color:white;font-size:12px;font-weight:900;padding:8px 10px;cursor:pointer}
+.sr613-report-controls>button{min-height:40px}
+.sr613-table button:disabled,.sr613-report-controls button:disabled{opacity:.45;cursor:not-allowed}
+.sr613-count{font-size:12px;font-weight:900;color:#405d6a;margin:8px 0 13px}
+.sr613-overlay{position:fixed;z-index:200;inset:0;background:#0b2432a8;display:grid;place-items:center;padding:18px}
+.sr613-editor{width:min(530px,100%);background:#fff;border-radius:17px;box-shadow:0 18px 55px #071c2866;padding:24px;display:grid;gap:15px}
+.sr613-editor h2{font-size:21px;font-weight:1000;color:#173d4c}
+.sr613-editor p,.sr613-editor small{font-size:12px;line-height:1.7;color:#526d7a;font-weight:800}
+.sr613-editor-actions{display:flex;justify-content:flex-end;gap:8px}
+.sr613-editor-actions button{border-radius:8px;padding:10px 17px;font-weight:950;cursor:pointer;background:#eaf0f3;color:#1a4757}
+.sr613-editor-actions button:last-child{background:#08776d;color:#fff}
+.sr613-editor-actions button:disabled{opacity:.55;cursor:wait}
+.sr613-print-report{display:none}
+@media(max-width:900px){.sr613-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sr613-layout{grid-template-columns:1fr}.sr613-students{max-height:230px}.sr613-hero h1{font-size:20px}}
+@media print{
+  @page sr613GradeReview{size:A4 portrait;margin:12mm}
+  .sr613-print-report{page:sr613GradeReview}
+  body.sr613-printing #root,body.sr613-printing .sr-cloud-account{display:none!important}
+  body.sr613-printing #sr63-print-root{display:block!important;position:static!important;direction:rtl!important;background:#fff!important;color:#111!important;font:10pt Tahoma,Arial,sans-serif!important}
+  .sr613-print-report :is(h1,h2,p){text-align:center!important;color:#111!important;font-weight:900!important}
+  .sr613-print-report h1{font-size:15pt!important}.sr613-print-report h2{font-size:13pt!important}
+  .sr613-print-report table{border-collapse:collapse;width:100%;table-layout:auto;font:8.5pt Tahoma,Arial,sans-serif!important}
+  .sr613-print-report th,.sr613-print-report td{border:1px solid #222;padding:5px 4px;text-align:right;font-weight:900;word-break:break-word}
+  .sr613-print-report thead{display:table-header-group}.sr613-print-report tr{break-inside:avoid;page-break-inside:avoid}
+  .sr613-print-report th{background:#e5f1f3!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sr613-print-note{font-size:8pt!important;margin-top:14px}
+}
+
+
+/* 6.10.14 — four independently sized, legible RTL analytics tables.
+   Use horizontal scrolling rather than squeezing values. Only on-screen analytics
+   panels are affected; report print matrices and data logic remain unchanged. */
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap){
+  width:100%;max-width:100%;min-width:0;border-color:#d1e0e7!important;
+  background:#fff;scrollbar-width:thin;scrollbar-color:#82a9b6 #f3f8f9;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table-container"]{
+  min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin;
+  scrollbar-color:#82a9b6 #f3f8f9;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"]{
+  border-collapse:separate!important;border-spacing:0!important;direction:rtl;
+  table-layout:fixed;margin:0;width:100%;color:#152d3a;
+  font-family:Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] :is(th,td){
+  box-sizing:border-box;vertical-align:middle!important;text-align:center!important;
+  padding:10px 12px!important;border-bottom:1px solid #b5c8d2!important;
+  border-left:1px solid #d2e0e7!important;white-space:normal!important;
+  overflow-wrap:break-word!important;word-break:normal!important;
+  line-height:1.52!important;font-size:13px!important;font-weight:850!important;
+  text-overflow:clip!important;min-height:44px;color:#193142;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tr>:first-child{border-right:1px solid #d2e0e7!important}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] thead th{
+  background:#e9f4f6!important;color:#10394c!important;
+  font-weight:950!important;font-size:12.5px!important;line-height:1.5!important;
+  height:54px!important;white-space:normal!important;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tbody tr:nth-child(even) td{background:#f8fbfc}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tbody tr:hover td{background:#eef8f8}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tbody td:first-child{font-weight:950!important;color:#0d3447}
+
+/* Levels: each of the six performance bands gets a clear named column. */
+.sr614-levels-wrap [data-slot="table"]{min-width:755px}
+.sr614-levels-wrap [data-slot="table"] :is(th,td){width:calc((100% - 115px)/6)}
+.sr614-levels-wrap [data-slot="table"] :is(th,td):first-child{
+  width:115px!important;min-width:115px!important;text-align:right!important;
+  padding-inline:15px!important;
+}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(2){border-top:4px solid #13867d!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(3){border-top:4px solid #299c98!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(4){border-top:4px solid #d49a29!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(5){border-top:4px solid #e0b24a!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(6){border-top:4px solid #e87759!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(7){border-top:4px solid #b74b5e!important}
+.sr614-levels-wrap [data-slot="table"] tbody td{height:54px;font-size:15px!important;font-weight:950!important}
+
+/* Assessment comparison: keep the four long exam names and each metric together. */
+.sr614-matrix-wrap [data-slot="table"]{min-width:1180px}
+.sr614-matrix-wrap [data-slot="table"] :is(th,td):first-child{width:104px!important;min-width:104px!important}
+.sr614-matrix-wrap [data-slot="table"] :is(th,td):last-child{width:158px!important;min-width:158px!important}
+.sr614-matrix-wrap [data-slot="table"] thead th{height:70px!important;font-size:13px!important}
+.sr614-matrix-wrap [data-slot="table"] tbody td{padding:12px 11px!important;height:100px}
+.sr614-matrix-wrap [data-slot="table"] tbody td b{display:block;font-size:16px!important;line-height:1.25!important;color:#17334a;font-weight:950!important}
+.sr614-matrix-wrap [data-slot="table"] tbody td small{
+  display:block;margin-top:6px;font-size:11px!important;line-height:1.5!important;
+  white-space:normal!important;overflow-wrap:break-word;color:#496575;font-weight:800;
+}
+.sr614-matrix-wrap [data-slot="table"] tbody td :is(span,strong){line-height:1.45!important;white-space:normal!important}
+
+/* Department details: distinct columns for identifiers, sample, ratios and added value. */
+.sr614-departments-wrap [data-slot="table"]{min-width:1280px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(1){width:120px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(2){width:155px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(3){width:125px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(4){width:96px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(5){width:150px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(6),
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(7){width:85px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(8),
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(9){width:116px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(10){width:180px}
+.sr614-departments-wrap [data-slot="table"] tbody td{height:58px;font-size:13.5px!important}
+.sr614-departments-wrap [data-slot="table"] thead th{font-size:13px!important}
+
+/* Results registry: the checkbox, student identity and exams remain separate. */
+.sr614-results-wrap [data-slot="table"]{min-width:1450px}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(1){width:46px!important;padding:10px 8px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(2){width:255px!important;text-align:right!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(3){width:122px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(4){width:155px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(5){width:160px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(n+6){width:178px!important}
+.sr614-results-wrap [data-slot="table"] tbody td{height:73px;font-size:13px!important}
+.sr614-results-wrap [data-slot="table"] tbody td:nth-child(2){font-weight:950!important}
+.sr614-results-wrap [data-slot="table"] tbody td :is(b,strong){font-size:14px!important;font-weight:950!important;line-height:1.35!important}
+.sr614-results-wrap [data-slot="table"] tbody td small{
+  display:block!important;white-space:normal!important;margin-top:4px;
+  font-size:11px!important;line-height:1.45!important;color:#566e7a;font-weight:800!important;
+}
+.sr614-results-wrap [data-slot="table"] thead th{height:76px!important;font-size:12.5px!important}
+.sr614-results-wrap [data-slot="table"] input[type="checkbox"]{width:16px;height:16px;accent-color:#087e73}
+@media (max-width:850px){
+  :is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+  [data-slot="table"] :is(th,td){font-size:12.5px!important}
+}
+
+
+/* 6.10.15 — full-width, non-truncating assessment names in printed report headers.
+   Previous base .report-context forced width:105mm, and the compact value used
+   ellipsis/nowrap. The portrait A4 page has room for the entire assessment. */
+.school-report-page .report-context-compact{
+  width:calc(100% - 2mm)!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+  margin:.6mm 1mm .9mm!important;
+  grid-template-columns:minmax(0,1.65fr) minmax(0,1fr)!important;
+  align-self:stretch!important;
+}
+.school-report-page .report-context-compact p{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:6mm!important;
+  height:auto!important;
+  padding:.55mm 1.1mm!important;
+  overflow:visible!important;
+  flex-wrap:wrap!important;
+}
+.school-report-page .report-context-compact p b{
+  min-width:0!important;
+  max-width:100%!important;
+  flex:1 1 auto!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  line-height:1.36!important;
+  text-align:right!important;
+}
+/* A wider final column and automatic wrapping for the teacher's exam name. */
+.school-report-page .report-meta-grid.teacher-report-meta{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,.85fr) minmax(0,1.9fr)!important;
+  width:calc(100% - 2mm)!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+  margin:.65mm 1mm 1.25mm!important;
+  gap:.85mm!important;
+}
+.school-report-page .report-meta-grid.teacher-report-meta>*{
+  min-width:0!important;
+  padding:.75mm .8mm!important;
+  overflow:visible!important;
+  white-space:normal!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  font-weight:900!important;
+  line-height:1.4!important;
+}
+/* Landscape subject-comparison pages keep their compact vertical rhythm. */
+.school-report-page.grade-subjects-landscape .report-context-compact{
+  width:calc(100% - 2.8mm)!important;
+  margin:.25mm 1.4mm .35mm!important;
+}
+.school-report-page.grade-subjects-landscape .report-context-compact p{
+  min-height:3.7mm!important;
+  padding:.25mm .55mm!important;
+}
+@media print{
+  .school-report-page .report-context-compact,
+  .school-report-page .report-meta-grid.teacher-report-meta{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+}

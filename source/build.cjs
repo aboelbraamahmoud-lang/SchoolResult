@@ -153,9 +153,9 @@ replace('أقل من 10 سجلات','أقل من ${e.settings.minSampleSize} س�
 
 // 6.8 academic master data, student profile and executive dashboard.
 replace('{id:`teacherData`,label:`قاعدة المعلمين`,icon:Cy,group:`الرئيسية`},{id:`data`,label:`البيانات الأساسية`,icon:gy,group:`الرئيسية`}', '{id:`masterData`,label:`الهيكل الأكاديمي`,icon:Cy,group:`الرئيسية`},{id:`studentProfile`,label:`الملف الأكاديمي للطالب`,icon:gy,group:`الرئيسية`},{id:`data`,label:`البيانات الأساسية`,icon:gy,group:`الرئيسية`}');
-replace('{id:`reports`,label:`مركز التقارير والطباعة`,icon:xy,group:`الإدارة`}', '{id:`studentResultsPrint`,label:`طباعة نتائج الطلاب`,icon:gy,group:`الإدارة`},{id:`reports`,label:`مركز التقارير والطباعة`,icon:xy,group:`الإدارة`}');
+replace('{id:`reports`,label:`مركز التقارير والطباعة`,icon:xy,group:`الإدارة`}', '{id:`studentGradeReview`,label:`مراجعة درجات الطلاب`,icon:gy,group:`الإدارة`},{id:`studentResultsPrint`,label:`طباعة نتائج الطلاب`,icon:gy,group:`الإدارة`},{id:`reports`,label:`مركز التقارير والطباعة`,icon:xy,group:`الإدارة`}');
 replace('o===`dashboard`?Le():o===`import`?Re():o===`teacherData`?ze():o===`data`?Be():', 'o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`teacherData`?ze():o===`data`?Be():');
-replace('o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`teacherData`?', 'o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`teacherData`?');
+replace('o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`teacherData`?', 'o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`teacherData`?');
 replace('الربط الدقيق يعتمد على المادة + الشعبة. تستطيع حسم أي حالة ناقصة باختيار المعلم الصحيح؛ وسيُحفظ هذا الإسناد للمرة التالية.','الربط التلقائي يعتمد على المادة + الشعبة من الهيكل الأكاديمي. لا يلزم وجود اسم المعلم في ملف النتيجة؛ إذا غاب التكليف أو كان متعارضًا يتوقف الاعتماد حتى تصحيحه.');
 replace('استورد قاعدة المعلمين واعتمدها أولًا حتى تظهر اختيارات الربط.','أكمل الهيكل الأكاديمي وخريطة التكليفات أولًا؛ ملف النتيجة لا يحتاج اسم المعلم.');
 // 6.9 premium sidebar: quick actions under search without duplicating navigation.
@@ -187,7 +187,17 @@ replace('label:`المشكلات الحرجة`,value:Q(be.critical),hint:`يجب
 code=code.split('`نتيجة مقيمة`').join('`نتيجة مرصودة`').split('`نتائج مقيمة`').join('`نتائج مرصودة`');
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
 code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
-const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','dashboard-pro.js','cloud.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
+// 6.10.14 — each on-screen analytical table gets its own responsive layout.
+// Keep the original rows, numeric calculations, grade bands and result fields intact.
+replace('title:`التوزيع حسب الصف`,children:(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`',
+        'title:`التوزيع حسب الصف`,children:(0,q.jsx)(`div`,{className:`sr614-levels-wrap overflow-auto rounded-xl border`');
+replace('title:`مصفوفة الصفوف`,children:(0,q.jsx)(`div`,{className:`max-h-[620px] overflow-auto rounded-xl border`',
+        'title:`مصفوفة الصفوف`,children:(0,q.jsx)(`div`,{className:`sr614-matrix-wrap max-h-[620px] overflow-auto rounded-xl border`');
+replace('title:`تفصيل القسم: المعلم والمادة والشعبة`,desc:`قراءة تنفيذية لكل إسناد داخل القسم، مع القيمة المضافة عن الاختبار السابق.`,children:(0,q.jsx)(`div`,{className:`max-h-[650px] overflow-auto rounded-xl border`',
+        'title:`تفصيل القسم: المعلم والمادة والشعبة`,desc:`قراءة تنفيذية لكل إسناد داخل القسم، مع القيمة المضافة عن الاختبار السابق.`,children:(0,q.jsx)(`div`,{className:`sr614-departments-wrap max-h-[650px] overflow-auto rounded-xl border`');
+replace('title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الصفحة ${r} من ${n}.`,children:[(0,q.jsx)(`div`,{className:`max-h-[650px] overflow-auto rounded-xl border`',
+        'title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الصفحة ${r} من ${n}.`,children:[(0,q.jsx)(`div`,{className:`sr614-results-wrap max-h-[650px] overflow-auto rounded-xl border`');
+const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','grade-review.js','dashboard-pro.js','cloud.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);

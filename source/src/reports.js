@@ -287,7 +287,7 @@ function SRTeacherReport({page:e,exam:t,workspace:n}){
   const metric=bj(e.allRows,t,n.settings),groups=Sj(e.rows,`className`,t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null),teacher=e.teacher||e.entity||'—',subject=SR63.reportSubjectLabel(SR63.reportDisplaySubject(e,t),n.settings);
   const metricCell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
   return(0,q.jsxs)(q.Fragment,{children:[
-    (0,q.jsxs)(`div`,{className:`report-meta-grid`,children:[(0,q.jsxs)(`b`,{children:[`اسم المعلم: `,teacher]}),(0,q.jsxs)(`span`,{children:[`المادة: `,subject]}),(0,q.jsx)(`span`,{children:tj(n.settings,t).name})]}),
+    (0,q.jsxs)(`div`,{className:`report-meta-grid teacher-report-meta`,children:[(0,q.jsxs)(`b`,{children:[`اسم المعلم: `,teacher]}),(0,q.jsxs)(`span`,{children:[`المادة: `,subject]}),(0,q.jsx)(`span`,{children:tj(n.settings,t).name})]}),
     (0,q.jsx)(`p`,{className:`report-method-note teacher-analysis-note`,children:`قراءة وصفية لدعم اتخاذ القرار؛ لا تُستخدم منفردة للحكم على أداء المعلم لأن الصفوف والمواد وأحجام العينات تختلف.`}),
     (0,q.jsxs)(`table`,{className:`report-table teacher-table`,children:[
       (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`الصف/الشعبة`}),(0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`}),(0,q.jsx)(`th`,{children:`مؤشر الأداء`}),(0,q.jsx)(`th`,{children:`القيمة المضافة`})]})}),

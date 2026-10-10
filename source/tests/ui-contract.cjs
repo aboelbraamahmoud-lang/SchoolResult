@@ -16,7 +16,7 @@ test('subject comparison print uses compact cells with bold black subject and gr
 test('all-subject landscape report uses colgroup for teacher and metric widths',()=>{assert.match(reports,/grade-subject-matrix-all/);assert.match(reports,/95\.4\*\.625\/data\.subjects\.length/);assert.match(css,/6\.10\.10 — print ten school subjects on one landscape A4 sheet/);});
 test('legacy misleading terminology is absent from generated runtime',()=>{for(const term of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])assert.ok(!app.includes(term),term);});
 test('import preview lists real per-class counts and blocks erroneous Excel sheets',()=>{assert.match(app,/توزيع الشعب:/);assert.match(app,/توقف الاعتماد:/);assert.match(app,/importSectionLabel/);});
-test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.12/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
+test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.15/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
 
 
 test('legacy subject repair requires explicit action and pre-change snapshot',()=>{assert.match(app,/إصلاح الربط الحالي بأمان/);assert.match(app,/قبل إصلاح ربط المواد والمعلمين/);assert.match(app,/subjectLinkRepairPreview/);});
@@ -34,4 +34,37 @@ test('subject names and order are editable in settings and applied to all report
   assert.match(css,/sr611-subject-editor/);
   assert.match(css,/grade-subject-matrix-all \.grade-matrix-teacher/);
 });
+test('teacher report displays full assessment label without clipping',()=>{
+  assert.match(reports,/report-meta-grid teacher-report-meta/);
+  assert.match(css,/6\.10\.15 — full-width, non-truncating assessment names/);
+  const block=css.slice(css.indexOf('6.10.15 — full-width'));
+  assert.match(block,/report-context-compact\{[\s\S]*width:calc\(100% - 2mm\)!important/);
+  assert.match(block,/report-context-compact p b\{[\s\S]*white-space:normal!important/);
+  assert.match(block,/report-context-compact p b\{[\s\S]*text-overflow:clip!important/);
+  assert.match(block,/teacher-report-meta\{[\s\S]*grid-template-columns:minmax\(0,1\.1fr\)/);
+  assert.match(block,/teacher-report-meta>\*\{[\s\S]*white-space:normal!important/);
+});
+
+test('single-assessment grade review and report are wired with safe snapshots',()=>{
+ const code=read('source/src/grade-review.js');
+ assert.match(app,/id:`studentGradeReview`/);
+ assert.match(app,/SR63.StudentGradeReview/);
+ assert.match(code,/SR63.gradeReviewApply/);
+ assert.match(code,/Kj\(workspace,'قبل تعديل درجة أو حالة طالب من مراجعة الدرجات'\)/);
+ assert.match(code,/SR63.gradeReviewExcel/);
+ assert.match(code,/SR63.gradeReviewPrint/);
+ assert.match(css,/\.sr613-grade-review/);
+ assert.match(code,/SR63.isSupportClass/);
+});
+
+test('four analytics tables have independent RTL legibility classes',()=>{
+  for(const name of ['levels','matrix','departments','results']){
+    assert.ok(app.includes('sr614-'+name+'-wrap'),name+' missing runtime');
+    assert.ok(css.includes('.sr614-'+name+'-wrap'),name+' missing stylesheet');
+  }
+  for(const size of ['755px','1180px','1280px','1450px'])assert.ok(css.includes('min-width:'+size),size);
+  assert.ok(css.includes('white-space:normal!important'));
+  assert.ok(css.includes('border-left:1px solid #d2e0e7!important'));
+});
+
 const report={passed:results.filter(x=>x.status==='pass').length,failed:results.filter(x=>x.status==='fail').length,results};console.log(JSON.stringify(report));if(report.failed)process.exitCode=1;
