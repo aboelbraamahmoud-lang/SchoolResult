@@ -17,8 +17,8 @@ const departmentRows=(ws:any,deps:string[])=>{
  const depts=new Set(deps.map(dept)),subjects=indexSubjects(ws,deps);
  return (Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>depts.has(dept(r.department))||subjects.has(dept(r.subject)));
 };
-const summaryBenchmarks=(ws:any)=>{
- const exam=String(ws.activeExam||'exam1'),per=new Map<string,{department:string,evaluated:number,passed:number,score:number,total:number}>();
+const summaryBenchmarks=(ws:any,examKey?:string)=>{
+ const exam=String(['exam1','exam2','exam3','exam4'].includes(examKey||'')?examKey:ws.activeExam||'exam1'),per=new Map<string,{department:string,evaluated:number,passed:number,score:number,total:number}>();
  for(const row of (Array.isArray(ws.rows)?ws.rows:[])){
   const name=String(row.department||row.subject||'').trim();if(!name)continue;
   const status=row.statuses?.[exam],score=row.scores?.[exam],max=row.totals?.[exam]??ws.settings?.exams?.find((e:any)=>e.key===exam)?.total;
@@ -38,7 +38,7 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','academicViceName','principalName','signatures','footerText','reportTitle'];
  const publicSettings=Object.fromEntries(fields.filter(k=>Object.prototype.hasOwnProperty.call(settings,k)).map(k=>[k,settings[k]]));
  const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(dept(p.subject)));
- return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,grades:[],classes:[],subjects:[],students:[],imports:[],auditLog:[],customReports:[]},benchmarks:summaryBenchmarks(ws)};
+ return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,grades:[],classes:[],subjects:[],students:[],imports:[],auditLog:[],customReports:[]}};
 };
 async function emailForUsername(username:string){const raw=new TextEncoder().encode('schoolresult-v1:'+username),hash=await crypto.subtle.digest('SHA-256',raw);return 'u-'+[...new Uint8Array(hash)].slice(0,24).map(b=>b.toString(16).padStart(2,'0')).join('')+'@staff.schoolresult.example.com';}
 Deno.serve(async(req:Request)=>{
@@ -71,7 +71,7 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();
   if(error||!data)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
   const scoped=cleanCoordinator(data.workspace,profile.departments);
-  return reply({...scoped,revision:data.revision,savedAt:data.saved_at,profile},200,origin);
+  return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
  }
  if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);
  if(action==='list'){

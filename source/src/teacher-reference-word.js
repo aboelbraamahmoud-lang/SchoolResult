@@ -59,7 +59,7 @@
  const fmt=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toFixed(1)+'%';
  const fmtPlain=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toFixed(Number(value)%1===0?0:1);
  const fmtCell=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toFixed(Number(value)%1===0?0:1)+'%';
- const fmtDelta=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':(value>0?'+':'')+Number(value).toFixed(1)+'%';
+ const fmtDelta=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':(value>0?'+':'')+Number(value).toFixed(1)+' نقطة';
  const status=(value,target)=>value===null||value===undefined?'—':Number(value)>=Number(target)?'متحقق':'غير متحقق';
  const range=analysis=>{
   const count=analysis.studentCount||analysis.students?.length||0;
@@ -68,23 +68,23 @@
  SR63.teacherQuantitativeWordBuild=function(analysis,edits={}){
   if(!analysis?.groups?.length)throw Error('لا توجد شعب للمعلم في التقييم المختار.');
   const groups=analysis.groups,targets={success:90,achievement:75,valueAdded:3,high90:30,...edits.targets};
-  const rows=[['success','plain',targets.success],['midFirstAchievement','plain',targets.achievement],['midSecondAchievement','plain',targets.achievement],['valueAdded','delta',targets.valueAdded],['high90','percentage',targets.high90]];
+  const rows=SR63.teacherQuantitativeMetricRows(analysis);
   const metrics=(g,key,type)=>type==='delta'?fmtDelta(g?.[key]):type==='plain'?fmtPlain(g?.[key]):fmt(g?.[key]);
   const values={SUBTITLE:`لتحليل نتائج ${analysis.examName} لمادة ${analysis.subjectLabel} للعام الأكاديمي ${analysis.academicYear}م`,
     COORDINATOR_GREETING:`المنسق الفاضل: أ/ ${analysis.coordinator||'........................'}`,
     INTRODUCTION:`بعد قراءة نتائج الطلبة للصفوف التي أقوم بتدريسها، في ${analysis.examName} لمادة ${analysis.subjectLabel} أقدم لكم تقريرًا كميًا ووصفيًا يوضح نسب النجاح والتحصيل الأكاديمي ومستويات الطلبة المختلفة، وأسباب ارتفاع أو انخفاض نتائج الطلبة.`,
-    CURRENT_METRIC_LABEL:'نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الأول',
-    PREVIOUS_METRIC_LABEL:'نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الثاني',
+    CURRENT_METRIC_LABEL:rows.find(row=>row.slot===2).label,
+    PREVIOUS_METRIC_LABEL:analysis.prevExam?rows.find(row=>row.slot===3).label:'',
     INTERPRETATION:edits.interpretation||`أظهرت النتائج نسبة نجاح ${fmt(analysis.success)} وتحصيلًا أكاديميًا ${fmt(analysis.achievement)}. وتُعالج جوانب التعثر التي يحددها التقويم التشخيصي من خلال أنشطة متدرجة وأوراق عمل ومتابعة منتظمة للطلاب.`,
     FEEDBACK:edits.feedback||'يُرجى الاستمرار في إجراءات الدعم المناسبة، ومراجعة نتائج التقييم اللاحق، وتحديث التدخلات وفق مستويات الطلاب.',
     TEACHER_NAME:analysis.teacher,COORDINATOR_NAME:analysis.coordinator||'........................'};
   if(edits.challenges||edits.solutions)values.INTERPRETATION+=[edits.challenges,edits.solutions].filter(Boolean).join('\n');
   const groupFields=(list)=>{
    const o={};for(let i=0;i<3;i++)o['CLASS_'+(i+1)]=list[i]?.className||'—';
-   rows.forEach(([key,type,target],row)=>{
-    for(let j=0;j<3;j++)o[`METRIC_${row+1}_${j+1}`]=list[j]?metrics(list[j],key,type):'—';
-    o[`METRIC_${row+1}_TOTAL`]=metrics(analysis,key,type);
-    o[`METRIC_${row+1}_TARGET`]=target===null?'—':status(analysis[key],target);
+   rows.forEach(({key,format,target,slot})=>{
+    for(let j=0;j<3;j++)o[`METRIC_${slot}_${j+1}`]=list[j]?metrics(list[j],key,format):'—';
+    o[`METRIC_${slot}_TOTAL`]=metrics(analysis,key,format);
+    o[`METRIC_${slot}_TARGET`]=targets[target]===null?'—':status(analysis[key],targets[target]);
    });return o;
   };
   Object.assign(values,groupFields(groups.slice(0,3)));
@@ -96,7 +96,17 @@
   const bodyMarker='<w:body>',bodyAt=source.indexOf(bodyMarker)+bodyMarker.length;
   const sectionAt=source.lastIndexOf('<w:sectPr');
   if(bodyAt<bodyMarker.length||sectionAt<bodyAt)throw Error('تعذر تحديد صفحات نموذج المعلم الأصلي.');
-  const inner=source.slice(bodyAt,sectionAt).replace('<!--EXTRA_TEACHER_ROWS-->','');
+  let inner=source.slice(bodyAt,sectionAt).replace('<!--EXTRA_TEACHER_ROWS-->','');
+  if(!analysis.prevExam){
+   // The first assessment must not show a preceding assessment or value added.
+   // Remove only those two Word table rows; retain the official table design.
+   let removed=0;
+   inner=inner.replace(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g,row=>{
+    if(row.includes('{{PREVIOUS_METRIC_LABEL}}')||row.includes('{{METRIC_4_1}}')){removed++;return '';}
+    return row;
+   });
+   if(removed!==2)throw Error('تعذر إخفاء المقارنة السابقة من النموذج الأصلي.');
+  }
   let fullBody='';
   for(let i=0;i<groups.length;i+=3){
    let page=fill(inner,{...values,...groupFields(groups.slice(i,i+3))});

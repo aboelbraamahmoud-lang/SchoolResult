@@ -46,15 +46,16 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  if(!rows.length)SR63.fail('لا توجد نتائج للمعلم والمادة والفئة المختارة.');
  const students=rows.map(r=>{
    const current=pct(r,exam),previous=pct(r,prevExam),klass=hj(r,exam)||r.className;
-   // Official teacher form has TWO fixed semester-midterm achievement rows.
-   // Do not reinterpret these as current and previous assessment percentages.
+   // Current assessment and immediately preceding assessment are selected by XA.
+   // These labels and values must never be tied to fixed semester test names.
    const midway=key=>{
      const score=r.scores?.[key],total=pj(r,key,settings);
      return r.statuses?.[key]==='present'&&typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(total)&&total>0?{score,total}:null;
    };
    const grade=gj(r,exam)||r.grade||'';
    return {studentId:r.studentId,studentName:r.studentName,className:klass,grade,
-     current,previous,midFirst:midway('exam1'),midSecond:idx>=2?midway('exam3'):null,change:current!==null&&previous!==null?round(current-previous):null,
+     current,previous,previousMark:prevExam?midway(prevExam):null,
+     midFirst:midway('exam1'),midSecond:idx>=2?midway('exam3'):null,change:current!==null&&previous!==null?round(current-previous):null,
      currentStatus:r.statuses?.[exam]||'unentered',previousStatus:prevExam?r.statuses?.[prevExam]||'unentered':null,
      score:r.scores?.[exam],total:pj(r,exam,settings),
      band:current===null?'missing':current<lower?'low':current<upper?'middle':'high'};
@@ -68,6 +69,8 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
     success:valid.length?round(100*valid.filter(s=>s.current>=Number(settings.pass??50)).length/valid.length):null,
     achievement:marks.possible?round(100*marks.achieved/marks.possible):null,
     high90:valid.length?round(100*valid.filter(s=>s.current>=90).length/valid.length):null,
+    currentAchievement:marks.possible?round(100*marks.achieved/marks.possible):null,
+    previousAchievement:prevExam?midAchievement('previousMark'):null,
     midFirstAchievement:midAchievement('midFirst'),midSecondAchievement:midAchievement('midSecond'),
     compared:compared.length,
     matchedPrevious:compared.length?round(compared.reduce((n,s)=>n+s.previous,0)/compared.length):null,
@@ -123,4 +126,21 @@ SR63.teacherReportNarrative=function(analysis){
  if(analysis.prevExam)parts.push(change===null?`لم تتوافر درجات مزدوجة كافية للمقارنة مع «${analysis.prevExamName}».`:`بالمقارنة مع «${analysis.prevExamName}» بلغ متوسط التغير ${change>0?'+':''}${change} نقطة مئوية بين ${analysis.compared} طالبًا لديهم نتيجتان؛ تحسن ${analysis.improved} طالبًا، وتراجع ${analysis.declined}، واستقر ${analysis.stable}.`);
  parts.push('الدرجات وحدها لا تثبت أسباب ارتفاع أو انخفاض الأداء؛ تُستكمل الأسباب بتشخيص المهارات وملاحظات المعلم، وتُراجع إجراءات العلاج والإثراء بعد التقويم اللاحق.');
  return parts.join(' ');
+};
+
+/* The official teacher quantitative/descriptive report uses the selected exam
+   and ONLY its immediate predecessor. The first exam has no predecessor and
+   must not show a comparison or a misleading value-added row. This single
+   specification feeds both the HTML preview and the exported Word form. */
+SR63.teacherQuantitativeMetricRows=function(analysis){
+ const rows=[
+  {key:'success',label:'نسبة النجاح في الاختبار.',format:'plain',target:'success',slot:1},
+  {key:'currentAchievement',label:'نسبة التحصيل الأكاديمي في '+analysis.examName,format:'plain',target:'achievement',slot:2}
+ ];
+ if(analysis.prevExam){
+  rows.push({key:'previousAchievement',label:'نسبة التحصيل الأكاديمي في '+analysis.prevExamName,format:'plain',target:'achievement',slot:3});
+  rows.push({key:'valueAdded',label:'القيمة المضافة في التحصيل الأكاديمي بين التقييمات.',format:'delta',target:'valueAdded',slot:4});
+ }
+ rows.push({key:'high90',label:'5.2 نسبة الطلبة الحاصلين على 90% فأعلى في جميع الصفوف',format:'percentage',target:'high90',slot:5});
+ return rows;
 };

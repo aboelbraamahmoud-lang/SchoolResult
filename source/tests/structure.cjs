@@ -1,7 +1,8 @@
 const fs=require('fs'),path=require('path'),assert=require('assert/strict'),{loadApp}=require('./harness.cjs');
 const {ctx}=loadApp(),results=[];
 const pages=['dashboard','import','masterData','studentProfile','studentGradeReview','aiPlans','studentResultsPrint','teacherData','data','quality','classes','teachers','departments','school','comparison','value','levels','struggling','reports','customReports','reportDesign','backups','settings'];
-for(const mode of ['empty','demo'])for(const page of pages){let index=0;const workspace=mode==='demo'?ctx.zj():ctx.Aj();
+const sharedStructureFixtures={empty:ctx.Aj(),demo:ctx.zj()};
+for(const mode of ['empty','demo'])for(const page of pages){let index=0;const workspace=sharedStructureFixtures[mode];
  ctx.v={...ctx.v,useState:arg=>{const n=index++,value=n===0?workspace:n===1?structuredClone(workspace.settings):n===3?page:n===6?true:typeof arg==='function'?arg():arg;return [value,()=>{}];},useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:value=>({current:value}),useId:()=>':test:'};
  try{assert.ok(ctx.Nde());results.push({mode,page,status:'pass'});}catch(error){results.push({mode,page,status:'fail',error:error.stack});}
 }
