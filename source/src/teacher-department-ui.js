@@ -1,5 +1,5 @@
 /* 6.10.21 — standalone department report with the exact uploaded Word template. */
-SR63.DepartmentQuantitativePage=function({workspace}){
+SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
  const [exam,setExam]=(0,v.useState)(workspace.activeExam),[subject,setSubject]=(0,v.useState)(''),
  [cohort,setCohort]=(0,v.useState)('general'),[interpretation,setInterpretation]=(0,v.useState)(''),
  [feedback,setFeedback]=(0,v.useState)(''),[targets,setTargets]=(0,v.useState)({success:'',achievement:'',valueAdded:'',high90:''}),
@@ -14,7 +14,7 @@ SR63.DepartmentQuantitativePage=function({workspace}){
  const nf=x=>typeof x==='number'?x.toFixed(1)+'%':'—',df=x=>typeof x==='number'?(x>0?'+':'')+x.toFixed(1)+' نقطة':'—';
  const field=(label,node)=>(0,q.jsxs)('label',{className:'sr619-field',children:[(0,q.jsx)('span',{children:label}),node]});
  const selector=(value,change,options)=>(0,q.jsx)('select',{value,onChange:e=>change(e.target.value),children:options.map(([value,label])=>(0,q.jsx)('option',{value,children:label},value))});
- const download=()=>{if(!report)return;setProblem('');try{
+ const download=()=>{if(!report)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير Word.');return;}setProblem('');try{
   const doc=SR63.departmentQuantWordBuild(report,{interpretation,feedback,targets});
   const filename=SR63.teacherWordDownload(doc);
   eb.success('تم تنزيل التقرير الكمي والوصفي للقسم بصيغة Word: '+filename);
@@ -51,7 +51,7 @@ SR63.DepartmentQuantitativePage=function({workspace}){
    (0,q.jsx)('h3',{children:'التغذية الراجعة من نائب المدير للشؤون الأكاديمية'}),
    field('التغذية الراجعة — تُترك فارغة ليكتبها المسؤول إن لم تُقدَّم',(0,q.jsx)('textarea',{rows:3,maxLength:2200,value:feedback,placeholder:'يُكتب هنا نص التغذية الراجعة عند الاعتماد.',onChange:e=>setFeedback(e.target.value)})),
    problem?(0,q.jsx)('p',{className:'sr619-notice',children:problem}):null,
-   (0,q.jsx)('div',{className:'sr619-actions',children:(0,q.jsx)('button',{onClick:download,children:'تنزيل التقرير الكمي والوصفي للقسم Word'})})
+   (0,q.jsx)('div',{className:'sr619-actions',children:(0,q.jsx)('button',{disabled:!canExport,onClick:download,children:'تنزيل التقرير الكمي والوصفي للقسم Word'})})
   ]}):null
  ]});
 };

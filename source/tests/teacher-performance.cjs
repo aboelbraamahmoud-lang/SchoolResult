@@ -35,10 +35,54 @@ check('Word DOCX ZIP entries use valid DOS dates in both headers',()=>{
  }
 });
 check('original DOCX includes its media and Word parts',()=>{const a=improvementAnalyze();for(const output of [S.teacherImprovementWordBuild(a),S.teacherQuantitativeWordBuild(a)]){const p=parts(output);for(const req of ['[Content_Types].xml','_rels/.rels','word/document.xml','word/header1.xml'])assert.ok(p[req],req);assert.ok(Object.keys(p).some(k=>k.startsWith('word/media/')));assert.ok(output.filename.endsWith('.docx'));}});
+check('Word documents contain no inherited Office sensitivity labels or stale custom metadata',()=>{
+ const a=improvementAnalyze();
+ for(const file of [S.teacherImprovementWordBuild(a),S.teacherQuantitativeWordBuild(a)]){
+  const o=parts(file),names=Object.keys(o);
+  for(const name of names)assert.ok(!name.startsWith('docMetadata/')&&!name.startsWith('customXml/')&&name!=='docProps/custom.xml','Office legacy metadata leaked: '+name);
+  for(const x of ['[Content_Types].xml','_rels/.rels','word/_rels/document.xml.rels']){
+   assert.ok(!o[x].includes('LabelInfo.xml'),x+' still references deleted label');
+   assert.ok(!o[x].includes('customXml/'),x+' still references deleted custom XML');
+   assert.ok(!o[x].includes('docProps/custom.xml'),x+' still references deleted custom properties');
+  }
+  assert.ok(o['word/document.xml'].includes('الطلبة')||o['word/document.xml'].includes('الشعب الدراسية'),'official form was removed');
+ }
+});
 check('class-only plan cannot merge different classes',()=>{assert.throws(()=>S.teacherImprovementWordBuild(analyze(fixture())),/شعبة/);});
 check('class-only plan includes students not yet graded in that subject',()=>{const w=fixture();w.rows.push({...w.rows[0],id:'uns',studentId:'missing-student',studentName:'طالب من دون درجة مادة',subject:'العلوم',scores:{},statuses:{}});const a=analyze(w,{className:'7/1'});assert.ok(a.bands.missing.some(s=>s.studentName==='طالب من دون درجة مادة'));});
 check('official Word templates keep RTL and both original logos',()=>{const a=improvementAnalyze();for(const doc of [S.teacherImprovementWordBuild(a),S.teacherQuantitativeWordBuild(a)]){const o=parts(doc);for(const word of ['w:bidiVisual','w:bidi','w:rtl'])assert.ok(o['word/document.xml'].includes(word),word);assert.ok(Object.keys(o).some(k=>k.startsWith('word/media/')));assert.ok(Object.keys(o).some(k=>k.startsWith('word/_rels/header')));}});
+check('teacher report preview mirrors five official Word indicators',()=>{
+ const src=fs.readFileSync(path.resolve(__dirname,'../src/teacher-performance-ui.js'),'utf8');
+ for(const s of ['sr625-report-preview','midFirstAchievement','midSecondAchievement','نسبة النجاح في الاختبار.','إجمالي المستوى','تحقيق المستهدف'])assert.ok(src.includes(s),s);
+});
 check('dashboard and navigation classes are present',()=>{const root=path.resolve(__dirname,'..');const app=fs.readFileSync(path.join(root,'../app.js'),'utf8'),css=fs.readFileSync(path.join(root,'src/repair.css'),'utf8');for(const s of ['teacherPerformance','TeacherPerformanceCenter','خطة تحسين الأداء الشاملة','التقرير الكمي والوصفي للمعلم'])assert.ok(app.includes(s),s);for(const s of ['sr619-subject-row','sr619-ring-content','sr619-subject-track'])assert.ok(css.includes(s));});
 check('teacher Word exports remain local, no network or credentials',()=>{const s=fs.readFileSync(path.resolve(__dirname,'../src/teacher-performance-word.js'),'utf8');for(const bad of ['fetch(','functions.invoke','GEMINI_API_KEY','service_role'])assert.ok(!s.includes(bad));});
 check('original table categories and rows are preserved',()=>{const a=improvementAnalyze(),q=parts(S.teacherQuantitativeWordBuild(a))['word/document.xml'],i=parts(S.teacherImprovementWordBuild(a))['word/document.xml'];for(const k of ['الشعب الدراسية','تحقيق المستهدف','التغذية الراجعة من المنسق','نسبة النجاح في الاختبار'])assert.ok(q.includes(k),k);for(const k of ['الطلبة ذوو الأداء المتدني','الطلبة ذوو الأداء المتوسط','الطلبة ذوو الأداء المرتفع','جهة الاعتماد','المخرجات المتوقعة'])assert.ok(i.includes(k),k);assert.ok(!i.includes('محمود الشبراوي'));assert.ok(!q.includes('Choose an item.'));});
-console.log('Teacher performance:',passed,'/17');
+check('official teacher report keeps original five indicator labels and uses semester-specific assessments',()=>{
+ const a=improvementAnalyze(),doc=parts(S.teacherQuantitativeWordBuild(a));
+ const xml=doc['word/document.xml'];
+ for(const label of ['نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الأول','نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الثاني','نسبة النجاح في الاختبار','القيمة المضافة في التحصيل الأكاديمي بين التقييمات.','نسبة الطلبة الحاصلين على 90%'])assert.ok(xml.includes(label),label);
+ assert.ok(!xml.includes('نسبة التحصيل الأكاديمي الاختبار الثاني'),'the template row must not be silently renamed');
+ assert.equal(a.midFirstAchievement,47);
+ assert.equal(a.midSecondAchievement,null,'later semester must stay blank when the selected test predates it');
+ assert.equal(a.groups[0].midFirstAchievement,47);
+ assert.ok(xml.includes('>47<'),'the official midterm cell uses the original number-only formatting');
+ assert.ok(!xml.includes('نسبة التحصيل الأكاديمي الاختبار الأول'));
+});
+check('additional teacher classes are exported with their own data, not repeated first page figures',()=>{
+ const w=fixture();
+ for(const [k,cls] of ['7/3','8/1','8/2','9/1'].entries()){
+  const src=w.rows[0];w.rows.push({...src,id:'extra-'+k,studentId:'extra-'+k,studentName:'طالب '+cls,className:cls,examClasses:{exam1:cls,exam2:cls},scores:{...src.scores,exam1:2+k,exam2:5+k}});
+ }
+ const a=analyze(w),xml=parts(S.teacherQuantitativeWordBuild(a))['word/document.xml'];
+ assert.ok(a.groups.length>3);
+ assert.equal((xml.match(/<w:tbl>/g)||[]).length,Math.ceil(a.groups.length/3),'each set of three classes must get one complete original template table');
+ for(const cls of ['7/3','8/1','8/2','9/1'])assert.ok(xml.includes(cls),'missing class '+cls);
+ const first=a.groups[0].className,last=a.groups.at(-1).className;
+ assert.notEqual(first,last);
+ // The overflow block must not be populated from the first 3 groups again.
+ const firstHeader=xml.indexOf('7/1');
+ const lastHeader=xml.lastIndexOf('9/1');
+ assert.ok(lastHeader>firstHeader,'later classes should follow first classes');
+});
+console.log('Teacher performance:',passed,'/21');

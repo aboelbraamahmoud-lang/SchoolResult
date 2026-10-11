@@ -1,5 +1,5 @@
 /* 6.10.19 — interactive teacher-level improvement plans and quantitative/qualitative reports. */
-SR63.TeacherPerformanceCenter=function({workspace}){
+SR63.TeacherPerformanceCenter=function({workspace,canExport=true}){
  const [view,setView]=(0,v.useState)('improvement'),[exam,setExam]=(0,v.useState)(workspace.activeExam),
  [teacher,setTeacher]=(0,v.useState)(''),[subject,setSubject]=(0,v.useState)(''),[cohort,setCohort]=(0,v.useState)('general'),
  [lower,setLower]=(0,v.useState)(60),[upper,setUpper]=(0,v.useState)(80),
@@ -23,7 +23,17 @@ SR63.TeacherPerformanceCenter=function({workspace}){
  const select=(value,change,entries)=>(0,q.jsx)('select',{value,onChange:e=>change(e.target.value),children:entries.map(([key,label])=>(0,q.jsx)('option',{value:key,children:label},key))});
  const textarea=(value,onChange,rows=3)=>(0,q.jsx)('textarea',{rows,value,onChange:e=>onChange(e.target.value),maxLength:2500});
  const nf=(val)=>val===null?'—':val.toFixed(1)+'%',df=(val)=>val===null?'—':(val>0?'+':'')+val.toFixed(1)+' نقطة';
- const download=(kind)=>{if(!analysis)return;setProblem('');try{
+ const officialRows=[
+  ['success','نسبة النجاح في الاختبار.','plain','success'],
+  ['midFirstAchievement','نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الأول','plain','achievement'],
+  ['midSecondAchievement','نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الثاني','plain','achievement'],
+  ['valueAdded','القيمة المضافة في التحصيل الأكاديمي بين التقييمات.','percentage','valueAdded'],
+  ['high90','5.2 نسبة الطلبة الحاصلين على 90% فأعلى في جميع الصفوف','percentage','high90']
+ ];
+ const officialFmt=(value,format)=>value===null||value===undefined?'—':format==='plain'?Number(value).toFixed(Number(value)%1?1:0):(value>0&&format==='delta'?'+':'')+Number(value).toFixed(1)+'%';
+ const officialStatus=(key,targetKey)=>analysis?.[key]===null||analysis?.[key]===undefined?'—':Number(analysis[key])>=Number(targets[targetKey])?'متحقق':'غير متحقق';
+ const officialGroups=analysis?Array.from({length:Math.ceil(analysis.groups.length/3)},(_,i)=>analysis.groups.slice(i*3,i*3+3)):[];
+ const download=(kind)=>{if(!analysis)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير ملفات Word.');return;}setProblem('');try{
    const file=kind==='improvement'?SR63.teacherImprovementWordBuild(analysis,editActions):SR63.teacherQuantitativeWordBuild(analysis,{...narrative,targets,feedback});
    const name=SR63.teacherWordDownload(file);eb.success('تم تجهيز ملف Word: '+name);
   }catch(e){setProblem(e.message||'تعذر تنزيل التقرير.');}};
@@ -64,13 +74,24 @@ SR63.TeacherPerformanceCenter=function({workspace}){
     ...['low','middle','high'].map(key=>(0,q.jsxs)('section',{className:'sr619-edit-band',children:[(0,q.jsx)('h3',{children:labelMap[key]}),
       ...actionFields.map(field=>form(actionFieldLabels[field],textarea(editActions[key+field]||'',x=>setActions(a=>({...a,[key+field]:x})),field==='Actions'?5:2)))]},key)),
     (0,q.jsxs)('div',{className:'sr619-actions',children:[
-      (0,q.jsx)('button',{onClick:()=>download('improvement'),children:'تنزيل خطة تحسين الأداء Word — لجميع طلاب الشعبة'}),
+      (0,q.jsx)('button',{disabled:!canExport,onClick:()=>download('improvement'),children:'تنزيل خطة تحسين الأداء Word — لجميع طلاب الشعبة'}),
       (0,q.jsx)('button',{className:'secondary',onClick:()=>setActions({}),children:'استعادة الإجراءات المقترحة للمادة'})]})
   ]}):(0,q.jsxs)('section',{className:'sr619-card',children:[
    (0,q.jsx)('h2',{children:'2. التقرير الكمي والوصفي لجميع شعب المعلم'}),
    (0,q.jsx)('p',{className:'sr616-hint',children:'تعرض الجداول بيانات النجاح والتحصيل والقيمة المضافة مقارنة بالاختبار السابق، مع إمكانية تعديل النص الوصفي قبل التصدير.'}),
-   (0,q.jsxs)('div',{className:'sr619-table-wrap',children:[(0,q.jsxs)('table',{children:[(0,q.jsx)('thead',{children:(0,q.jsxs)('tr',{children:['الشعبة','الطلاب','حاضر','نجاح','تحصيل','≥90%','مقارنة','قيمة مضافة'].map(x=>(0,q.jsx)('th',{children:x},x))})}),
-    (0,q.jsx)('tbody',{children:[...analysis.groups,{className:'إجمالي المعلم',...analysis}].map(g=>(0,q.jsxs)('tr',{children:[(0,q.jsx)('td',{children:g.className}),(0,q.jsx)('td',{children:g.students instanceof Array?g.students.length:g.students}),(0,q.jsx)('td',{children:g.evaluated}),(0,q.jsx)('td',{children:nf(g.success)}),(0,q.jsx)('td',{children:nf(g.achievement)}),(0,q.jsx)('td',{children:nf(g.high90)}),(0,q.jsx)('td',{children:g.compared}),(0,q.jsx)('td',{children:df(g.valueAdded)})]},g.className))})]})]}),
+   (0,q.jsx)('p',{className:'sr616-hint',children:'معاينة بنود النموذج الرسمي، بنفس ترتيب الأعمدة والمؤشرات الخمسة. يُصدر Word صفحة كاملة مستقلة لكل ثلاث شعب، مع شعار الوزارة والتوقيعات.'}),
+   (0,q.jsx)('div',{className:'sr625-report-preview',dir:'rtl',children:officialGroups.map((chunk,page)=>(0,q.jsxs)('section',{className:'sr625-report-page',children:[
+    officialGroups.length>1?(0,q.jsx)('h3',{children:'الشعب — صفحة '+(page+1)}):null,
+    (0,q.jsxs)('table',{dir:'rtl',children:[
+      (0,q.jsx)('thead',{children:(0,q.jsx)('tr',{children:['الشعب الدراسية / بنود التقرير',...Array.from({length:3},(_,i)=>chunk[i]?.className||'—'),'إجمالي المستوى','تحقيق المستهدف'].map((title,i)=>(0,q.jsx)('th',{children:title},i))})}),
+      (0,q.jsx)('tbody',{children:officialRows.map(([key,label,format,target])=>(0,q.jsx)('tr',{children:[
+        (0,q.jsx)('th',{scope:'row',children:label}),
+        ...Array.from({length:3},(_,i)=>(0,q.jsx)('td',{children:chunk[i]?officialFmt(chunk[i][key],format):'—'},i)),
+        (0,q.jsx)('td',{children:officialFmt(analysis[key],format)}),
+        (0,q.jsx)('td',{children:officialStatus(key,target)})
+      ]},key))})
+    ]})
+   ]},page))}),
    (0,q.jsx)('h3',{children:'حدود المستهدفات — يمكن تعديلها'}),
    (0,q.jsx)('div',{className:'sr619-grid',children:[
      ...[['success','مستهدف نسبة النجاح (%)'],['achievement','مستهدف التحصيل (%)'],['valueAdded','مستهدف القيمة المضافة (نقطة)'],['high90','مستهدف الحاصلين على 90% فأعلى (%)']].map(([key,title])=>form(title,(0,q.jsx)('input',{type:'number',min:key==='valueAdded'?-100:0,max:100,step:.1,value:targets[key],onChange:e=>setTargets(t=>({...t,[key]:e.target.value}))})))
@@ -80,7 +101,7 @@ SR63.TeacherPerformanceCenter=function({workspace}){
    form('التحديات والتشخيص',textarea(narrative.challenges??`يوجد ${analysis.bands.low.length} طالبًا بالأداء المتدني و${analysis.bands.middle.length} طالبًا بالأداء المتوسط، و${analysis.bands.missing.length} حالة غير مرصودة. لا تجزم بأسباب التعثر دون تشخيص موثق.`,x=>setNarrative(y=>({...y,challenges:x})),3)),
    form('الحلول والإجراءات',textarea(narrative.solutions??'اختبار تشخيصي، أوراق عمل متدرجة، متابعة أسبوعية، تعلم تعاوني، أنشطة إثرائية، ثم تقويم بعدي لقياس الأثر.',x=>setNarrative(y=>({...y,solutions:x})),3)),
    form('تغذية راجعة من منسق المادة',textarea(feedback,setFeedback,3)),
-   (0,q.jsxs)('div',{className:'sr619-actions',children:[(0,q.jsx)('button',{onClick:()=>download('quantitative'),children:'تنزيل التقرير الكمي والوصفي Word'})]})
+   (0,q.jsxs)('div',{className:'sr619-actions',children:[(0,q.jsx)('button',{disabled:!canExport,onClick:()=>download('quantitative'),children:'تنزيل التقرير الكمي والوصفي Word'})]})
   ]})):null,
   problem?(0,q.jsx)('p',{className:'sr619-notice',children:problem}):null,
   (0,q.jsx)('p',{className:'sr616-hint',children:'ملفات Word تُنشأ محليًا داخل المتصفح، ولا تُرسل أسماء الطلاب إلى Gemini. لا تُغيّر هذه الشاشة درجات الطلاب أو نتائجهم، ويجب مراجعة التفسيرات والأهداف واعتمادها تربويًا.'})

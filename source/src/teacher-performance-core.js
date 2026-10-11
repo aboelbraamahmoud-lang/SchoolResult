@@ -46,9 +46,15 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  if(!rows.length)SR63.fail('لا توجد نتائج للمعلم والمادة والفئة المختارة.');
  const students=rows.map(r=>{
    const current=pct(r,exam),previous=pct(r,prevExam),klass=hj(r,exam)||r.className;
+   // Official teacher form has TWO fixed semester-midterm achievement rows.
+   // Do not reinterpret these as current and previous assessment percentages.
+   const midway=key=>{
+     const score=r.scores?.[key],total=pj(r,key,settings);
+     return r.statuses?.[key]==='present'&&typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(total)&&total>0?{score,total}:null;
+   };
    const grade=gj(r,exam)||r.grade||'';
    return {studentId:r.studentId,studentName:r.studentName,className:klass,grade,
-     current,previous,change:current!==null&&previous!==null?round(current-previous):null,
+     current,previous,midFirst:midway('exam1'),midSecond:idx>=2?midway('exam3'):null,change:current!==null&&previous!==null?round(current-previous):null,
      currentStatus:r.statuses?.[exam]||'unentered',previousStatus:prevExam?r.statuses?.[prevExam]||'unentered':null,
      score:r.scores?.[exam],total:pj(r,exam,settings),
      band:current===null?'missing':current<lower?'low':current<upper?'middle':'high'};
@@ -56,11 +62,13 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  const summary=list=>{
   const valid=list.filter(s=>s.current!==null),compared=valid.filter(s=>s.previous!==null);
   const marks=valid.reduce((acc,s)=>({achieved:acc.achieved+s.score,possible:acc.possible+s.total}),{achieved:0,possible:0});
+  const midAchievement=key=>{const marks=list.reduce((a,s)=>{const m=s[key];return m?{score:a.score+m.score,total:a.total+m.total}:a;},{score:0,total:0});return marks.total?round(100*marks.score/marks.total):null;};
   return {students:list.length,evaluated:valid.length,missing:list.length-valid.length,
     passed:valid.filter(s=>s.current>=Number(settings.pass??50)).length,
     success:valid.length?round(100*valid.filter(s=>s.current>=Number(settings.pass??50)).length/valid.length):null,
     achievement:marks.possible?round(100*marks.achieved/marks.possible):null,
     high90:valid.length?round(100*valid.filter(s=>s.current>=90).length/valid.length):null,
+    midFirstAchievement:midAchievement('midFirst'),midSecondAchievement:midAchievement('midSecond'),
     compared:compared.length,
     matchedPrevious:compared.length?round(compared.reduce((n,s)=>n+s.previous,0)/compared.length):null,
     matchedCurrent:compared.length?round(compared.reduce((n,s)=>n+s.current,0)/compared.length):null,

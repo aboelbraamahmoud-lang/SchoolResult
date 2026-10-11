@@ -1,4 +1,4 @@
-/* 6.10.23 — Repair Word DOCX ZIP dates for Microsoft Word compatibility; source Word forms: replace data in the user's original DOCX parts, never redraw the forms. */
+/* 6.10.25 — exact teacher form content and safe extra-class rendering; Word-compatible output: omit inherited Office sensitivity-label and external custom XML metadata from the source forms; keep the official Word body, drawings, headers, RTL tables and signatures. */
 (function(){
  const templates=SR63.teacherReferenceTemplates;
  const xmlEsc=value=>String(value??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));
@@ -8,6 +8,25 @@
   const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',result=[];let acc=0,bits=0;
   for(const ch of encoded){if(ch==='=')break;const n=alphabet.indexOf(ch);if(n<0)continue;acc=(acc<<6)|n;bits+=6;if(bits>=8){bits-=8;result.push((acc>>>bits)&255);}}
   return new Uint8Array(result);
+ };
+ const cleanWordParts=original=>{
+  // The original school documents carry a Microsoft Purview sensitivity label
+  // belonging to their former publisher. Republishing that label in a new
+  // student's report can make Word reject or restrict the otherwise valid DOCX.
+  // Remove only the label + unused bibliography/custom XML metadata; retain
+  // the actual source Word document, design, headers, images and styles.
+  const parts={};
+  for(const [name,value] of Object.entries(original)){
+   if(name==='docMetadata/LabelInfo.xml'||name==='docProps/custom.xml'||name.startsWith('customXml/'))continue;
+   if(name==='[Content_Types].xml'){
+    parts[name]=value.replace(/<Override\b[^>]*PartName=["']\/(?:docMetadata\/LabelInfo\.xml|docProps\/custom\.xml|customXml\/[^"']+)["'][^>]*\s*\/>/g,'');
+   }else if(name.endsWith('.rels')){
+    // Relationship targets may be relative to /word or /word/glossary,
+    // hence match by final target segment instead of any one path format.
+    parts[name]=value.replace(/<Relationship\b[^>]*Target=["'][^"']*(?:customXml\/|docMetadata\/LabelInfo\.xml|docProps\/custom\.xml)[^"']*["'][^>]*\s*\/>/g,'');
+   }else parts[name]=value;
+  }
+  return parts;
  };
  const zip=files=>{
   const crcTable=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?0xedb88320^(c>>>1):c>>>1;crcTable[n]=c>>>0;}
@@ -24,8 +43,8 @@
   const output=new Uint8Array(offset+dirSize+22);let pos=0;
   for(const item of [...parts,...dir,end]){output.set(item,pos);pos+=item.length;}return output;
  };
- const build=(type,fields,extras={},filename)=>{
-  const parts={...templates[type]},source=parts['word/document.xml'];
+ const build=(type,fields,extras={},filename,documentOverride=null)=>{
+  const parts=cleanWordParts(templates[type]),source=documentOverride||parts['word/document.xml'];
   if(typeof source!=='string')throw Error('القالب الأصلي غير متاح.');
   let documentXml=source;
   for(const [needle,content] of Object.entries(extras)){
@@ -38,6 +57,7 @@
   return {bytes:zip(parts),filename:filename.replace(/[\\/:*?"<>|]/g,'-').slice(0,170)+'.docx'};
  };
  const fmt=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toFixed(1)+'%';
+ const fmtPlain=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toFixed(Number(value)%1===0?0:1);
  const fmtCell=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':Number(value).toFixed(Number(value)%1===0?0:1)+'%';
  const fmtDelta=value=>value===null||value===undefined||!Number.isFinite(Number(value))?'—':(value>0?'+':'')+Number(value).toFixed(1)+'%';
  const status=(value,target)=>value===null||value===undefined?'—':Number(value)>=Number(target)?'متحقق':'غير متحقق';
@@ -48,13 +68,13 @@
  SR63.teacherQuantitativeWordBuild=function(analysis,edits={}){
   if(!analysis?.groups?.length)throw Error('لا توجد شعب للمعلم في التقييم المختار.');
   const groups=analysis.groups,targets={success:90,achievement:75,valueAdded:3,high90:30,...edits.targets};
-  const rows=[['success','percentage',targets.success],['achievement','percentage',targets.achievement],['matchedPrevious','percentage',null],['valueAdded','delta',targets.valueAdded],['high90','percentage',targets.high90]];
-  const metrics=(g,key,type)=>type==='delta'?fmtDelta(g?.[key]):fmt(g?.[key]);
+  const rows=[['success','plain',targets.success],['midFirstAchievement','plain',targets.achievement],['midSecondAchievement','plain',targets.achievement],['valueAdded','delta',targets.valueAdded],['high90','percentage',targets.high90]];
+  const metrics=(g,key,type)=>type==='delta'?fmtDelta(g?.[key]):type==='plain'?fmtPlain(g?.[key]):fmt(g?.[key]);
   const values={SUBTITLE:`لتحليل نتائج ${analysis.examName} لمادة ${analysis.subjectLabel} للعام الأكاديمي ${analysis.academicYear}م`,
     COORDINATOR_GREETING:`المنسق الفاضل: أ/ ${analysis.coordinator||'........................'}`,
     INTRODUCTION:`بعد قراءة نتائج الطلبة للصفوف التي أقوم بتدريسها، في ${analysis.examName} لمادة ${analysis.subjectLabel} أقدم لكم تقريرًا كميًا ووصفيًا يوضح نسب النجاح والتحصيل الأكاديمي ومستويات الطلبة المختلفة، وأسباب ارتفاع أو انخفاض نتائج الطلبة.`,
-    CURRENT_METRIC_LABEL:`نسبة التحصيل الأكاديمي ${analysis.examName}`,
-    PREVIOUS_METRIC_LABEL:`نسبة التحصيل الأكاديمي ${analysis.prevExamName||'في التقييم السابق'}`,
+    CURRENT_METRIC_LABEL:'نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الأول',
+    PREVIOUS_METRIC_LABEL:'نسبة التحصيل الأكاديمي منتصف الفصل الدراسي الثاني',
     INTERPRETATION:edits.interpretation||`أظهرت النتائج نسبة نجاح ${fmt(analysis.success)} وتحصيلًا أكاديميًا ${fmt(analysis.achievement)}. وتُعالج جوانب التعثر التي يحددها التقويم التشخيصي من خلال أنشطة متدرجة وأوراق عمل ومتابعة منتظمة للطلاب.`,
     FEEDBACK:edits.feedback||'يُرجى الاستمرار في إجراءات الدعم المناسبة، ومراجعة نتائج التقييم اللاحق، وتحديث التدخلات وفق مستويات الطلاب.',
     TEACHER_NAME:analysis.teacher,COORDINATOR_NAME:analysis.coordinator||'........................'};
@@ -68,8 +88,27 @@
    });return o;
   };
   Object.assign(values,groupFields(groups.slice(0,3)));
-  let extra='';for(let i=3;i<groups.length;i+=3)extra+=fill(templates.quantBlock,{...groupFields(groups.slice(i,i+3)),...values});
-  return build('quant',values,{'<!--EXTRA_TEACHER_ROWS-->':extra},`التقرير-الكمي-والوصفي-للمعلم-${analysis.teacher}-${analysis.subjectLabel}`);
+  // The attached teacher form has room for THREE classes on one page. For
+  // teachers with more classes, repeat the *whole original form* per set of
+  // three instead of inserting duplicate mid-table rows (which could split
+  // across pages and change the published form's layout).
+  const source=templates.quant['word/document.xml'];
+  const bodyMarker='<w:body>',bodyAt=source.indexOf(bodyMarker)+bodyMarker.length;
+  const sectionAt=source.lastIndexOf('<w:sectPr');
+  if(bodyAt<bodyMarker.length||sectionAt<bodyAt)throw Error('تعذر تحديد صفحات نموذج المعلم الأصلي.');
+  const inner=source.slice(bodyAt,sectionAt).replace('<!--EXTRA_TEACHER_ROWS-->','');
+  let fullBody='';
+  for(let i=0;i<groups.length;i+=3){
+   let page=fill(inner,{...values,...groupFields(groups.slice(i,i+3))});
+   if(i){
+    // Prevent cloned Word 2010 paragraph IDs from colliding with the first page.
+    page=page.replace(/\s+w14:paraId="[0-9A-F]+"/g,'');
+    fullBody+='<w:p><w:r><w:br w:type="page"/></w:r></w:p>';
+   }
+   fullBody+=page;
+  }
+  const xml=source.slice(0,bodyAt)+fullBody+source.slice(sectionAt);
+  return build('quant',{}, {},`التقرير-الكمي-والوصفي-للمعلم-${analysis.teacher}-${analysis.subjectLabel}`,xml);
  };
  SR63.teacherImprovementWordBuild=function(analysis,edits={}){
   if(analysis.groups.length!==1)throw Error('خطة تحسين الأداء تُصدَّر لشعبة واحدة فقط. اختر الشعبة أولًا.');

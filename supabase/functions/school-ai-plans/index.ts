@@ -25,13 +25,19 @@ Deno.serve(async(request:Request)=>{
  const sdk=createClient(apiUrl,publicKey,{global:{headers:{Authorization:`Bearer ${token}`}},auth:{persistSession:false,autoRefreshToken:false}});
  const {data:auth,error:authError}=await sdk.auth.getUser(token);
  if(authError||!auth?.user)return reply({error:'جلسة المستخدم غير صالحة.'},401,origin);
- const {data:owned,error:ownershipError}=await sdk.from('school_workspaces').select('owner_id').eq('owner_id',auth.user.id).limit(1);
- if(ownershipError||!owned?.length)return reply({error:'لا تملك صلاحية إدارة هذه المساحة المدرسية.'},403,origin);
  const serviceKey=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
  if(!serviceKey)return reply({error:'الإعداد الآمن للخادم غير مكتمل.'},503,origin);
  const server=createClient(apiUrl,serviceKey,{auth:{persistSession:false,autoRefreshToken:false}});
+ const [ownership,staff]=await Promise.all([
+  server.from('school_workspaces').select('owner_id').eq('owner_id',auth.user.id).maybeSingle(),
+  server.from('school_staff_accounts').select('owner_id,role,departments,permissions,active').eq('user_id',auth.user.id).maybeSingle()
+ ]);
+ if(ownership.error||staff.error)return reply({error:'تعذر التحقق من صلاحيات الحساب.'},503,origin);
+ const ownerId=ownership.data?auth.user.id:(staff.data?.active?staff.data.owner_id:null);
+ const role=ownership.data?'owner':staff.data?.active?staff.data.role:null;
+ if(!ownerId||!role)return reply({error:'لا يملك الحساب صلاحية الوصول.'},403,origin);
  const vault=async(action:'save'|'read'|'status',key:string|null=null,model:string|null=null)=>{
-   const {data,error}=await server.rpc('school_ai_vault_action',{p_owner:auth.user.id,p_action:action,p_key:key,p_model:model});
+   const {data,error}=await server.rpc('school_ai_vault_action',{p_owner:ownerId,p_action:action,p_key:key,p_model:model});
    if(error)throw new Error('تعذر الوصول إلى إعدادات Gemini الآمنة.');
    return data;
  };
@@ -39,6 +45,7 @@ Deno.serve(async(request:Request)=>{
  if(JSON.stringify(data).length>12_000)return reply({error:'حجم المدخلات كبير.'},413,origin);
  const action=String(data?.action||'generate');
  if(['connection_status','connection_save','connection_test'].includes(action)){
+  if(!['owner','admin'].includes(role))return reply({error:'إعدادات مفتاح Gemini خاصة بالأدمن.'},403,origin);
   try{
    const current=await vault('status');
    if(action==='connection_status')return reply({configured:!!current?.configured,model:current?.model||'gemini-2.5-flash',updatedAt:current?.updatedAt||null,source:current?.configured?'vault':null},200,origin);
@@ -65,6 +72,14 @@ Deno.serve(async(request:Request)=>{
   }catch{return reply({configured:false,connected:false,error:'تعذر اختبار الاتصال أو الوصول إلى المخزن الآمن.'},503,origin);}
  }
  if(action!=='generate')return reply({error:'عملية غير مدعومة.'},400,origin);
+ if(role==='coordinator'){
+  if(staff.data?.permissions?.generateAI!==true)return reply({error:'الأدمن لم يمنح المنسق صلاحية إنشاء الخطط بالذكاء الاصطناعي.'},403,origin);
+  const subject=String(data?.evidence?.subject||'').trim();
+  const {data:school,error:schoolError}=await server.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
+  if(schoolError||!school)return reply({error:'تعذر التحقق من نطاق القسم.'},503,origin);
+  const departments=new Set((staff.data?.departments||[]).map((v:string)=>String(v).trim()));
+  if(!subject||(school.workspace?.teacherAssignments||[]).every((a:any)=>String(a.subject||'').trim()!==subject||!departments.has(String(a.department||'').trim())))return reply({error:'المادة المطلوبة خارج نطاق المنسق.'},403,origin);
+ }
  let geminiKey:string,selectedModel:string;
  try{
   const cfg=await vault('read');

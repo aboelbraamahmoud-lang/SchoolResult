@@ -1,5 +1,5 @@
 /* 6.10.18 — AI plans, official Word plans, owner-only Gemini Vault settings. */
-SR63.AIPlans=function({workspace,setWorkspace}){
+SR63.AIPlans=function({workspace,setWorkspace,coordinator=false,canSave=true,canExport=true}){
   const [tab,setTab]=(0,v.useState)('create'),[exam,setExam]=(0,v.useState)(workspace.activeExam),
     [mode,setMode]=(0,v.useState)('group'),[cohort,setCohort]=(0,v.useState)('general'),
     [subject,setSubject]=(0,v.useState)(''),[grade,setGrade]=(0,v.useState)('الكل'),
@@ -16,9 +16,9 @@ SR63.AIPlans=function({workspace,setWorkspace}){
   const wordMeta=active?SR63.aiPlanWordMeta(workspace,active,wordEdit?.id===active.id?wordEdit.values:null):null;
   const changeWord=(key,value)=>setWordEdit(prev=>({id:active.id,values:{...(prev?.id===active.id?prev.values:{}),[key]:value}}));
   const saveWord=async()=>{if(!active)return;const keys=['schoolName','academicYear','teacherName','academicViceName','principalName'];if(await edit(active.id,{wordMeta:Object.fromEntries(keys.map(key=>[key,wordMeta[key]]))},'قبل حفظ بيانات ملف Word'))setWordEdit(null);};
-  const exportWord=()=>{if(!active)return;setError('');try{const name=SR63.aiPlanWordDownload(workspace,active,wordMeta);eb.success('تم إعداد ملف Word: '+name);}catch(err){setError(err.message||'تعذر إنشاء ملف Word.');}};
+  const exportWord=()=>{if(!active||!canExport)return;setError('');try{const name=SR63.aiPlanWordDownload(workspace,active,wordMeta);eb.success('تم إعداد ملف Word: '+name);}catch(err){setError(err.message||'تعذر إنشاء ملف Word.');}};
   const exportDraftWord=()=>{
-    if(!draft||!request)return;setError('');
+    if(!draft||!request||!canExport)return;setError('');
     try{
       const e=request.evidence,plan={...SR63.aiPlanNormalize(draft,e),scope:e.scope,cohort:e.cohort,
         exam:e.assessment,subject:e.subject,grade:e.grade,className:e.className,members:request.members,
@@ -61,7 +61,7 @@ SR63.AIPlans=function({workspace,setWorkspace}){
     }catch(e){setConnect({state:'error',configured:false,connected:null,message:e.message||'تعذر الاتصال.'});}
     finally{setConnectBusy(false);}
   };
-  (0,v.useEffect)(()=>{void refreshConnection();},[]);
+  (0,v.useEffect)(()=>{if(!coordinator)void refreshConnection();},[coordinator]);
   const saveConnection=async()=>{
     if(connectBusy)return;
     if(!apiKey.trim()){setConnect(c=>({...c,state:'error',connected:null,message:'أدخل مفتاح Gemini الجديد أولًا.'}));return;}
@@ -91,6 +91,7 @@ SR63.AIPlans=function({workspace,setWorkspace}){
   const filters=()=>({exam,subject:rawSubject,cohort,grade,className,teacher:mode==='teacher'?teacher:'الكل',mode,level,studentId});
   const persist=async(description,change)=>{
     if(SR63.storage.blocked)throw new Error('الحفظ السحابي متوقف بسبب تعارض.');
+    if(coordinator){if(!canSave)throw new Error('المنسق لا يملك صلاحية حفظ الخطط.');await setWorkspace(previous=>change(previous));return;}
     if(!await Kj(workspace,description))throw new Error('تعذر إنشاء نقطة الاستعادة. لم تُحفظ التعديلات.');
     setWorkspace(previous=>change(previous));
   };
@@ -131,9 +132,9 @@ SR63.AIPlans=function({workspace,setWorkspace}){
   };
   return (0,q.jsxs)('div',{className:'sr616-plans',children:[
     (0,q.jsxs)('header',{className:'sr616-hero',children:[(0,q.jsx)('span',{children:'SchoolResult AI · توصيات خاضعة للاعتماد'}),(0,q.jsx)('h1',{children:'مركز الخطط العلاجية الذكية'}),(0,q.jsx)('p',{children:'خطط فردية وجماعية وإجراءات قابلة للقياس من درجات الاختبارات والموارد المتاحة. لا تُرسل أسماء الطلاب ولا أرقامهم الأكاديمية إلى Gemini.'})]}),
-    (0,q.jsxs)('nav',{className:'sr616-tabs',children:[(0,q.jsx)('button',{onClick:()=>setTab('create'),className:tab==='create'?'active':'',children:'إعداد خطة جديدة'}),(0,q.jsx)('button',{onClick:()=>setTab('library'),className:tab==='library'?'active':'',children:`الخطط المحفوظة (${plans.length})`}),(0,q.jsx)('button',{onClick:()=>setTab('connection'),className:tab==='connection'?'active':'',children:'إعدادات اتصال Gemini'})]}),
+    (0,q.jsxs)('nav',{className:'sr616-tabs',children:[(0,q.jsx)('button',{onClick:()=>setTab('create'),className:tab==='create'?'active':'',children:'إعداد خطة جديدة'}),(0,q.jsx)('button',{onClick:()=>setTab('library'),className:tab==='library'?'active':'',children:`الخطط المحفوظة (${plans.length})`}),!coordinator?(0,q.jsx)('button',{onClick:()=>setTab('connection'),className:tab==='connection'?'active':'',children:'إعدادات اتصال Gemini'}):null]}),
     error?(0,q.jsx)('div',{className:'sr616-error',role:'alert',children:error}):null,
-    tab==='connection'?(0,q.jsxs)('section',{className:'sr616-panel sr617-connection',children:[
+    tab==='connection'&&!coordinator?(0,q.jsxs)('section',{className:'sr616-panel sr617-connection',children:[
       (0,q.jsx)('h2',{children:'إعداد Gemini API من داخل البرنامج'}),
       (0,q.jsx)('p',{className:'sr616-hint',children:'هذه الإعدادات مخصصة لمالك مساحة العمل. يُحفظ المفتاح مشفرًا في Supabase Vault ولا يُخزن في قاعدة نتائج الطلاب أو داخل ملفات GitHub. المفتاح القديم الذي ظهر في محادثة لا تستخدمه؛ أنشئ مفتاحًا بديلًا.'}),
       (0,q.jsxs)('div',{className:`sr617-status ${connect.state}`,role:'status',children:[
@@ -175,7 +176,7 @@ SR63.AIPlans=function({workspace,setWorkspace}){
       field('الموارد المتاحة',(0,q.jsx)('textarea',{rows:2,value:config.resources,onChange:e=>updateConfig('resources',e.target.value),placeholder:'وسائل تعليمية متاحة فعلًا'})),
       field('المهارات المتعثرة المثبتة بالتشخيص (اختياري)',(0,q.jsx)('textarea',{rows:3,value:config.skillNotes,onChange:e=>updateConfig('skillNotes',e.target.value),placeholder:'مثال: أخطاء متكررة في العمليات على الكسور. لا تكتب أسماء الطلاب أو أرقامهم.'})),
       (0,q.jsxs)('div',{className:'sr616-actions',children:[
-        (0,q.jsx)('button',{disabled:busy||!rawSubject||!selectedMembers.length,onClick:()=>void generate(false),children:busy?'جارٍ الإنشاء…':'إنشاء خطة عبر Gemini'}),
+        (0,q.jsx)('button',{disabled:busy||!rawSubject||!selectedMembers.length||(coordinator&&!SR63.cloud.profile?.permissions?.generateAI),onClick:()=>void generate(false),children:busy?'جارٍ الإنشاء…':'إنشاء خطة عبر Gemini'}),
         (0,q.jsx)('button',{disabled:busy||!rawSubject||!selectedMembers.length,className:'secondary',onClick:()=>void generate(true),children:'مسودة إجرائية بدون ذكاء اصطناعي'})
       ]}),
       draft?(0,q.jsxs)('section',{className:'sr616-draft',children:[
@@ -185,8 +186,8 @@ SR63.AIPlans=function({workspace,setWorkspace}){
         field('معيار النجاح',(0,q.jsx)('textarea',{rows:2,value:draft.successCriterion,onChange:e=>setDraft({...draft,successCriterion:e.target.value})})),
         (0,q.jsx)('div',{className:'sr616-steps',children:draft.steps.map((step,i)=>(0,q.jsxs)('article',{children:[(0,q.jsx)('b',{children:`الأسبوع ${step.week} — ${step.objective}`}),field('الإجراء',(0,q.jsx)('textarea',{rows:2,value:step.action,onChange:e=>setDraft({...draft,steps:draft.steps.map((s,j)=>j===i?{...s,action:e.target.value}:s)})})),field('أداة القياس',input(step.measure,x=>setDraft({...draft,steps:draft.steps.map((s,j)=>j===i?{...s,measure:x}:s)})))]},i))}),
         (0,q.jsxs)('div',{className:'sr616-actions',children:[
-          (0,q.jsx)('button',{disabled:busy,onClick:()=>void saveDraft(),children:'حفظ المسودة مع نقطة استعادة'}),
-          (0,q.jsx)('button',{disabled:busy,className:'secondary',onClick:()=>exportDraftWord(),children:'تنزيل مسودة الخطة Word'})
+          (0,q.jsx)('button',{disabled:busy||(coordinator&&!canSave),onClick:()=>void saveDraft(),children:'حفظ المسودة مع نقطة استعادة'}),
+          (0,q.jsx)('button',{disabled:busy||!canExport,className:'secondary',onClick:()=>exportDraftWord(),children:'تنزيل مسودة الخطة Word'})
         ]})
       ]}):null
     ]}):tab==='library'?(0,q.jsxs)('section',{className:'sr616-library',children:[
@@ -205,7 +206,7 @@ SR63.AIPlans=function({workspace,setWorkspace}){
           ]}),
           (0,q.jsxs)('p',{className:'sr618-document-context',children:['مسمى الاختبار: ',(0,q.jsx)('b',{children:wordMeta.exam}),' | الصف: ',(0,q.jsx)('b',{children:wordMeta.grade}),' | الشعبة: ',(0,q.jsx)('b',{children:wordMeta.className}),active.scope==='individual'?' | اسم الطالب: ': ' | عدد الطلاب: ',(0,q.jsx)('b',{children:active.scope==='individual'?wordMeta.studentName:active.members.length})]}),
           (0,q.jsxs)('div',{className:'sr616-actions',children:[
-            (0,q.jsx)('button',{disabled:busy||!wordMeta.schoolName.trim(),onClick:()=>exportWord(),children:'تنزيل الخطة في ملف Word (.docx)'}),
+            (0,q.jsx)('button',{disabled:busy||!canExport||!wordMeta.schoolName.trim(),onClick:()=>exportWord(),children:'تنزيل الخطة في ملف Word (.docx)'}),
             (0,q.jsx)('button',{disabled:busy||!wordEdit||wordEdit.id!==active.id,className:'secondary',onClick:()=>void saveWord(),children:'حفظ بيانات الغلاف والتوقيعات لهذه الخطة'})
           ]})
         ]}),
