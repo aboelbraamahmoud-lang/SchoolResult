@@ -1264,3 +1264,63 @@
 .sr618-word-panel>h3{font-size:16px!important;color:#0f5660!important;margin:0!important;font-weight:950!important;}
 .sr618-document-context{font-size:13px;font-weight:750;line-height:1.9;background:#fff;border:1px dashed #a6bdc7;border-radius:9px;padding:10px 13px;}
 .sr618-word-panel .sr616-actions button:first-child{background:#0b746c;color:white;font-weight:950;}
+
+/* 6.10.19 — dashboard clarity, no overlapping subject performance bars / readiness rings. */
+.sr619-subject-rank{display:grid;gap:12px;min-width:0;overflow:visible}
+.sr619-subject-row{display:grid;grid-template-columns:minmax(115px,34%) minmax(0,1fr);gap:16px;align-items:center;padding:11px 9px;border:1px solid #e2eaed;border-radius:13px;background:#fafcfc;text-align:right;min-width:0;width:100%;cursor:pointer}
+.sr619-subject-row:hover{background:#edf7f6;border-color:#bedbd7}
+.sr619-subject-title{min-width:0;display:grid;align-content:center;gap:4px;overflow-wrap:anywhere}
+.sr619-subject-title b{font-weight:900;font-size:13px;color:#133a4d}
+.sr619-subject-title small{font-weight:700;color:#607d88;font-size:10px;line-height:1.45}
+.sr619-subject-bars{min-width:0;display:grid;gap:8px}
+.sr619-subject-bar{display:grid;grid-template-columns:53px minmax(0,1fr) 49px;align-items:center;gap:8px;min-width:0}
+.sr619-subject-bar>span{font-size:11px;font-weight:800;color:#425b69;white-space:nowrap}
+.sr619-subject-bar>strong{font-size:13px;font-weight:900;color:#123f52;text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sr619-subject-track{height:11px;background:#e7eef1;border-radius:999px;overflow:hidden;position:relative;width:100%;min-width:0}
+.sr619-subject-track i{display:block;height:100%;border-radius:999px;background:#d4a037;max-width:100%;min-width:0}
+.sr619-subject-track i.success{background:#117f75}
+.sr69-readiness .sr69-ring-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:center;justify-items:center;margin:4px auto 14px}
+.sr69-readiness .sr69-ring{width:min(100%,122px);max-width:122px;aspect-ratio:1;margin:0 auto;display:grid;place-items:center;padding:0;overflow:hidden}
+.sr69-readiness .sr619-ring-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;max-width:88%;line-height:1.2;min-width:0}
+.sr69-readiness .sr619-ring-content strong{font-size:clamp(14px,1.6vw,21px);line-height:1.15;font-weight:900;white-space:nowrap;color:#163e4b;font-variant-numeric:tabular-nums}
+.sr69-readiness .sr619-ring-content span{font-size:11px;font-weight:800;color:#425e69;line-height:1.25;white-space:nowrap}
+.sr69-readiness .sr69-readiness-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
+.sr69-readiness .sr69-readiness-list button{min-width:0;min-height:82px;padding:10px 8px;align-content:center;text-align:center;word-break:normal;overflow-wrap:anywhere}
+.sr69-readiness .sr69-readiness-list span{font-size:11px;line-height:1.5;font-weight:850;color:#4f6978}
+.sr69-readiness .sr69-readiness-list b{font-size:18px;line-height:1.3;font-weight:900}
+@media(max-width:620px){.sr619-subject-rank{overflow:visible}.sr619-subject-row{grid-template-columns:minmax(90px,34%) minmax(0,1fr);gap:9px}.sr619-subject-bar{grid-template-columns:43px minmax(0,1fr) 42px;gap:5px}.sr69-readiness .sr69-readiness-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* 6.10.19 — editor for teacher improvement plans and quantitative / descriptive Word reports. */
+.sr619-teacher-center{width:100%;max-width:1500px;margin:auto;display:grid;gap:16px;color:#183f51}
+.sr619-tabs{display:flex;gap:9px;flex-wrap:wrap}
+.sr619-tabs button{border:1px solid #d9e5e9;border-radius:11px;padding:12px 17px;font-weight:900;background:#fff;color:#264c5a}
+.sr619-tabs button.active{background:#117c74;border-color:#117c74;color:#fff}
+.sr619-card{background:#fff;border:1px solid #d9e6ea;border-radius:20px;padding:20px;display:grid;gap:16px;min-width:0;box-shadow:0 9px 22px rgba(16,53,72,.05)}
+.sr619-card h2{font-size:19px;font-weight:950;color:#16485a}
+.sr619-card h3{font-size:15px;font-weight:950;color:#8D153A}
+.sr619-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sr619-limits{grid-template-columns:repeat(2,minmax(150px,210px))}
+.sr619-field{display:grid;gap:7px;min-width:0;font-size:13px;font-weight:850;color:#314c5a}
+.sr619-field input,.sr619-field select,.sr619-field textarea{display:block;width:100%;min-width:0;padding:11px 12px;background:#fcfefe;border:1px solid #cddfe5;border-radius:10px;color:#1a4355;font-size:14px;font-weight:700;text-align:right;line-height:1.65}
+.sr619-field textarea{resize:vertical;white-space:pre-wrap}
+.sr619-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.sr619-stats>div,.sr619-band-grid>div{display:grid;gap:6px;padding:15px 10px;border:1px solid #deeaed;border-radius:13px;background:#f7fbfb;text-align:center;min-width:0}
+.sr619-stats span,.sr619-band-grid span{color:#4e6674;font-weight:850;font-size:11px}
+.sr619-stats strong,.sr619-band-grid strong{font-size:21px;font-weight:1000;color:#124b5b}
+.sr619-band-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sr619-band-grid>div:first-child{border-top:4px solid #b5485b}.sr619-band-grid>div:nth-child(2){border-top:4px solid #cf9a35}.sr619-band-grid>div:nth-child(3){border-top:4px solid #16867e}.sr619-band-grid>div:nth-child(4){border-top:4px solid #8b98a3}
+.sr619-band-grid small{font-size:10px;color:#738b93}
+.sr619-table-wrap{overflow:auto;max-height:610px;border:1px solid #d6e3e8;border-radius:12px}
+.sr619-table-wrap h3{padding:12px 14px;position:sticky;top:0;background:#f4f9f9;z-index:3}
+.sr619-table-wrap table{width:100%;min-width:700px;border-collapse:collapse;text-align:right;font-size:12px;font-weight:850}
+.sr619-table-wrap th{background:#174455;color:#fff;padding:11px;position:sticky;top:0;white-space:nowrap}
+.sr619-table-wrap td{padding:10px;border-bottom:1px solid #dce8eb;white-space:nowrap}
+.sr619-table-wrap tr:nth-child(even) td{background:#f7fafb}
+.sr619-edit-band{padding:17px;border:1px solid #e0e9ec;border-radius:13px;display:grid;gap:11px}
+.sr619-edit-band .sr619-field{width:100%}
+.sr619-actions{display:flex;flex-wrap:wrap;gap:10px}
+.sr619-actions button{background:#117c74;color:#fff;border:0;padding:12px 19px;border-radius:11px;font-size:13px;font-weight:950}
+.sr619-actions button.secondary{background:#e8f0f1;color:#294f5c}
+.sr619-notice{color:#a23146;background:#fff3f4;border:1px solid #edb4be;border-radius:12px;padding:13px}
+@media(max-width:1050px){.sr619-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sr619-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.sr619-card{padding:12px}.sr619-grid,.sr619-limits{grid-template-columns:1fr}.sr619-stats,.sr619-band-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}

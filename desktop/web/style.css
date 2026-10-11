@@ -971,3 +971,359 @@
   .school-report-page.grade-subjects-landscape .report-vision{font-size:6.8px!important}
   .school-report-page.grade-subjects-landscape .report-title{font-size:10.4px!important}
 }
+
+/* 6.10.13 — grade review / missing-score dashboard (RTL, protected edits and A4 print). */
+.sr613-grade-review{display:grid;gap:16px;direction:rtl;color:#173849;font-family:Tahoma,Arial,sans-serif}
+.sr613-hero{border-radius:17px;padding:21px 26px;background:linear-gradient(115deg,#133949,#0b7770);color:#fff}
+.sr613-hero span{display:block;font-size:12px;font-weight:900;color:#b8f2e6}
+.sr613-hero h1{font-size:23px;font-weight:950;margin:5px 0}
+.sr613-hero p{font-size:13px;line-height:1.8;color:#effcfa;max-width:980px}
+.sr613-filters,.sr613-report-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:end;background:#fff;border:1px solid #d9e5ea;border-radius:14px;padding:14px}
+.sr613-filter{display:grid;gap:6px;flex:1 1 158px;min-width:148px;font-size:12px;font-weight:900;color:#305362}
+.sr613-filter select,.sr613-filter input{min-height:40px;max-width:100%;border:1px solid #bdcfd5;background:#fff;border-radius:9px;padding:8px 10px;font-size:13px;font-weight:850;color:#173849;direction:rtl}
+.sr613-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.sr613-stats article{border:1px solid #d6e4e8;border-radius:13px;background:#fff;padding:13px;display:grid;gap:5px}
+.sr613-stats span{font-size:11px;font-weight:900;color:#617988}
+.sr613-stats strong{font-size:24px;font-weight:1000;color:#134957;font-variant-numeric:tabular-nums}
+.sr613-tabs{display:flex;gap:7px;border-bottom:2px solid #d9e6e8;padding-bottom:6px}
+.sr613-tabs button{border:0;border-radius:9px;padding:11px 16px;background:transparent;color:#315565;font-size:13px;font-weight:900;cursor:pointer}
+.sr613-tabs button.active{background:#123f50;color:#fff}
+.sr613-layout{display:grid;grid-template-columns:minmax(225px,290px) minmax(0,1fr);gap:13px}
+.sr613-students,.sr613-panel{background:#fff;border:1px solid #d3e2e7;border-radius:15px;padding:14px;min-width:0}
+.sr613-students{display:flex;flex-direction:column;gap:6px;max-height:670px;overflow:auto}
+.sr613-students>b{padding:4px 8px;color:#133d4b;font-size:13px}
+.sr613-students button{display:grid;gap:4px;background:#f8fbfc;border:1px solid #e2eaed;border-radius:9px;padding:11px 12px;text-align:right;cursor:pointer}
+.sr613-students button.active{background:#eaf9f5;border-color:#0b8278}
+.sr613-students strong{font-size:13px;font-weight:950;color:#143d4b}
+.sr613-students small{font-size:11px;color:#5e7885;font-weight:800}
+.sr613-panel header{display:block;border-bottom:1px solid #e2eaee;padding-bottom:12px;margin-bottom:12px}
+.sr613-panel header h2{font-size:19px;font-weight:950;color:#153e4b;margin:0 0 6px}
+.sr613-panel header p{font-size:12px;font-weight:800;color:#5b7684}
+.sr613-table-wrap{overflow:auto;width:100%}
+.sr613-table{border-collapse:collapse;width:100%;min-width:650px;font-size:12.5px;font-weight:900;line-height:1.5}
+.sr613-table :is(th,td){padding:9px 10px;border:1px solid #dce6e9;text-align:right;vertical-align:middle}
+.sr613-table th{background:#e6f1f3;font-weight:1000;color:#133f50;white-space:nowrap}
+.sr613-table tr:nth-child(even) td{background:#f8fafb}
+.sr613-table td small{display:block;color:#607986;font-size:10px;font-weight:800}
+.sr613-table td button,.sr613-report-controls>button{background:#0b746d;border:0;border-radius:8px;color:white;font-size:12px;font-weight:900;padding:8px 10px;cursor:pointer}
+.sr613-report-controls>button{min-height:40px}
+.sr613-table button:disabled,.sr613-report-controls button:disabled{opacity:.45;cursor:not-allowed}
+.sr613-count{font-size:12px;font-weight:900;color:#405d6a;margin:8px 0 13px}
+.sr613-overlay{position:fixed;z-index:200;inset:0;background:#0b2432a8;display:grid;place-items:center;padding:18px}
+.sr613-editor{width:min(530px,100%);background:#fff;border-radius:17px;box-shadow:0 18px 55px #071c2866;padding:24px;display:grid;gap:15px}
+.sr613-editor h2{font-size:21px;font-weight:1000;color:#173d4c}
+.sr613-editor p,.sr613-editor small{font-size:12px;line-height:1.7;color:#526d7a;font-weight:800}
+.sr613-editor-actions{display:flex;justify-content:flex-end;gap:8px}
+.sr613-editor-actions button{border-radius:8px;padding:10px 17px;font-weight:950;cursor:pointer;background:#eaf0f3;color:#1a4757}
+.sr613-editor-actions button:last-child{background:#08776d;color:#fff}
+.sr613-editor-actions button:disabled{opacity:.55;cursor:wait}
+.sr613-print-report{display:none}
+@media(max-width:900px){.sr613-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.sr613-layout{grid-template-columns:1fr}.sr613-students{max-height:230px}.sr613-hero h1{font-size:20px}}
+@media print{
+  @page sr613GradeReview{size:A4 portrait;margin:12mm}
+  .sr613-print-report{page:sr613GradeReview}
+  body.sr613-printing #root,body.sr613-printing .sr-cloud-account{display:none!important}
+  body.sr613-printing #sr63-print-root{display:block!important;position:static!important;direction:rtl!important;background:#fff!important;color:#111!important;font:10pt Tahoma,Arial,sans-serif!important}
+  .sr613-print-report :is(h1,h2,p){text-align:center!important;color:#111!important;font-weight:900!important}
+  .sr613-print-report h1{font-size:15pt!important}.sr613-print-report h2{font-size:13pt!important}
+  .sr613-print-report table{border-collapse:collapse;width:100%;table-layout:auto;font:8.5pt Tahoma,Arial,sans-serif!important}
+  .sr613-print-report th,.sr613-print-report td{border:1px solid #222;padding:5px 4px;text-align:right;font-weight:900;word-break:break-word}
+  .sr613-print-report thead{display:table-header-group}.sr613-print-report tr{break-inside:avoid;page-break-inside:avoid}
+  .sr613-print-report th{background:#e5f1f3!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .sr613-print-note{font-size:8pt!important;margin-top:14px}
+}
+
+
+/* 6.10.14 — four independently sized, legible RTL analytics tables.
+   Use horizontal scrolling rather than squeezing values. Only on-screen analytics
+   panels are affected; report print matrices and data logic remain unchanged. */
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap){
+  width:100%;max-width:100%;min-width:0;border-color:#d1e0e7!important;
+  background:#fff;scrollbar-width:thin;scrollbar-color:#82a9b6 #f3f8f9;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table-container"]{
+  min-width:0;max-width:100%;overflow-x:auto;scrollbar-width:thin;
+  scrollbar-color:#82a9b6 #f3f8f9;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"]{
+  border-collapse:separate!important;border-spacing:0!important;direction:rtl;
+  table-layout:fixed;margin:0;width:100%;color:#152d3a;
+  font-family:Tahoma,Arial,sans-serif;font-variant-numeric:tabular-nums;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] :is(th,td){
+  box-sizing:border-box;vertical-align:middle!important;text-align:center!important;
+  padding:10px 12px!important;border-bottom:1px solid #b5c8d2!important;
+  border-left:1px solid #d2e0e7!important;white-space:normal!important;
+  overflow-wrap:break-word!important;word-break:normal!important;
+  line-height:1.52!important;font-size:13px!important;font-weight:850!important;
+  text-overflow:clip!important;min-height:44px;color:#193142;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tr>:first-child{border-right:1px solid #d2e0e7!important}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] thead th{
+  background:#e9f4f6!important;color:#10394c!important;
+  font-weight:950!important;font-size:12.5px!important;line-height:1.5!important;
+  height:54px!important;white-space:normal!important;
+}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tbody tr:nth-child(even) td{background:#f8fbfc}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tbody tr:hover td{background:#eef8f8}
+:is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+[data-slot="table"] tbody td:first-child{font-weight:950!important;color:#0d3447}
+
+/* Levels: each of the six performance bands gets a clear named column. */
+.sr614-levels-wrap [data-slot="table"]{min-width:755px}
+.sr614-levels-wrap [data-slot="table"] :is(th,td){width:calc((100% - 115px)/6)}
+.sr614-levels-wrap [data-slot="table"] :is(th,td):first-child{
+  width:115px!important;min-width:115px!important;text-align:right!important;
+  padding-inline:15px!important;
+}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(2){border-top:4px solid #13867d!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(3){border-top:4px solid #299c98!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(4){border-top:4px solid #d49a29!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(5){border-top:4px solid #e0b24a!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(6){border-top:4px solid #e87759!important}
+.sr614-levels-wrap [data-slot="table"] thead th:nth-child(7){border-top:4px solid #b74b5e!important}
+.sr614-levels-wrap [data-slot="table"] tbody td{height:54px;font-size:15px!important;font-weight:950!important}
+
+/* Assessment comparison: keep the four long exam names and each metric together. */
+.sr614-matrix-wrap [data-slot="table"]{min-width:1180px}
+.sr614-matrix-wrap [data-slot="table"] :is(th,td):first-child{width:104px!important;min-width:104px!important}
+.sr614-matrix-wrap [data-slot="table"] :is(th,td):last-child{width:158px!important;min-width:158px!important}
+.sr614-matrix-wrap [data-slot="table"] thead th{height:70px!important;font-size:13px!important}
+.sr614-matrix-wrap [data-slot="table"] tbody td{padding:12px 11px!important;height:100px}
+.sr614-matrix-wrap [data-slot="table"] tbody td b{display:block;font-size:16px!important;line-height:1.25!important;color:#17334a;font-weight:950!important}
+.sr614-matrix-wrap [data-slot="table"] tbody td small{
+  display:block;margin-top:6px;font-size:11px!important;line-height:1.5!important;
+  white-space:normal!important;overflow-wrap:break-word;color:#496575;font-weight:800;
+}
+.sr614-matrix-wrap [data-slot="table"] tbody td :is(span,strong){line-height:1.45!important;white-space:normal!important}
+
+/* Department details: distinct columns for identifiers, sample, ratios and added value. */
+.sr614-departments-wrap [data-slot="table"]{min-width:1280px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(1){width:120px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(2){width:155px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(3){width:125px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(4){width:96px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(5){width:150px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(6),
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(7){width:85px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(8),
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(9){width:116px}
+.sr614-departments-wrap [data-slot="table"] :is(th,td):nth-child(10){width:180px}
+.sr614-departments-wrap [data-slot="table"] tbody td{height:58px;font-size:13.5px!important}
+.sr614-departments-wrap [data-slot="table"] thead th{font-size:13px!important}
+
+/* Results registry: the checkbox, student identity and exams remain separate. */
+.sr614-results-wrap [data-slot="table"]{min-width:1450px}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(1){width:46px!important;padding:10px 8px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(2){width:255px!important;text-align:right!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(3){width:122px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(4){width:155px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(5){width:160px!important}
+.sr614-results-wrap [data-slot="table"] :is(th,td):nth-child(n+6){width:178px!important}
+.sr614-results-wrap [data-slot="table"] tbody td{height:73px;font-size:13px!important}
+.sr614-results-wrap [data-slot="table"] tbody td:nth-child(2){font-weight:950!important}
+.sr614-results-wrap [data-slot="table"] tbody td :is(b,strong){font-size:14px!important;font-weight:950!important;line-height:1.35!important}
+.sr614-results-wrap [data-slot="table"] tbody td small{
+  display:block!important;white-space:normal!important;margin-top:4px;
+  font-size:11px!important;line-height:1.45!important;color:#566e7a;font-weight:800!important;
+}
+.sr614-results-wrap [data-slot="table"] thead th{height:76px!important;font-size:12.5px!important}
+.sr614-results-wrap [data-slot="table"] input[type="checkbox"]{width:16px;height:16px;accent-color:#087e73}
+@media (max-width:850px){
+  :is(.sr614-levels-wrap,.sr614-matrix-wrap,.sr614-departments-wrap,.sr614-results-wrap)
+  [data-slot="table"] :is(th,td){font-size:12.5px!important}
+}
+
+
+/* 6.10.15 — full-width, non-truncating assessment names in printed report headers.
+   Previous base .report-context forced width:105mm, and the compact value used
+   ellipsis/nowrap. The portrait A4 page has room for the entire assessment. */
+.school-report-page .report-context-compact{
+  width:calc(100% - 2mm)!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+  margin:.6mm 1mm .9mm!important;
+  grid-template-columns:minmax(0,1.65fr) minmax(0,1fr)!important;
+  align-self:stretch!important;
+}
+.school-report-page .report-context-compact p{
+  box-sizing:border-box!important;
+  min-width:0!important;
+  min-height:6mm!important;
+  height:auto!important;
+  padding:.55mm 1.1mm!important;
+  overflow:visible!important;
+  flex-wrap:wrap!important;
+}
+.school-report-page .report-context-compact p b{
+  min-width:0!important;
+  max-width:100%!important;
+  flex:1 1 auto!important;
+  white-space:normal!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  line-height:1.36!important;
+  text-align:right!important;
+}
+/* A wider final column and automatic wrapping for the teacher's exam name. */
+.school-report-page .report-meta-grid.teacher-report-meta{
+  display:grid!important;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,.85fr) minmax(0,1.9fr)!important;
+  width:calc(100% - 2mm)!important;
+  max-width:none!important;
+  box-sizing:border-box!important;
+  margin:.65mm 1mm 1.25mm!important;
+  gap:.85mm!important;
+}
+.school-report-page .report-meta-grid.teacher-report-meta>*{
+  min-width:0!important;
+  padding:.75mm .8mm!important;
+  overflow:visible!important;
+  white-space:normal!important;
+  text-overflow:clip!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+  font-weight:900!important;
+  line-height:1.4!important;
+}
+/* Landscape subject-comparison pages keep their compact vertical rhythm. */
+.school-report-page.grade-subjects-landscape .report-context-compact{
+  width:calc(100% - 2.8mm)!important;
+  margin:.25mm 1.4mm .35mm!important;
+}
+.school-report-page.grade-subjects-landscape .report-context-compact p{
+  min-height:3.7mm!important;
+  padding:.25mm .55mm!important;
+}
+@media print{
+  .school-report-page .report-context-compact,
+  .school-report-page .report-meta-grid.teacher-report-meta{
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+}
+
+/* 6.10.16 — AI intervention plans, protected draft/approval workflow. */
+.sr616-plans{direction:rtl;display:grid;gap:18px;color:#153044}
+.sr616-hero{background:linear-gradient(115deg,#123b4b,#0c7d79);color:#fff;border-radius:17px;padding:23px 26px}
+.sr616-hero span{font-size:12px;opacity:.86}.sr616-hero h1{font-size:25px;font-weight:900;margin:5px 0}.sr616-hero p{font-size:13px;color:#e2f6f3;margin:0}
+.sr616-tabs{display:flex;gap:8px;flex-wrap:wrap}.sr616-tabs button,.sr616-actions button,.sr616-steps button{border:1px solid #bbd1d7;border-radius:9px;padding:10px 17px;font-size:13px;font-weight:900;background:#f7fbfc;color:#174e60}
+.sr616-tabs button.active,.sr616-actions button:not(.secondary){background:#0c7774;color:#fff;border-color:#0c7774}
+.sr616-panel{background:#fff;border:1px solid #d8e5e9;border-radius:16px;padding:20px;display:grid;gap:13px;min-width:0}
+.sr616-panel h2{font-size:18px;font-weight:900;margin:0;color:#123f50}.sr616-panel h3{font-size:15px;font-weight:900;margin:6px 0 0}
+.sr616-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.sr616-field{display:grid;gap:5px;font-weight:900;font-size:12px;min-width:0;color:#18485a}
+.sr616-field select,.sr616-field input,.sr616-field textarea{width:100%;min-width:0;background:#fafdfe;border:1px solid #b9cbd4;border-radius:8px;padding:9px 10px;color:#132c39;line-height:1.7;font-size:13px;font-weight:750;text-align:right}
+.sr616-field textarea{resize:vertical}.sr616-field input:focus,.sr616-field select:focus,.sr616-field textarea:focus{outline:2px solid #149c91;outline-offset:1px}
+.sr616-hint{border-right:4px solid #158d81;background:#edf8f7;padding:11px 13px;border-radius:7px;font-weight:700;font-size:13px}
+.sr616-error{border-right:4px solid #d83e45;background:#fff0ef;color:#9d2231;padding:13px;font-size:13px;font-weight:900;border-radius:8px}
+.sr616-actions{display:flex;align-items:end;flex-wrap:wrap;gap:9px}.sr616-actions button:disabled,.sr616-steps button:disabled{opacity:.55;cursor:not-allowed}
+.sr616-draft{display:grid;gap:12px;border-top:1px solid #ccdade;padding-top:15px;margin-top:6px}
+.sr616-steps{display:grid;gap:10px}.sr616-steps article{border:1px solid #d5e2e7;background:#f8fbfc;border-radius:12px;padding:13px;display:grid;gap:8px;font-size:13px;font-weight:700}
+.sr616-steps article header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}.sr616-steps article header label{display:flex;gap:5px;align-items:center;cursor:pointer}
+.sr616-steps p{margin:0}.sr616-steps small{color:#536b76}
+.sr616-library{display:grid;grid-template-columns:minmax(230px,280px) minmax(0,1fr);gap:16px;align-items:start}
+.sr616-library aside{display:grid;gap:7px;background:#fff;border:1px solid #d8e5e9;padding:14px;border-radius:14px;max-height:630px;overflow-y:auto}
+.sr616-library aside h2{font-weight:900;font-size:16px}.sr616-library aside button{display:grid;gap:5px;padding:11px;text-align:right;border:1px solid #d6e0e5;border-radius:9px;background:#fff;font-weight:850;font-size:12px;color:#173e4e}
+.sr616-library aside button.active{border-color:#0c8e80;background:#e8f8f4}.sr616-library aside small{font-size:11px;color:#65808c}
+.sr616-print-root{display:none}
+@media(max-width:780px){.sr616-library{grid-template-columns:1fr}.sr616-panel{padding:13px}.sr616-hero{padding:17px}}
+@media print{
+ @page{size:A4 portrait;margin:12mm}
+ body.sr616-printing #root,body.sr616-printing .sr-cloud-account{display:none!important}
+ body.sr616-printing #sr616-print-root{display:block!important;direction:rtl!important;color:#111!important;background:#fff!important;font:10pt Tahoma,Arial,sans-serif!important}
+ .sr616-print-root h1,.sr616-print-root h2{text-align:center;font-weight:900}
+ .sr616-print-root h1{font-size:16pt}.sr616-print-root h2{font-size:13pt}
+ .sr616-print-root h3{font-size:11pt;font-weight:900}
+ .sr616-print-root table{width:100%;border-collapse:collapse;font-size:9pt;table-layout:fixed}
+ .sr616-print-root td,.sr616-print-root th{border:1px solid #334155;padding:5px;word-break:break-word;text-align:right;font-weight:800;vertical-align:top}
+ .sr616-print-root tr{break-inside:avoid}.sr616-print-root thead{display:table-header-group}
+}
+
+/* 6.10.17 — Gemini connection management (owner-only, Vault-backed). */
+.sr617-connection{display:grid;gap:14px}
+.sr617-connection h2{font-size:1.15rem;font-weight:950;color:#164052}
+.sr617-status{display:grid;gap:5px;padding:14px 16px;border:1px solid #cfdee4;background:#f5f9fb;border-right:5px solid #64748b;border-radius:13px;color:#234556;font-weight:800;line-height:1.65}
+.sr617-status strong{font-size:1rem;font-weight:950}
+.sr617-status span{font-size:.87rem}
+.sr617-status.connected{background:#ecfdf5;border-color:#b2e5c5;border-right-color:#15803d;color:#166534}
+.sr617-status.saved{background:#eff6ff;border-color:#b8d8ff;border-right-color:#2563eb}
+.sr617-status.error{background:#fff5f5;border-color:#fecaca;border-right-color:#dc2626;color:#991b1b}
+.sr617-status.testing{border-right-color:#ca8a04;background:#fffbeb}
+.sr617-connection input[type=password]{direction:ltr;text-align:left;letter-spacing:.04em;font-family:system-ui,sans-serif;font-weight:700}
+.sr617-connection .sr616-actions button{min-height:44px;font-weight:950}
+
+/* 6.10.18 — official Word plan metadata controls. */
+.sr618-word-panel{display:grid;gap:13px;border:1px solid #a9d6cf;background:linear-gradient(135deg,#f1fbf9,#fff);border-radius:13px;padding:17px;margin:8px 0;}
+.sr618-word-panel>h3{font-size:16px!important;color:#0f5660!important;margin:0!important;font-weight:950!important;}
+.sr618-document-context{font-size:13px;font-weight:750;line-height:1.9;background:#fff;border:1px dashed #a6bdc7;border-radius:9px;padding:10px 13px;}
+.sr618-word-panel .sr616-actions button:first-child{background:#0b746c;color:white;font-weight:950;}
+
+/* 6.10.19 — dashboard clarity, no overlapping subject performance bars / readiness rings. */
+.sr619-subject-rank{display:grid;gap:12px;min-width:0;overflow:visible}
+.sr619-subject-row{display:grid;grid-template-columns:minmax(115px,34%) minmax(0,1fr);gap:16px;align-items:center;padding:11px 9px;border:1px solid #e2eaed;border-radius:13px;background:#fafcfc;text-align:right;min-width:0;width:100%;cursor:pointer}
+.sr619-subject-row:hover{background:#edf7f6;border-color:#bedbd7}
+.sr619-subject-title{min-width:0;display:grid;align-content:center;gap:4px;overflow-wrap:anywhere}
+.sr619-subject-title b{font-weight:900;font-size:13px;color:#133a4d}
+.sr619-subject-title small{font-weight:700;color:#607d88;font-size:10px;line-height:1.45}
+.sr619-subject-bars{min-width:0;display:grid;gap:8px}
+.sr619-subject-bar{display:grid;grid-template-columns:53px minmax(0,1fr) 49px;align-items:center;gap:8px;min-width:0}
+.sr619-subject-bar>span{font-size:11px;font-weight:800;color:#425b69;white-space:nowrap}
+.sr619-subject-bar>strong{font-size:13px;font-weight:900;color:#123f52;text-align:left;white-space:nowrap;font-variant-numeric:tabular-nums}
+.sr619-subject-track{height:11px;background:#e7eef1;border-radius:999px;overflow:hidden;position:relative;width:100%;min-width:0}
+.sr619-subject-track i{display:block;height:100%;border-radius:999px;background:#d4a037;max-width:100%;min-width:0}
+.sr619-subject-track i.success{background:#117f75}
+.sr69-readiness .sr69-ring-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:center;justify-items:center;margin:4px auto 14px}
+.sr69-readiness .sr69-ring{width:min(100%,122px);max-width:122px;aspect-ratio:1;margin:0 auto;display:grid;place-items:center;padding:0;overflow:hidden}
+.sr69-readiness .sr619-ring-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;max-width:88%;line-height:1.2;min-width:0}
+.sr69-readiness .sr619-ring-content strong{font-size:clamp(14px,1.6vw,21px);line-height:1.15;font-weight:900;white-space:nowrap;color:#163e4b;font-variant-numeric:tabular-nums}
+.sr69-readiness .sr619-ring-content span{font-size:11px;font-weight:800;color:#425e69;line-height:1.25;white-space:nowrap}
+.sr69-readiness .sr69-readiness-list{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:14px}
+.sr69-readiness .sr69-readiness-list button{min-width:0;min-height:82px;padding:10px 8px;align-content:center;text-align:center;word-break:normal;overflow-wrap:anywhere}
+.sr69-readiness .sr69-readiness-list span{font-size:11px;line-height:1.5;font-weight:850;color:#4f6978}
+.sr69-readiness .sr69-readiness-list b{font-size:18px;line-height:1.3;font-weight:900}
+@media(max-width:620px){.sr619-subject-rank{overflow:visible}.sr619-subject-row{grid-template-columns:minmax(90px,34%) minmax(0,1fr);gap:9px}.sr619-subject-bar{grid-template-columns:43px minmax(0,1fr) 42px;gap:5px}.sr69-readiness .sr69-readiness-list{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* 6.10.19 — editor for teacher improvement plans and quantitative / descriptive Word reports. */
+.sr619-teacher-center{width:100%;max-width:1500px;margin:auto;display:grid;gap:16px;color:#183f51}
+.sr619-tabs{display:flex;gap:9px;flex-wrap:wrap}
+.sr619-tabs button{border:1px solid #d9e5e9;border-radius:11px;padding:12px 17px;font-weight:900;background:#fff;color:#264c5a}
+.sr619-tabs button.active{background:#117c74;border-color:#117c74;color:#fff}
+.sr619-card{background:#fff;border:1px solid #d9e6ea;border-radius:20px;padding:20px;display:grid;gap:16px;min-width:0;box-shadow:0 9px 22px rgba(16,53,72,.05)}
+.sr619-card h2{font-size:19px;font-weight:950;color:#16485a}
+.sr619-card h3{font-size:15px;font-weight:950;color:#8D153A}
+.sr619-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sr619-limits{grid-template-columns:repeat(2,minmax(150px,210px))}
+.sr619-field{display:grid;gap:7px;min-width:0;font-size:13px;font-weight:850;color:#314c5a}
+.sr619-field input,.sr619-field select,.sr619-field textarea{display:block;width:100%;min-width:0;padding:11px 12px;background:#fcfefe;border:1px solid #cddfe5;border-radius:10px;color:#1a4355;font-size:14px;font-weight:700;text-align:right;line-height:1.65}
+.sr619-field textarea{resize:vertical;white-space:pre-wrap}
+.sr619-stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.sr619-stats>div,.sr619-band-grid>div{display:grid;gap:6px;padding:15px 10px;border:1px solid #deeaed;border-radius:13px;background:#f7fbfb;text-align:center;min-width:0}
+.sr619-stats span,.sr619-band-grid span{color:#4e6674;font-weight:850;font-size:11px}
+.sr619-stats strong,.sr619-band-grid strong{font-size:21px;font-weight:1000;color:#124b5b}
+.sr619-band-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sr619-band-grid>div:first-child{border-top:4px solid #b5485b}.sr619-band-grid>div:nth-child(2){border-top:4px solid #cf9a35}.sr619-band-grid>div:nth-child(3){border-top:4px solid #16867e}.sr619-band-grid>div:nth-child(4){border-top:4px solid #8b98a3}
+.sr619-band-grid small{font-size:10px;color:#738b93}
+.sr619-table-wrap{overflow:auto;max-height:610px;border:1px solid #d6e3e8;border-radius:12px}
+.sr619-table-wrap h3{padding:12px 14px;position:sticky;top:0;background:#f4f9f9;z-index:3}
+.sr619-table-wrap table{width:100%;min-width:700px;border-collapse:collapse;text-align:right;font-size:12px;font-weight:850}
+.sr619-table-wrap th{background:#174455;color:#fff;padding:11px;position:sticky;top:0;white-space:nowrap}
+.sr619-table-wrap td{padding:10px;border-bottom:1px solid #dce8eb;white-space:nowrap}
+.sr619-table-wrap tr:nth-child(even) td{background:#f7fafb}
+.sr619-edit-band{padding:17px;border:1px solid #e0e9ec;border-radius:13px;display:grid;gap:11px}
+.sr619-edit-band .sr619-field{width:100%}
+.sr619-actions{display:flex;flex-wrap:wrap;gap:10px}
+.sr619-actions button{background:#117c74;color:#fff;border:0;padding:12px 19px;border-radius:11px;font-size:13px;font-weight:950}
+.sr619-actions button.secondary{background:#e8f0f1;color:#294f5c}
+.sr619-notice{color:#a23146;background:#fff3f4;border:1px solid #edb4be;border-radius:12px;padding:13px}
+@media(max-width:1050px){.sr619-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sr619-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:620px){.sr619-card{padding:12px}.sr619-grid,.sr619-limits{grid-template-columns:1fr}.sr619-stats,.sr619-band-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
