@@ -21,5 +21,5 @@
     "test:report-typography": "node tests/report-typography.cjs",
     "test:teacher-performance": "node --expose-internals tests/teacher-performance.cjs"
   },
-  "version": "6.10.19"
+  "version": "6.10.20"
 }

@@ -5,14 +5,18 @@ SR63.TeacherPerformanceCenter=function({workspace}){
  [lower,setLower]=(0,v.useState)(60),[upper,setUpper]=(0,v.useState)(80),
  [actions,setActions]=(0,v.useState)({}),[narrative,setNarrative]=(0,v.useState)({}),
  [targets,setTargets]=(0,v.useState)({success:90,achievement:75,valueAdded:3,high90:30}),
- [feedback,setFeedback]=(0,v.useState)(''),[problem,setProblem]=(0,v.useState)('');
+ [feedback,setFeedback]=(0,v.useState)(''),[problem,setProblem]=(0,v.useState)(''),[selectedClass,setSelectedClass]=(0,v.useState)('');
  const choices=(0,v.useMemo)(()=>SR63.teacherPerformanceChoices(workspace,exam),[workspace,exam]);
  const teacherNames=[...new Set(choices.map(x=>x.teacher))],currentTeacher=teacherNames.includes(teacher)?teacher:teacherNames[0]||'';
  const subjectChoices=choices.filter(x=>x.teacher===currentTeacher),picked=subjectChoices.find(x=>SR63.subjectAliasKey(x.subject)===SR63.subjectAliasKey(subject))||subjectChoices[0];
  const currentSubject=picked?.subject||'';
  (0,v.useEffect)(()=>{setActions({});setNarrative({});setProblem('');},[currentTeacher,currentSubject,exam,cohort]);
- let analysis=null,analysisError='';
- try{if(currentTeacher&&currentSubject)analysis=SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper});}
+ let analysis=null,fullAnalysis=null,analysisError='';
+ try{if(currentTeacher&&currentSubject){
+   fullAnalysis=SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper});
+   const className=fullAnalysis.groups.some(g=>g.className===selectedClass)?selectedClass:fullAnalysis.groups[0]?.className;
+   analysis=view==='improvement'?SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper,className}):fullAnalysis;
+ }}
  catch(e){analysisError=e.message||'تعذر تحليل النتائج.';}
  const preset=currentSubject?SR63.teacherImprovementDefaults(currentSubject):{},editActions={...preset,...actions};
  const form=(title,node)=>(0,q.jsxs)('label',{className:'sr619-field',children:[(0,q.jsx)('span',{children:title}),node]});
@@ -45,21 +49,22 @@ SR63.TeacherPerformanceCenter=function({workspace}){
    analysisError?(0,q.jsx)('p',{className:'sr619-notice',children:analysisError}):null
   ]}),
   analysis?(view==='improvement'?(0,q.jsxs)('section',{className:'sr619-card',children:[
-    (0,q.jsx)('h2',{children:'2. توزيع الطلاب التلقائي وخطة تحسين الأداء'}),
+    (0,q.jsx)('h2',{children:'2. خطة تحسين الأداء — للشعبة كاملة'}),
+    fullAnalysis?(0,q.jsxs)('div',{className:'sr619-grid',children:[form('حدد الشعبة لإصدار خطة مستقلة لجميع طلابها',select(analysis?.groups[0]?.className||'',setSelectedClass,fullAnalysis.groups.map(g=>[g.className,g.className+' — '+g.students.length+' طالبًا']))) ]}):null,
     (0,q.jsx)('div',{className:'sr619-grid sr619-limits',children:[
       form('نهاية المستوى المتدني (%)',(0,q.jsx)('input',{type:'number',value:lower,min:1,max:95,onChange:e=>setLower(e.target.value)})),
       form('بداية المستوى المرتفع (%)',(0,q.jsx)('input',{type:'number',value:upper,min:5,max:100,onChange:e=>setUpper(e.target.value)}))
     ]}),
     (0,q.jsx)('div',{className:'sr619-band-grid',children:Object.entries(bandLabels).map(([key,label])=>(0,q.jsxs)('div',{children:[(0,q.jsx)('span',{children:label}),(0,q.jsx)('strong',{children:analysis.bands[key].length}),(0,q.jsx)('small',{children:key==='missing'?'لا تُحوّل إلى صفر':`طالبًا ضمن المستوى`})]},key))}),
     (0,q.jsx)('p',{className:'sr616-hint',children:analysis.prevExamName?'الاختبار السابق: '+analysis.prevExamName+' · القياس بنقاط مئوية بين نتائج الطالب الحاضرة في التقييمين.':'هذا أول اختبار في التسلسل، لذلك لا توجد مقارنة سابقة.'}),
-    (0,q.jsxs)('div',{className:'sr619-table-wrap',children:[(0,q.jsx)('h3',{children:'معاينة أسماء الطلاب ودرجاتهم حسب المستويات'}),
+    (0,q.jsxs)('div',{className:'sr619-table-wrap',children:[(0,q.jsx)('h3',{children:'معاينة جميع طلاب الشعبة حسب المستويات'}),
       (0,q.jsxs)('table',{children:[(0,q.jsx)('thead',{children:(0,q.jsxs)('tr',{children:['المستوى','اسم الطالب','الشعبة','السابق','الحالي','التغير'].map(h=>(0,q.jsx)('th',{children:h},h))})}),
       (0,q.jsx)('tbody',{children:analysis.students.slice(0,100).map(s=>(0,q.jsxs)('tr',{children:[(0,q.jsx)('td',{children:bandLabels[s.band]}),(0,q.jsx)('td',{children:s.studentName}),(0,q.jsx)('td',{children:s.className}),(0,q.jsx)('td',{children:nf(s.previous)}),(0,q.jsx)('td',{children:nf(s.current)}),(0,q.jsx)('td',{children:df(s.change)})]},s.studentId+'|'+s.className))})]})]}),
     analysis.students.length>100?(0,q.jsx)('p',{className:'sr616-hint',children:'تعرض المعاينة أول 100 طالب، بينما ملف Word يتضمن جميع الطلاب دون حذف.'}):null,
     ...['low','middle','high'].map(key=>(0,q.jsxs)('section',{className:'sr619-edit-band',children:[(0,q.jsx)('h3',{children:labelMap[key]}),
       ...actionFields.map(field=>form(actionFieldLabels[field],textarea(editActions[key+field]||'',x=>setActions(a=>({...a,[key+field]:x})),field==='Actions'?5:2)))]},key)),
     (0,q.jsxs)('div',{className:'sr619-actions',children:[
-      (0,q.jsx)('button',{onClick:()=>download('improvement'),children:'تنزيل خطة تحسين الأداء Word — بكل الطلاب'}),
+      (0,q.jsx)('button',{onClick:()=>download('improvement'),children:'تنزيل خطة تحسين الأداء Word — لجميع طلاب الشعبة'}),
       (0,q.jsx)('button',{className:'secondary',onClick:()=>setActions({}),children:'استعادة الإجراءات المقترحة للمادة'})]})
   ]}):(0,q.jsxs)('section',{className:'sr619-card',children:[
    (0,q.jsx)('h2',{children:'2. التقرير الكمي والوصفي لجميع شعب المعلم'}),

@@ -20,15 +20,28 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  const lower=Number(options.lower??60),upper=Number(options.upper??80);
  if(!Number.isFinite(lower)||!Number.isFinite(upper)||lower<1||upper>100||lower>=upper)SR63.fail('حدود المستويات غير صحيحة؛ يجب أن يكون الحد الأدنى أصغر من الحد الأعلى.');
  const cohort=options.cohort==='support'?'support':'general';
+ const classFilter=String(options.className||'').trim();
  const round=x=>Math.round(x*10)/10;
  const pct=(r,key)=>{if(!key||r.statuses?.[key]!=='present')return null;const score=r.scores?.[key],total=pj(r,key,settings);return typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(total)&&total>0?round(score/total*100):null;};
  const chosen=(workspace.rows||[]).filter(r=>
    SR63.subjectAliasKey(r.subject)===SR63.subjectAliasKey(subject)&&
    ij(mj(r,exam)||'')===ij(teacher)&&
-   ((cohort==='support')===SR63.isSupportRow(r,exam))
+   ((cohort==='support')===SR63.isSupportRow(r,exam))&&
+   (!classFilter||String(hj(r,exam)||r.className||'').trim()===classFilter)
  );
  const uniq=new Map();
- for(const row of chosen){const k=String(row.studentId)+'|'+SR63.subjectAliasKey(row.subject);if(!uniq.has(k))uniq.set(k,row);}
+ for(const row of chosen){const k=String(row.studentId)+'|'+SR63.subjectAliasKey(subject);if(!uniq.has(k))uniq.set(k,row);}
+ // A class improvement plan must list every known student of the selected class,
+ // including those with no result row for this teacher's subject. Never assign zero.
+ if(classFilter&&chosen.length){
+  for(const row of workspace.rows||[]){
+   if(String(hj(row,exam)||row.className||'').trim()!==classFilter)continue;
+   if(((cohort==='support')!==SR63.isSupportRow(row,exam)))continue;
+   const id=String(row.studentId||'').trim();if(!id)continue;
+   const key=id+'|'+SR63.subjectAliasKey(subject);
+   if(!uniq.has(key))uniq.set(key,{...row,subject,scores:{},statuses:{},totals:{}});
+  }
+ }
  const rows=[...uniq.values()];
  if(!rows.length)SR63.fail('لا توجد نتائج للمعلم والمادة والفئة المختارة.');
  const students=rows.map(r=>{
@@ -56,7 +69,7 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  };
  const classes=[...new Set(students.map(s=>s.className))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
  const groups=classes.map(className=>({className,students:students.filter(s=>s.className===className),...summary(students.filter(s=>s.className===className))}));
- return {teacher,subject,subjectLabel:SR63.reportSubjectLabel(subject,settings),exam,examName:tj(settings,exam).name,
+ return {teacher,subject,classFilter,subjectLabel:SR63.reportSubjectLabel(subject,settings),exam,examName:tj(settings,exam).name,
    prevExam,prevExamName:prevExam?tj(settings,prevExam).name:null,cohort,lower,upper,students,groups,
    bands:{low:students.filter(s=>s.band==='low'),middle:students.filter(s=>s.band==='middle'),high:students.filter(s=>s.band==='high'),missing:students.filter(s=>s.band==='missing')},...summary(students),studentCount:students.length,students,
    schoolName:settings.schoolName||'—',academicYear:settings.academicYear||'—',coordinator:SR63.subjectCoordinator(workspace,subject)||'',
