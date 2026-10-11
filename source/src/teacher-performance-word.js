@@ -36,7 +36,7 @@ SR63.teacherWordKit=function(meta,{landscape=false,maroon='920D39'}={}){
  const drawing=`<w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="4050000" cy="890000"/><wp:docPr id="1" name="الشعار الرسمي لوزارة التربية والتعليم والتعليم العالي"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="ministry.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="4050000" cy="890000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing>`;
  const hdrXml=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:hdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:p><w:pPr><w:bidi/><w:jc w:val="left"/><w:spacing w:after="80"/></w:pPr><w:r>${drawing}</w:r></w:p></w:hdr>`;
  const xml=(tag,body)=>`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><${tag} xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">${body}</${tag}>`;
- const make=(body,name)=>{
+ const make=(body,name,overrides={})=>{
   const sect=`<w:sectPr><w:headerReference w:type="default" r:id="rId2"/><w:footerReference w:type="default" r:id="rId3"/><w:pgSz w:w="${pgWidth}" w:h="${landscape?11906:16838}" ${landscape?'w:orient="landscape"':''}/><w:pgMar w:top="1300" w:right="910" w:bottom="960" w:left="910" w:header="240" w:footer="430"/></w:sectPr>`;
   const alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   let acc=0,bits=0;const buf=[];for(const ch of SR63.ministryLogoWordBase64){if(ch==='=')break;const n=alphabet.indexOf(ch);if(n<0)continue;acc=(acc<<6)|n;bits+=6;if(bits>=8){bits-=8;buf.push((acc>>>bits)&255);}}
@@ -52,6 +52,7 @@ SR63.teacherWordKit=function(meta,{landscape=false,maroon='920D39'}={}){
    'word/header1.xml':hdrXml,
    'word/footer1.xml':xml('w:ftr',p(`${meta.schoolName||'المدرسة'} — وثيقة تربوية للمراجعة والاعتماد`,{size:14,center:true,color:'666E77'}))
   };
+  Object.assign(files,overrides);
   const encoder=new TextEncoder(),crcTable=new Uint32Array(256),parts=[],central=[];
   for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xedb88320^(c>>>1):c>>>1;crcTable[n]=c>>>0;}
   const crc32=a=>{let c=0xffffffff;for(const b of a)c=(crcTable[(c^b)&255]^(c>>>8))>>>0;return(c^0xffffffff)>>>0;};

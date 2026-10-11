@@ -1,10 +1,10 @@
 {
   "product": "School Results Cloud",
-  "version": "6.10.20",
+  "version": "6.10.21",
   "files": [
     {
       "name": "app.js",
-      "sha256": "c5683cab9a165fc9e4490a0a511524eb52a699679dca5b2892370ea6bb77d8c4"
+      "sha256": "3a206d75e052fee599090dd4eabd620935fad4ca6ec74b5633167df9e1f318ec"
     },
     {
       "name": "style.css",
@@ -12,7 +12,7 @@
     },
     {
       "name": "version.json",
-      "sha256": "17e51853797a5ad2480321987c5f6fd19415a03043c455e8fd525385b7dcb8d0"
+      "sha256": "e7ab6713d1d22a9070fc511f923d995220a0e5fdb160a5379117c1241e795ce7"
     },
     {
       "name": "index.html",
