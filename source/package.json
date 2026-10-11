@@ -22,5 +22,5 @@
     "test:teacher-performance": "node --expose-internals tests/teacher-performance.cjs",
     "test:department-quant": "node --expose-internals tests/department-quant.cjs"
   },
-  "version": "6.10.21"
+  "version": "6.10.22"
 }
