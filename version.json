@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.15",
-  "released": "2026-10-10",
+  "version": "6.10.17",
+  "released": "2026-10-11",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إظهار اسم التقييم كاملًا في رأس تقرير متوسطات المعلمين وغيره دون اقتطاع، عبر استغلال عرض صفحة A4 ولف النص."
+  "notes": "إعداد اتصال Gemini داخل صفحة الخطط العلاجية: حفظ مفتاح مشفر في Supabase Vault، اختبار اتصال فعلي، واختيار النموذج، دون حفظ الأسرار في الواجهة أو GitHub."
 }

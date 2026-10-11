@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.15', release:'2026-10-10', formDirty:false};
+var SR63 = {version:'6.10.17', release:'2026-10-11', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -137,6 +137,14 @@ SR63.validate = function(raw) {
       must(!subjectKeys.has(key)&&!names.has(name),'تكرار المادة أو اسم العرض في إعدادات التقارير غير مسموح.');
       subjectKeys.add(key);names.add(name);
     }
+  }
+  must(raw.aiPlans===undefined||Array.isArray(raw.aiPlans)&&raw.aiPlans.length<=300,'قائمة الخطط العلاجية غير صالحة أو كبيرة جدًا.');
+  if(raw.aiPlanSettings!==undefined)must(raw.aiPlanSettings&&typeof raw.aiPlanSettings==='object'&&!Array.isArray(raw.aiPlanSettings),'إعدادات الخطط العلاجية غير صالحة.');
+  for(const plan of raw.aiPlans??[]){
+    must(plan&&typeof plan.id==='string'&&typeof plan.title==='string'&&plan.title.length<=200&&
+      ['draft','approved','in_progress','completed'].includes(plan.status)&&Array.isArray(plan.members)&&plan.members.length<=250&&
+      Array.isArray(plan.steps)&&plan.steps.length>0&&plan.steps.length<=16,'إحدى الخطط العلاجية غير صالحة.');
+    for(const step of plan.steps)must(step&&typeof step.action==='string'&&step.action.length<=650&&typeof step.measure==='string'&&step.measure.length<=350,'أحد إجراءات الخطة العلاجية غير صالح.');
   }
   const ids=new Set(),keys=new Set();
   for(const [index,row] of raw.rows.entries()){

@@ -16,7 +16,7 @@ test('subject comparison print uses compact cells with bold black subject and gr
 test('all-subject landscape report uses colgroup for teacher and metric widths',()=>{assert.match(reports,/grade-subject-matrix-all/);assert.match(reports,/95\.4\*\.625\/data\.subjects\.length/);assert.match(css,/6\.10\.10 — print ten school subjects on one landscape A4 sheet/);});
 test('legacy misleading terminology is absent from generated runtime',()=>{for(const term of ['طلاب فريدون','نتائج مقيمة','نتيجة مقيمة','حاضر/مقيم'])assert.ok(!app.includes(term),term);});
 test('import preview lists real per-class counts and blocks erroneous Excel sheets',()=>{assert.match(app,/توزيع الشعب:/);assert.match(app,/توقف الاعتماد:/);assert.match(app,/importSectionLabel/);});
-test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.15/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
+test('sidebar release label is current',()=>{assert.match(app,/الإصدار 6\.10\.17/);assert.ok(!app.includes('الإصدار 6.2 الاحترافي'));});
 
 
 test('legacy subject repair requires explicit action and pre-change snapshot',()=>{assert.match(app,/إصلاح الربط الحالي بأمان/);assert.match(app,/قبل إصلاح ربط المواد والمعلمين/);assert.match(app,/subjectLinkRepairPreview/);});
