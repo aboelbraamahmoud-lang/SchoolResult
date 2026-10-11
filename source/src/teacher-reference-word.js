@@ -1,4 +1,4 @@
-/* 6.10.22 — Exact source Word forms: replace data in the user's original DOCX parts, never redraw the forms. */
+/* 6.10.23 — Repair Word DOCX ZIP dates for Microsoft Word compatibility; source Word forms: replace data in the user's original DOCX parts, never redraw the forms. */
 (function(){
  const templates=SR63.teacherReferenceTemplates;
  const xmlEsc=value=>String(value??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));
@@ -16,8 +16,8 @@
   const encoder=new TextEncoder(),parts=[],dir=[];let offset=0,num=0;
   for(const [name,raw] of Object.entries(files)){
    const filename=encoder.encode(name),data=typeof raw==='string'?encoder.encode(raw):base64Bytes(raw.b64),hash=crc32(data);
-   const local=record(30,[[0,4,0x04034b50],[4,2,20],[14,4,hash],[18,4,data.length],[22,4,data.length],[26,2,filename.length]]);
-   const central=record(46,[[0,4,0x02014b50],[4,2,20],[6,2,20],[16,4,hash],[20,4,data.length],[24,4,data.length],[28,2,filename.length],[42,4,offset]]);
+   const local=record(30,[[0,4,0x04034b50],[4,2,20],[12,2,0x21],[14,4,hash],[18,4,data.length],[22,4,data.length],[26,2,filename.length]]);
+   const central=record(46,[[0,4,0x02014b50],[4,2,20],[6,2,20],[14,2,0x21],[16,4,hash],[20,4,data.length],[24,4,data.length],[28,2,filename.length],[42,4,offset]]);
    parts.push(local,filename,data);dir.push(central,filename);offset+=local.length+filename.length+data.length;num++;
   }
   const dirSize=dir.reduce((total,item)=>total+item.length,0),end=record(22,[[0,4,0x06054b50],[8,2,num],[10,2,num],[12,4,dirSize],[16,4,offset]]);

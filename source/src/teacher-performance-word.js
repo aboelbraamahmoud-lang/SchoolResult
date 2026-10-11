@@ -60,9 +60,9 @@ SR63.teacherWordKit=function(meta,{landscape=false,maroon='920D39'}={}){
   let offset=0;
   for(const [path,content] of Object.entries(files)){
    const filename=encoder.encode(path),data=content instanceof Uint8Array?content:encoder.encode(content),checksum=crc32(data);
-   const local=record(30,[[0,4,0x04034b50],[4,2,20],[14,4,checksum],[18,4,data.length],[22,4,data.length],[26,2,filename.length]]);
+   const local=record(30,[[0,4,0x04034b50],[4,2,20],[12,2,0x21],[14,4,checksum],[18,4,data.length],[22,4,data.length],[26,2,filename.length]]);
    parts.push(local,filename,data);
-   const dir=record(46,[[0,4,0x02014b50],[4,2,20],[6,2,20],[16,4,checksum],[20,4,data.length],[24,4,data.length],[28,2,filename.length],[42,4,offset]]);
+   const dir=record(46,[[0,4,0x02014b50],[4,2,20],[6,2,20],[14,2,0x21],[16,4,checksum],[20,4,data.length],[24,4,data.length],[28,2,filename.length],[42,4,offset]]);
    central.push(dir,filename);offset+=local.length+filename.length+data.length;
   }
   const centralSize=central.reduce((n,x)=>n+x.length,0),end=record(22,[[0,4,0x06054b50],[8,2,Object.keys(files).length],[10,2,Object.keys(files).length],[12,4,centralSize],[16,4,offset]]);
@@ -73,7 +73,7 @@ SR63.teacherWordKit=function(meta,{landscape=false,maroon='920D39'}={}){
  return {p,heading,header:heading,table,gridTable,sign,make,esc,width};
 };
 SR63.teacherWordDownload=function(output){
- const blob=new Blob([output.bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=output.filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);return output.filename;
+ const blob=new Blob([output.bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=output.filename;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);return output.filename;
 };
 SR63.teacherImprovementWordBuild=function(analysis,edits={}){
  if(analysis.groups.length!==1)throw Error('خطة تحسين الأداء تُصدَّر لشعبة واحدة فقط. اختر الشعبة أولًا.');

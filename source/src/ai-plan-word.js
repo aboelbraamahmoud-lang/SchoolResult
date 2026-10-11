@@ -99,9 +99,9 @@ SR63.aiPlanWordBuild=function(workspace,plan,overrides){
   let offset=0;
   for(const [name,xml] of Object.entries(files)){
     const filename=bytes.encode(name),data=bytes.encode(xml),check=crc32(data);
-    const local=little(30,[0,4,0x04034b50],[4,2,20],[6,2,0],[8,2,0],[14,4,check],[18,4,data.length],[22,4,data.length],[26,2,filename.length]);
+    const local=little(30,[0,4,0x04034b50],[4,2,20],[6,2,0],[8,2,0],[12,2,0x21],[14,4,check],[18,4,data.length],[22,4,data.length],[26,2,filename.length]);
     parts.push(local,filename,data);
-    const dir=little(46,[0,4,0x02014b50],[4,2,20],[6,2,20],[8,2,0],[10,2,0],[16,4,check],[20,4,data.length],[24,4,data.length],[28,2,filename.length],[42,4,offset]);
+    const dir=little(46,[0,4,0x02014b50],[4,2,20],[6,2,20],[8,2,0],[10,2,0],[14,2,0x21],[16,4,check],[20,4,data.length],[24,4,data.length],[28,2,filename.length],[42,4,offset]);
     central.push(dir,filename);offset+=local.length+filename.length+data.length;
   }
   const centralSize=central.reduce((n,x)=>n+x.length,0),end=little(22,[0,4,0x06054b50],[8,2,Object.keys(files).length],[10,2,Object.keys(files).length],[12,4,centralSize],[16,4,offset]);
@@ -114,6 +114,6 @@ SR63.aiPlanWordBuild=function(workspace,plan,overrides){
 SR63.aiPlanWordDownload=function(workspace,plan,overrides){
   const doc=SR63.aiPlanWordBuild(workspace,plan,overrides);
   const blob=new Blob([doc.bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}),url=URL.createObjectURL(blob),link=document.createElement('a');
-  link.href=url;link.download=doc.filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1200);
+  link.href=url;link.download=doc.filename;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
   return doc.filename;
 };

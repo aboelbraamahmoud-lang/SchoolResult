@@ -16,6 +16,24 @@ check('editable thresholds do not mutate grade records',()=>{const w=fixture();a
 check('subject actions tailored to actual subject',()=>{const m=S.teacherImprovementDefaults('رياضيات'),i=S.teacherImprovementDefaults('التربية الإسلامية');assert.ok(m.lowActions.includes('حسابية'));assert.ok(i.lowActions.includes('التجويد'));assert.notEqual(m.lowActions,i.lowActions);});
 check('original improvement DOCX includes pupils and original approvals',()=>{const a=improvementAnalyze(),o=parts(S.teacherImprovementWordBuild(a)),x=o['word/document.xml'];for(const name of ['ضعيف','متوسط','متفوق','غائب','صفر فعلي','الأهداف المنشودة','النائب الأكاديمي','منسق المادة','الطلبة ذوو الأداء'])assert.ok(x.includes(name),name);assert.ok(!x.includes('طالب دمج'));assert.ok(Object.keys(o).some(k=>k.startsWith('word/media/')));assert.ok(x.includes('w:bidiVisual'));});
 check('DOCX customization and XML escaping',()=>{const a=improvementAnalyze();assert.ok(parts(S.teacherImprovementWordBuild(a,{lowActions:'برنامج & متابعة'}))['word/document.xml'].includes('برنامج &amp; متابعة'));const q=parts(S.teacherQuantitativeWordBuild(a,{interpretation:'تفسير خاص',feedback:'تعقيب المنسق',targets:{success:100}}));for(const s of ['تفسير خاص','تعقيب المنسق','الاختبار الثاني','7/1','القيمة المضافة','اسم المعلم']){}for(const s of ['تفسير خاص','تعقيب المنسق','الاختبار الثاني','7/1','القيمة المضافة'])assert.ok(q['word/document.xml'].includes(s),s);});
+check('Word DOCX ZIP entries use valid DOS dates in both headers',()=>{
+ const a=improvementAnalyze();
+ for(const doc of [S.teacherImprovementWordBuild(a),S.teacherQuantitativeWordBuild(a)]){
+  const b=Buffer.from(doc.bytes);let i=0,local=0,central=0;
+  while(i+30<=b.length&&b.readUInt32LE(i)===0x04034b50){
+   assert.equal(b.readUInt16LE(i+12),0x21,'local DOCX ZIP date must be 1980-01-01');
+   const size=b.readUInt32LE(i+18),name=b.readUInt16LE(i+26),extra=b.readUInt16LE(i+28);
+   i+=30+name+extra+size;local++;
+  }
+  while(i+46<=b.length&&b.readUInt32LE(i)===0x02014b50){
+   assert.equal(b.readUInt16LE(i+14),0x21,'central DOCX ZIP date must be 1980-01-01');
+   const name=b.readUInt16LE(i+28),extra=b.readUInt16LE(i+30),comment=b.readUInt16LE(i+32);
+   i+=46+name+extra+comment;central++;
+  }
+  assert.ok(local>10,'missing DOCX entries');assert.equal(local,central,'ZIP directory mismatch');
+  assert.equal(b.readUInt32LE(i),0x06054b50,'missing ZIP end record');
+ }
+});
 check('original DOCX includes its media and Word parts',()=>{const a=improvementAnalyze();for(const output of [S.teacherImprovementWordBuild(a),S.teacherQuantitativeWordBuild(a)]){const p=parts(output);for(const req of ['[Content_Types].xml','_rels/.rels','word/document.xml','word/header1.xml'])assert.ok(p[req],req);assert.ok(Object.keys(p).some(k=>k.startsWith('word/media/')));assert.ok(output.filename.endsWith('.docx'));}});
 check('class-only plan cannot merge different classes',()=>{assert.throws(()=>S.teacherImprovementWordBuild(analyze(fixture())),/شعبة/);});
 check('class-only plan includes students not yet graded in that subject',()=>{const w=fixture();w.rows.push({...w.rows[0],id:'uns',studentId:'missing-student',studentName:'طالب من دون درجة مادة',subject:'العلوم',scores:{},statuses:{}});const a=analyze(w,{className:'7/1'});assert.ok(a.bands.missing.some(s=>s.studentName==='طالب من دون درجة مادة'));});
@@ -23,4 +41,4 @@ check('official Word templates keep RTL and both original logos',()=>{const a=im
 check('dashboard and navigation classes are present',()=>{const root=path.resolve(__dirname,'..');const app=fs.readFileSync(path.join(root,'../app.js'),'utf8'),css=fs.readFileSync(path.join(root,'src/repair.css'),'utf8');for(const s of ['teacherPerformance','TeacherPerformanceCenter','خطة تحسين الأداء الشاملة','التقرير الكمي والوصفي للمعلم'])assert.ok(app.includes(s),s);for(const s of ['sr619-subject-row','sr619-ring-content','sr619-subject-track'])assert.ok(css.includes(s));});
 check('teacher Word exports remain local, no network or credentials',()=>{const s=fs.readFileSync(path.resolve(__dirname,'../src/teacher-performance-word.js'),'utf8');for(const bad of ['fetch(','functions.invoke','GEMINI_API_KEY','service_role'])assert.ok(!s.includes(bad));});
 check('original table categories and rows are preserved',()=>{const a=improvementAnalyze(),q=parts(S.teacherQuantitativeWordBuild(a))['word/document.xml'],i=parts(S.teacherImprovementWordBuild(a))['word/document.xml'];for(const k of ['الشعب الدراسية','تحقيق المستهدف','التغذية الراجعة من المنسق','نسبة النجاح في الاختبار'])assert.ok(q.includes(k),k);for(const k of ['الطلبة ذوو الأداء المتدني','الطلبة ذوو الأداء المتوسط','الطلبة ذوو الأداء المرتفع','جهة الاعتماد','المخرجات المتوقعة'])assert.ok(i.includes(k),k);assert.ok(!i.includes('محمود الشبراوي'));assert.ok(!q.includes('Choose an item.'));});
-console.log('Teacher performance:',passed,'/16');
+console.log('Teacher performance:',passed,'/17');
