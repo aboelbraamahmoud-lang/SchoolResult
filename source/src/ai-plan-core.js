@@ -83,7 +83,7 @@ SR63.aiPlanCreate=function(workspace,request,draft,source='manual'){
 };
 SR63.aiPlanUpdate=function(workspace,id,change){
   const plans=workspace.aiPlans||[],old=plans.find(p=>p.id===id);if(!old)SR63.fail('الخطة غير موجودة.');
-  const allowed=['status','approvedBy','title','goal','successCriterion','steps'];
+  const allowed=['status','approvedBy','title','goal','successCriterion','steps','wordMeta'];
   if(Object.keys(change).some(k=>!allowed.includes(k)))SR63.fail('التعديل غير مسموح.');
   if(change.status&&!['draft','approved','in_progress','completed'].includes(change.status))SR63.fail('حالة الخطة غير صالحة.');
   if(change.title!==undefined&&(!String(change.title).trim()||String(change.title).length>140))SR63.fail('عنوان الخطة مطلوب بحد أقصى 140 حرفًا.');
@@ -91,6 +91,10 @@ SR63.aiPlanUpdate=function(workspace,id,change){
   if(change.successCriterion!==undefined&&String(change.successCriterion).length>320)SR63.fail('معيار النجاح طويل جدًا.');
   if(change.status==='approved'&&!String(change.approvedBy||old.approvedBy).trim())SR63.fail('اكتب اسم المسؤول الذي اعتمد الخطة.');
   if(change.status==='completed'&&!old.steps.every(s=>s.completed))SR63.fail('سجل تنفيذ الإجراءات قبل إغلاق الخطة.');
+  if(change.wordMeta!==undefined){
+    const keys=['schoolName','academicYear','teacherName','academicViceName','principalName'];
+    if(!change.wordMeta||typeof change.wordMeta!=='object'||Array.isArray(change.wordMeta)||Object.entries(change.wordMeta).some(([k,v])=>!keys.includes(k)||typeof v!=='string'||v.length>180))SR63.fail('بيانات خطاب Word غير صالحة.');
+  }
   let steps=old.steps;
   if(change.steps){if(!Array.isArray(change.steps)||change.steps.length!==old.steps.length)SR63.fail('لا يمكن حذف إجراءات الخطة من سجل المتابعة.');
     steps=change.steps.map((s,i)=>({...old.steps[i],action:String(s.action??old.steps[i].action).slice(0,600),measure:String(s.measure??old.steps[i].measure).slice(0,320),

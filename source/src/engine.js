@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.17', release:'2026-10-11', formDirty:false};
+var SR63 = {version:'6.10.18', release:'2026-10-11', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -145,6 +145,7 @@ SR63.validate = function(raw) {
       ['draft','approved','in_progress','completed'].includes(plan.status)&&Array.isArray(plan.members)&&plan.members.length<=250&&
       Array.isArray(plan.steps)&&plan.steps.length>0&&plan.steps.length<=16,'إحدى الخطط العلاجية غير صالحة.');
     for(const step of plan.steps)must(step&&typeof step.action==='string'&&step.action.length<=650&&typeof step.measure==='string'&&step.measure.length<=350,'أحد إجراءات الخطة العلاجية غير صالح.');
+    if(plan.wordMeta!==undefined)must(plan.wordMeta&&typeof plan.wordMeta==='object'&&!Array.isArray(plan.wordMeta)&&Object.entries(plan.wordMeta).every(([k,v])=>['schoolName','academicYear','teacherName','academicViceName','principalName'].includes(k)&&typeof v==='string'&&v.length<=180),'بيانات تصدير Word غير صالحة.');
   }
   const ids=new Set(),keys=new Set();
   for(const [index,row] of raw.rows.entries()){

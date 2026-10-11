@@ -1261,3 +1261,9 @@
 .sr617-status.testing{border-right-color:#ca8a04;background:#fffbeb}
 .sr617-connection input[type=password]{direction:ltr;text-align:left;letter-spacing:.04em;font-family:system-ui,sans-serif;font-weight:700}
 .sr617-connection .sr616-actions button{min-height:44px;font-weight:950}
+
+/* 6.10.18 — official Word plan metadata controls. */
+.sr618-word-panel{display:grid;gap:13px;border:1px solid #a9d6cf;background:linear-gradient(135deg,#f1fbf9,#fff);border-radius:13px;padding:17px;margin:8px 0;}
+.sr618-word-panel>h3{font-size:16px!important;color:#0f5660!important;margin:0!important;font-weight:950!important;}
+.sr618-document-context{font-size:13px;font-weight:750;line-height:1.9;background:#fff;border:1px dashed #a6bdc7;border-radius:9px;padding:10px 13px;}
+.sr618-word-panel .sr616-actions button:first-child{background:#0b746c;color:white;font-weight:950;}

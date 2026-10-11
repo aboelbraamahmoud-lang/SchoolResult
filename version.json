@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.17",
+  "version": "6.10.18",
   "released": "2026-10-11",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إعداد اتصال Gemini داخل صفحة الخطط العلاجية: حفظ مفتاح مشفر في Supabase Vault، اختبار اتصال فعلي، واختيار النموذج، دون حفظ الأسرار في الواجهة أو GitHub."
+  "notes": "تصدير الخطط العلاجية الفردية والجماعية إلى Word DOCX رسمي، يتضمن المعلم والصف والمدرسة والتقييم والطلاب والتشخيص والإجراءات، وتذييلًا لتوقيعات النائب الأكاديمي ومدير المدرسة."
 }

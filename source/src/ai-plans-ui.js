@@ -1,4 +1,4 @@
-/* 6.10.17 — AI plans plus owner-only Gemini Vault settings. */
+/* 6.10.18 — AI plans, official Word plans, owner-only Gemini Vault settings. */
 SR63.AIPlans=function({workspace,setWorkspace}){
   const [tab,setTab]=(0,v.useState)('create'),[exam,setExam]=(0,v.useState)(workspace.activeExam),
     [mode,setMode]=(0,v.useState)('group'),[cohort,setCohort]=(0,v.useState)('general'),
@@ -8,11 +8,25 @@ SR63.AIPlans=function({workspace,setWorkspace}){
     [config,setConfig]=(0,v.useState)(()=>SR63.aiPlanSettings(workspace)),
     [draft,setDraft]=(0,v.useState)(null),[request,setRequest]=(0,v.useState)(null),
     [selectedId,setSelectedId]=(0,v.useState)(''),[busy,setBusy]=(0,v.useState)(false),
-    [error,setError]=(0,v.useState)(''),[approvedBy,setApprovedBy]=(0,v.useState)(''),[follow,setFollow]=(0,v.useState)({}),[savedEdit,setSavedEdit]=(0,v.useState)(null),
+    [error,setError]=(0,v.useState)(''),[approvedBy,setApprovedBy]=(0,v.useState)(''),[follow,setFollow]=(0,v.useState)({}),[savedEdit,setSavedEdit]=(0,v.useState)(null),[wordEdit,setWordEdit]=(0,v.useState)(null),
     [apiKey,setApiKey]=(0,v.useState)(''),[apiModel,setApiModel]=(0,v.useState)('gemini-2.5-flash'),
     [connect,setConnect]=(0,v.useState)({state:'loading',configured:false,connected:null,message:'جارٍ التحقق من إعدادات Gemini…'}),
     [connectBusy,setConnectBusy]=(0,v.useState)(false);
   const plans=workspace.aiPlans||[],active=plans.find(p=>p.id===selectedId)||plans[0]||null;
+  const wordMeta=active?SR63.aiPlanWordMeta(workspace,active,wordEdit?.id===active.id?wordEdit.values:null):null;
+  const changeWord=(key,value)=>setWordEdit(prev=>({id:active.id,values:{...(prev?.id===active.id?prev.values:{}),[key]:value}}));
+  const saveWord=async()=>{if(!active)return;const keys=['schoolName','academicYear','teacherName','academicViceName','principalName'];if(await edit(active.id,{wordMeta:Object.fromEntries(keys.map(key=>[key,wordMeta[key]]))},'قبل حفظ بيانات ملف Word'))setWordEdit(null);};
+  const exportWord=()=>{if(!active)return;setError('');try{const name=SR63.aiPlanWordDownload(workspace,active,wordMeta);eb.success('تم إعداد ملف Word: '+name);}catch(err){setError(err.message||'تعذر إنشاء ملف Word.');}};
+  const exportDraftWord=()=>{
+    if(!draft||!request)return;setError('');
+    try{
+      const e=request.evidence,plan={...SR63.aiPlanNormalize(draft,e),scope:e.scope,cohort:e.cohort,
+        exam:e.assessment,subject:e.subject,grade:e.grade,className:e.className,members:request.members,
+        status:'draft',source:'manual',createdAt:new Date().toISOString(),approvedBy:''};
+      SR63.aiPlanWordDownload(workspace,plan);
+      eb.success('تم تجهيز مسودة الخطة بصيغة Word.');
+    }catch(err){setError(err.message||'تعذر إنشاء ملف Word.');}
+  };
   const subjects=[...new Map((workspace.rows||[]).map(r=>[SR63.subjectAliasKey(r.subject),r.subject])).entries()]
     .filter(([key])=>key).sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],workspace.settings));
   const realSubject=subjects.some(([key])=>key===subject)?subject:subjects[0]?.[0]||'';
@@ -103,8 +117,8 @@ SR63.AIPlans=function({workspace,setWorkspace}){
   };
   const edit=async(id,change,description)=>{
     if(busy)return;setBusy(true);setError('');
-    try{await persist(description,previous=>SR63.aiPlanUpdate(previous,id,change));eb.success('سُجّل التحديث وحُفظت نقطة استعادة.');}
-    catch(e){setError(e.message||'تعذر الحفظ.');}finally{setBusy(false);}
+    try{await persist(description,previous=>SR63.aiPlanUpdate(previous,id,change));eb.success('سُجّل التحديث وحُفظت نقطة استعادة.');return true;}
+    catch(e){setError(e.message||'تعذر الحفظ.');return false;}finally{setBusy(false);}
   };
   const printPlan=(plan)=>{
     const safe=SR63.escape;
@@ -170,12 +184,31 @@ SR63.AIPlans=function({workspace,setWorkspace}){
         field('الهدف',(0,q.jsx)('textarea',{rows:2,value:draft.goal,onChange:e=>setDraft({...draft,goal:e.target.value})})),
         field('معيار النجاح',(0,q.jsx)('textarea',{rows:2,value:draft.successCriterion,onChange:e=>setDraft({...draft,successCriterion:e.target.value})})),
         (0,q.jsx)('div',{className:'sr616-steps',children:draft.steps.map((step,i)=>(0,q.jsxs)('article',{children:[(0,q.jsx)('b',{children:`الأسبوع ${step.week} — ${step.objective}`}),field('الإجراء',(0,q.jsx)('textarea',{rows:2,value:step.action,onChange:e=>setDraft({...draft,steps:draft.steps.map((s,j)=>j===i?{...s,action:e.target.value}:s)})})),field('أداة القياس',input(step.measure,x=>setDraft({...draft,steps:draft.steps.map((s,j)=>j===i?{...s,measure:x}:s)})))]},i))}),
-        (0,q.jsx)('button',{disabled:busy,onClick:()=>void saveDraft(),children:'حفظ المسودة مع نقطة استعادة'})
+        (0,q.jsxs)('div',{className:'sr616-actions',children:[
+          (0,q.jsx)('button',{disabled:busy,onClick:()=>void saveDraft(),children:'حفظ المسودة مع نقطة استعادة'}),
+          (0,q.jsx)('button',{disabled:busy,className:'secondary',onClick:()=>exportDraftWord(),children:'تنزيل مسودة الخطة Word'})
+        ]})
       ]}):null
     ]}):tab==='library'?(0,q.jsxs)('section',{className:'sr616-library',children:[
-      (0,q.jsxs)('aside',{children:[(0,q.jsx)('h2',{children:'الخطط المحفوظة'}),plans.length?plans.map(p=>(0,q.jsxs)('button',{className:active?.id===p.id?'active':'',onClick:()=>{setSelectedId(p.id);setSavedEdit(null)},children:[(0,q.jsx)('strong',{children:p.title}),(0,q.jsx)('small',{children:`${p.subject} · ${p.members.length} طالب · ${p.status}`})]},p.id)):(0,q.jsx)('p',{children:'لا توجد خطط محفوظة بعد.'})]}),
+      (0,q.jsxs)('aside',{children:[(0,q.jsx)('h2',{children:'الخطط المحفوظة'}),plans.length?plans.map(p=>(0,q.jsxs)('button',{className:active?.id===p.id?'active':'',onClick:()=>{setSelectedId(p.id);setSavedEdit(null);setWordEdit(null)},children:[(0,q.jsx)('strong',{children:p.title}),(0,q.jsx)('small',{children:`${p.subject} · ${p.members.length} طالب · ${p.status}`})]},p.id)):(0,q.jsx)('p',{children:'لا توجد خطط محفوظة بعد.'})]}),
       active?(0,q.jsxs)('section',{className:'sr616-panel',children:[
         (0,q.jsx)('h2',{children:active.title}),(0,q.jsxs)('p',{children:[active.subject,' · ',active.exam,' · ',active.members.length,' طالب · ',active.cohort==='support'?'الدعم الإضافي':'التعليم العام']}),
+        (0,q.jsxs)('section',{className:'sr618-word-panel',children:[
+          (0,q.jsx)('h3',{children:'تصدير الخطة العلاجية إلى Word بتنسيق رسمي'}),
+          (0,q.jsx)('p',{className:'sr616-hint',children:'يسحب النظام بيانات المدرسة والعام الأكاديمي والمعلم والإدارة تلقائيًا. يمكنك تعديلها لهذه الخطة قبل تنزيل مستند Word قابل للتحرير. أسماء الطلاب تُضاف للملف المحلي فقط، ولا تُرسل إلى Gemini.'}),
+          (0,q.jsx)('div',{className:'sr616-grid',children:[
+            field('اسم المدرسة',input(wordMeta.schoolName,value=>changeWord('schoolName',value),{maxLength:180,placeholder:'اسم المدرسة'})),
+            field('العام الأكاديمي',input(wordMeta.academicYear,value=>changeWord('academicYear',value),{maxLength:180})),
+            field('اسم معلم المادة',input(wordMeta.teacherName,value=>changeWord('teacherName',value),{maxLength:180,placeholder:'أدخل اسم المعلم عند عدم وجود تكليف'})),
+            field('النائب الأكاديمي',input(wordMeta.academicViceName,value=>changeWord('academicViceName',value),{maxLength:180})),
+            field('مدير المدرسة',input(wordMeta.principalName,value=>changeWord('principalName',value),{maxLength:180}))
+          ]}),
+          (0,q.jsxs)('p',{className:'sr618-document-context',children:['مسمى الاختبار: ',(0,q.jsx)('b',{children:wordMeta.exam}),' | الصف: ',(0,q.jsx)('b',{children:wordMeta.grade}),' | الشعبة: ',(0,q.jsx)('b',{children:wordMeta.className}),active.scope==='individual'?' | اسم الطالب: ': ' | عدد الطلاب: ',(0,q.jsx)('b',{children:active.scope==='individual'?wordMeta.studentName:active.members.length})]}),
+          (0,q.jsxs)('div',{className:'sr616-actions',children:[
+            (0,q.jsx)('button',{disabled:busy||!wordMeta.schoolName.trim(),onClick:()=>exportWord(),children:'تنزيل الخطة في ملف Word (.docx)'}),
+            (0,q.jsx)('button',{disabled:busy||!wordEdit||wordEdit.id!==active.id,className:'secondary',onClick:()=>void saveWord(),children:'حفظ بيانات الغلاف والتوقيعات لهذه الخطة'})
+          ]})
+        ]}),
         (0,q.jsx)('h3',{children:'التشخيص'}),(0,q.jsx)('p',{children:active.diagnosis}),
         (0,q.jsx)('h3',{children:'الهدف ومعيار النجاح'}),(0,q.jsx)('p',{children:active.goal}),(0,q.jsx)('p',{children:active.successCriterion}),
         active.status==='draft'?(0,q.jsxs)('div',{className:'sr616-draft',children:[

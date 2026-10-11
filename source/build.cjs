@@ -199,7 +199,7 @@ replace('title:`تفصيل القسم: المعلم والمادة والشعب�
         'title:`تفصيل القسم: المعلم والمادة والشعبة`,desc:`قراءة تنفيذية لكل إسناد داخل القسم، مع القيمة المضافة عن الاختبار السابق.`,children:(0,q.jsx)(`div`,{className:`sr614-departments-wrap max-h-[650px] overflow-auto rounded-xl border`');
 replace('title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الصفحة ${r} من ${n}.`,children:[(0,q.jsx)(`div`,{className:`max-h-[650px] overflow-auto rounded-xl border`',
         'title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الصفحة ${r} من ${n}.`,children:[(0,q.jsx)(`div`,{className:`sr614-results-wrap max-h-[650px] overflow-auto rounded-xl border`');
-const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','grade-review.js','ai-plan-core.js','ai-plans-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
+const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','grade-review.js','ai-plan-core.js','ai-plan-word.js','ai-plans-ui.js','dashboard-pro.js','cloud.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);
