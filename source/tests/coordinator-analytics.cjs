@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict'),fs=require('fs'),path=require('path'),{loadApp}=require('./harness.cjs');
+const S=loadApp().ctx.SR63,make=(subject,teacher,klass,s1,s2,name)=>({subject,department:subject,teacher,studentId:name,studentName:name,className:klass,statuses:{exam1:'present',exam2:'present'},scores:{exam1:s1,exam2:s2},totals:{exam1:100,exam2:100}});
+const w={settings:{exams:[{key:'exam1',name:'منتصف أول',total:100},{key:'exam2',name:'نهائي أول',total:100},{key:'exam3',name:'منتصف ثانٍ',total:100},{key:'exam4',name:'نهائي ثانٍ',total:100}],pass:50,schoolName:'مدرسة نموذجية',academicYear:'2026/2027'},rows:[make('الحاسوب','أحمد','7/1',40,80,'student-1'),make('الحاسوب','أحمد','7/2',80,90,'student-2'),make('الحاسوب','خالد','8/1',20,40,'student-3')],activeExam:'exam1'};
+const early=S.coordinatorDashboardData(w,'exam1',[]),late=S.coordinatorDashboardData(w,'exam2',[]);
+assert.equal(early.evaluated,3);assert.equal(late.evaluated,3);
+assert.equal(early.failed.length,2);assert.equal(late.failed.length,1);
+assert.ok(late.achievement>early.achievement);
+assert.equal(late.trend.length,4);
+assert.equal(late.trend[2].achievement,null);
+assert.equal(late.classes.length,3);
+assert.ok(late.teachers.length>0);
+assert.ok(late.levels.reduce((n,x)=>n+x.value,0)===3);
+const portal=fs.readFileSync(path.resolve(__dirname,'../src/staff.js'),'utf8');
+for(const token of ['moehe.png','schoolName','academicYear','chosenExam','setChosenExam','srcoord-chart-grid','srcoord-trend','srcoord-ring','page===\'teachers\'','page===\'failed\'','page===\'comparison\'','SR63.DepartmentQuantitativePage','coordinatorLoad(requestedExam)','comparisonExam:exam'])assert.ok(portal.includes(token),'Missing dashboard feature: '+token);
+const css=fs.readFileSync(path.resolve(__dirname,'../src/repair.css'),'utf8');for(const x of ['.srcoord-hero','.srcoord-chart-grid','.srcoord-ring-layout','.srcoord-bar-fill','@media(max-width:680px)'])assert.ok(css.includes(x));
+console.log('Coordinator dashboard exam-bound analytics and visuals: PASS');
