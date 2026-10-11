@@ -67,12 +67,24 @@ SR63.departmentPerformanceAnalyze=function(workspace,options={}){
   schoolName:settings.schoolName||'',academicYear:settings.academicYear||'',coordinator:SR63.subjectCoordinator(workspace,subject)||'',
   academicViceName:settings.academicViceName||'',entries,gradeNames};
 };
+/* Department report keeps the four original rows and replaces only their text labels.
+   Both the HTML preview and Word use this same assessment-aware specification. */
+SR63.departmentQuantitativeMetricRows=function(analysis){
+ const selected=String(analysis.examName||'').trim();
+ const previous=analysis.previousExam?String(analysis.previousExamName||'').trim():null;
+ return [
+  {key:'success',label:'نسبة النجاح في '+selected,format:'percent'},
+  {key:'achievement',label:'نسبة التحصيل الأكاديمي في '+selected,format:'percent'},
+  {key:'valueAdded',label:previous?'القيمة المضافة في التحصيل الأكاديمي بين '+previous+' و'+selected:'القيمة المضافة في التحصيل الأكاديمي — لا يوجد تقييم سابق',format:'delta'},
+  {key:'high90',label:'5.2 نسبة الطلبة الحاصلين على 90% فأعلى',format:'percent'}
+ ];
+};
 SR63.departmentNarrative=function(analysis){
  const fmt=v=>typeof v==='number'?v.toFixed(1)+'%':'لا تتوافر بيانات كافية';
  const parts=[`شمل التحليل ${analysis.studentCount} طالبًا في الصفوف السابع والثامن والتاسع، وبلغ عدد النتائج المرصودة ${analysis.evaluated}، مع وجود ${analysis.ungraded} حالة غير مرصودة أو غير محتسبة.`,
- `بلغت نسبة النجاح ${fmt(analysis.success)} ونسبة التحصيل الأكاديمي ${fmt(analysis.achievement)} ونسبة الحاصلين على 90% فأعلى ${fmt(analysis.high90)}.`];
+ `في ${analysis.examName} بلغت نسبة النجاح ${fmt(analysis.success)} ونسبة التحصيل الأكاديمي ${fmt(analysis.achievement)} ونسبة الحاصلين على 90% فأعلى ${fmt(analysis.high90)}.`];
  if(analysis.previousExam){
-  parts.push(analysis.valueAdded===null?'لا تتوافر نتائج مشتركة صالحة لحساب القيمة المضافة.':`بلغت القيمة المضافة ${analysis.valueAdded>0?'+':''}${analysis.valueAdded.toFixed(1)} نقطة مئوية من مقارنة ${analysis.compared} طالبًا لديهم نتيجتان فعليتان.`);
+  parts.push(analysis.valueAdded===null?'لا تتوافر نتائج مشتركة صالحة لحساب القيمة المضافة.':`بلغت القيمة المضافة ${analysis.valueAdded>0?'+':''}${analysis.valueAdded.toFixed(1)} نقطة مئوية عند مقارنة ${analysis.examName} بـ${analysis.previousExamName} لـ${analysis.compared} طالبًا لديهم نتيجتان مرصودتان.`);
  }
  parts.push('تُراجع المهارات المتعثرة من تحليل بنود الاختبار والتقويم التشخيصي قبل نسبة النتائج إلى أسباب محددة، وتحدد الإجراءات المناسبة وفق إمكانات القسم.');
  return parts.join(' ');

@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.28",
+  "version": "6.10.29",
   "released": "2026-10-11",
   "updateFiles": [
     "app.js",
@@ -14,5 +14,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح التقرير الكمي والوصفي للمعلم: تحصيل الاختبار المختار ومقارنة الاختبار السابق مباشرةً فقط، مع حساب القيمة المضافة من درجات الطلاب المشتركة الصحيحة؛ تحديث معاينة الموقع وWord بالتزامن."
+  "notes": "تحديث التقرير الكمي والوصفي للمعلم والقسم تلقائيًا بالاختبار المختار وسابقه، في المعاينة وديباجة Word وعناوين التحصيل والقيمة المضافة؛ حماية من المسميات الثابتة وتكرار كلمة اختبار."
 }

@@ -24,5 +24,5 @@
     "test:staff": "node --expose-internals tests/staff-access.cjs",
     "test:coordinator-analytics": "node --expose-internals tests/coordinator-analytics.cjs"
   },
-  "version": "6.10.28"
+  "version": "6.10.29"
 }

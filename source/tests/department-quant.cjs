@@ -51,6 +51,73 @@ check('Word injects school, name of assessment, targets and department feedback 
 check('unprovided operational targets are not fabricated',()=>{const x=zipParts(S.departmentQuantWordBuild(an()))['word/document.xml'].toString('utf8');assert.equal((x.match(/غير محدد/g)||[]).length,4);});
 check('Word export leaves student names out of department aggregation',()=>{const x=zipParts(S.departmentQuantWordBuild(an()))['word/document.xml'].toString('utf8');assert.ok(!x.includes('طالب سابع أ'));});
 check('UI and Word export remain local; no secret or network access',()=>{const root=path.resolve(__dirname,'..'),code=fs.readFileSync(path.join(root,'src/teacher-department-template.js'),'utf8'),app=fs.readFileSync(path.join(root,'../app.js'),'utf8');for(const bad of ['GEMINI_API_KEY','service_role','fetch('])assert.ok(!code.includes(bad),bad);assert.ok(app.includes('departmentQuant'));});
-console.log('Department quantitative',passed,'/13');
+check('department Word and preview use the selected exam and its exact predecessor for all four tests',()=>{
+ const w=fixture(),names=['اختبار منتصف الفصل الدراسي الأول','اختبار نهاية الفصل الدراسي الأول','اختبار منتصف الفصل الدراسي الثاني','اختبار نهاية الفصل الدراسي الثاني'];
+ w.settings.exams.forEach((x,i)=>x.name=names[i]);
+ for(const [i,rec] of w.rows.entries()){
+  rec.scores.exam3=i+7;rec.totals.exam3=40;rec.statuses.exam3='present';
+  rec.scores.exam4=i+24;rec.totals.exam4=50;rec.statuses.exam4='present';
+ }
+ for(let i=0;i<4;i++){
+  const exam='exam'+(i+1),a=an(w,{exam}),rows=S.departmentQuantitativeMetricRows(a);
+  const xml=zipParts(S.departmentQuantWordBuild(a))['word/document.xml'].toString('utf8');
+  assert.equal(a.examName,names[i]);assert.equal(rows.length,4);
+  assert.ok(rows[1].label.includes(names[i]),'current grade label is not selected test '+exam);
+  assert.ok(xml.includes(rows[1].label),'Word is not using current label '+exam);
+  assert.ok(xml.includes(names[i]),'Word introduction is not using current test '+exam);
+  assert.ok(!xml.includes('في اختبار اختبار '),'Word introduction repeats the word اختبار');
+  assert.equal(a.previousExam,i===0?null:'exam'+i);
+  if(i===0){
+   assert.equal(a.valueAdded,null);
+   assert.ok(rows[2].label.includes('لا يوجد تقييم سابق'));
+   assert.ok(!xml.includes(names[1]),'first test cannot show a future test');
+  }else{
+   assert.equal(a.previousExamName,names[i-1]);
+   assert.ok(rows[2].label.includes(names[i-1]),'prior grade name mismatch '+exam);
+   assert.ok(rows[2].label.includes(names[i]),'current grade name missing from value added '+exam);
+   assert.ok(xml.includes(rows[2].label),'Word value added comparison label mismatch '+exam);
+   assert.ok(!xml.includes('نسبة التحصيل الأكاديمي في '+names[(i+1)%4]),'wrong assessment label leaked');
+  }
+  assert.ok(!xml.includes('نسبة التحصيل الأكاديمي.</w:t>'),'template fixed achievement label was left behind');
+  assert.ok(!xml.includes('القيمة المضافة في التحصيل الأكاديمي بين التقييمات.</w:t>'),'template fixed comparison label was left behind');
+  assert.ok(xml.includes('السابع')&&xml.includes('الثامن')&&xml.includes('التاسع'));
+ }
+});
+check('configured Arabic exam renaming appears in both department metric slots and Word body',()=>{
+ const w=fixture();w.settings.exams[1].name='الاختبار النهائي المخصص للمرحلة الأولى';
+ w.settings.exams[2].name='الاختبار المرحلي المخصص للمرحلة الثانية';
+ const a=an(w,{exam:'exam3'}),metrics=S.departmentQuantitativeMetricRows(a);
+ const xml=zipParts(S.departmentQuantWordBuild(a))['word/document.xml'].toString('utf8');
+ assert.ok(metrics[1].label.includes(w.settings.exams[2].name));
+ assert.ok(metrics[2].label.includes(w.settings.exams[1].name));
+ assert.ok(xml.includes(w.settings.exams[1].name)&&xml.includes(w.settings.exams[2].name));
+});
+check('department preview and Word reference one shared dynamic assessment-row source',()=>{
+ const root=path.resolve(__dirname,'..');
+ for(const name of ['teacher-department-ui.js','teacher-department-template.js']){
+  const code=fs.readFileSync(path.join(root,'src',name),'utf8');
+  assert.ok(code.includes('SR63.departmentQuantitativeMetricRows('),name);
+ }
+});
+check('generated department DOCX has no dangling OOXML package relationships or inherited labels',()=>{
+ const pathUtil=require('node:path').posix;
+ const output=S.departmentQuantWordBuild(an());
+ const doc=zipParts(output),names=new Set(Object.keys(doc));
+ assert.ok(!names.has('docMetadata/LabelInfo.xml'));
+ for(const [file,bytes] of Object.entries(doc)){
+  if(!file.endsWith('.rels'))continue;
+  const base=file==='_rels/.rels'?'':file.split('/_rels/')[0]+'/';
+  const xml=bytes.toString('utf8');
+  for(const match of xml.matchAll(/<Relationship\b[^>]*\/>/g)){
+   const entry=match[0],target=entry.match(/\bTarget=[\"']([^\"']+)[\"']/)?.[1];
+   if(!target||/TargetMode=[\"']External[\"']/.test(entry))continue;
+   const resolved=pathUtil.normalize((target.startsWith('/')?'':base)+target).replace(/^\//,'');
+   assert.ok(names.has(resolved),`missing target ${target} from ${file}`);
+  }
+ }
+ const xml=doc['[Content_Types].xml'].toString('utf8');
+ for(const match of xml.matchAll(/<Override\b[^>]*PartName=[\"']\/([^\"']+)[\"'][^>]*\/>/g))assert.ok(names.has(match[1]),'dangling content type: '+match[1]);
+});
+console.log('Department quantitative',passed,'tests');
 
 if(process.env.SR_SAMPLE){const a=an();const output=S.departmentQuantWordBuild(a,{targets:{success:90,achievement:75,valueAdded:3,high90:30},feedback:'تُراجع النتائج من نائب المدير للشؤون الأكاديمية وتُعتمد الإجراءات المناسبة.'});fs.writeFileSync('/mnt/data/SchoolResult_v6.10.21_Department_Quantitative_Sample.docx',Buffer.from(output.bytes));console.log('SAMPLE_WRITTEN');}

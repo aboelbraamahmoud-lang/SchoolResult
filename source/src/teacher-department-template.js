@@ -9,7 +9,8 @@ SR63.departmentQuantWordBuild=function(analysis,edits={}){
  const names=['SUCCESS','ACHIEVEMENT','VALUE_ADDED','HIGH90'];
  const fields=['success','achievement','valueAdded','high90'];
  const targets=edits.targets||{};
- const vals={DEPARTMENT:analysis.departmentName||analysis.subjectLabel,SCHOOL:analysis.schoolName||'........................',
+ const metricRows=SR63.departmentQuantitativeMetricRows(analysis);
+ const vals={ACHIEVEMENT_LABEL:metricRows[1].label,VALUE_ADDED_LABEL:metricRows[2].label,DEPARTMENT:analysis.departmentName||analysis.subjectLabel,SCHOOL:analysis.schoolName||'........................',
   YEAR:analysis.academicYear||'........................',ASSESSMENT:analysis.examName||'........................',
   VICE:analysis.academicViceName||'........................',COORDINATOR:analysis.coordinator||'........................',
   INTERPRETATION:edits.interpretation?.trim()||SR63.departmentNarrative(analysis),
@@ -30,9 +31,48 @@ SR63.departmentQuantWordBuild=function(analysis,edits={}){
  for(const [filename,content,binary] of SR63.departmentWordTemplateParts){
   let result=content;
   if(binary)result=base64ToBytes(content);
-  else if(filename==='word/document.xml')result=content.replace(/\{\{([A-Z0-9_]+)\}\}/g,(full,key)=>xmlEsc(vals[key]??'—'));
+  else if(filename==='word/document.xml'){
+   // The original uploaded Word template has one existing cell per indicator.
+   // Change the labels inside those exact cells, preserving all borders, layout and RTL.
+   const currentToken='<w:t>نسبة التحصيل الأكاديمي.</w:t>';
+   const deltaToken='<w:t>القيمة المضافة في التحصيل الأكاديمي بين التقييمات.</w:t>';
+   if(content.split(currentToken).length!==2||content.split(deltaToken).length!==2)throw Error('عناوين نموذج القسم الأصلي غير متاحة.');
+   // The school form already says "في اختبار ...". The configured exam name may
+   // itself begin with "اختبار"; use the full configured name exactly once.
+   const introToken='في اختبار {{ASSESSMENT}}';
+   if(!content.includes(introToken))throw Error('موضع اسم التقييم في ديباجة التقرير غير موجود.');
+   const changing=content.replace(introToken,'في {{ASSESSMENT}}')
+    .replace(currentToken,'<w:t>{{ACHIEVEMENT_LABEL}}</w:t>')
+    .replace(deltaToken,'<w:t>{{VALUE_ADDED_LABEL}}</w:t>');
+   result=changing.replace(/\{\{([A-Z0-9_]+)\}\}/g,(full,key)=>xmlEsc(vals[key]??'—'));
+  }
   files[filename]=result;
  }
+ // Rebuild a self-consistent DOCX package. The original uploaded Word template
+ // has incomplete Office custom-XML, classification and document-property parts:
+ // it references files that are NOT present in its exported package. Office Word
+ // rejects such ZIPs even though a PDF renderer might recover them.
+ // Remove dangling references, NOT the document's visual sections or drawings.
+ delete files['docMetadata/LabelInfo.xml'];
+ const norm=(folder,target)=>{
+  const stack=[];
+  for(const part of (target.startsWith('/')?target.slice(1):folder+target).split('/')){
+   if(part==='..')stack.pop();else if(part&&part!=='.')stack.push(part);
+  }
+  return stack.join('/');
+ };
+ for(const filename of Object.keys(files))if(filename.endsWith('.rels')&&typeof files[filename]==='string'){
+  const folder=filename==='_rels/.rels'?'':filename.split('/_rels/')[0]+'/';
+  files[filename]=files[filename].replace(/<Relationship\b[^>]*\/>/g,entry=>{
+   if(/TargetMode=["']External["']/.test(entry))return entry;
+   const target=entry.match(/\bTarget=["']([^"']+)["']/)?.[1];
+   if(!target)return entry;
+   const file=norm(folder,target);
+   // The layout kit will inject the official ministry image during make().
+   return Object.prototype.hasOwnProperty.call(files,file)||file==='word/media/ministry.png'?entry:'';
+  });
+ }
+ files['[Content_Types].xml']=files['[Content_Types].xml'].replace(/<Override\b[^>]*PartName=["']\/([^"']+)["'][^>]*\/>/g,(entry,name)=>Object.prototype.hasOwnProperty.call(files,name)?entry:'');
  const kit=SR63.teacherWordKit({schoolName:analysis.schoolName,teacher:'',coordinator:analysis.coordinator,vice:analysis.academicViceName,principal:''});
  return kit.make('',`التقرير-الكمي-والوصفي-للقسم-${analysis.departmentName}-${analysis.examName}`,files);
 };

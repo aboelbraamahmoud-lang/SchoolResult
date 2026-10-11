@@ -33,12 +33,11 @@ SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
   ]}),
   report?(0,q.jsxs)('section',{className:'sr619-card',children:[
    (0,q.jsx)('h2',{children:'معاينة المؤشرات حسب الصفوف الدراسية'}),
+   (0,q.jsx)('p',{className:'sr616-hint',children:'التقييم المختار: '+report.examName+(report.previousExam?' · المقارنة بالتقييم السابق مباشرةً: '+report.previousExamName:' · أول تقييم، لا توجد مقارنة سابقة أو قيمة مضافة.') }),
    (0,q.jsx)('div',{className:'sr619-table-wrap',children:
     (0,q.jsxs)('table',{children:[
      (0,q.jsx)('thead',{children:(0,q.jsx)('tr',{children:['بند التقرير','السابع','الثامن','التاسع','إجمالي القسم'].map(t=>(0,q.jsx)('th',{children:t},t))})}),
-     (0,q.jsx)('tbody',{children:[
-      ['نسبة النجاح في الاختبار','success',nf],['نسبة التحصيل الأكاديمي','achievement',nf],['القيمة المضافة بين التقييمات','valueAdded',df],['نسبة الحاصلين على 90% فأعلى','high90',nf]
-     ].map(([label,key,format])=>(0,q.jsx)('tr',{children:[(0,q.jsx)('td',{children:label}),...['7','8','9'].map(g=>(0,q.jsx)('td',{children:format(report.grades[g][key])},g)),(0,q.jsx)('td',{children:format(report[key])})]},key))})
+     (0,q.jsx)('tbody',{children:SR63.departmentQuantitativeMetricRows(report).map(({label,key,format})=>(0,q.jsx)('tr',{children:[(0,q.jsx)('td',{children:label}),...['7','8','9'].map(g=>(0,q.jsx)('td',{children:(format==='delta'?df:nf)(report.grades[g][key])},g)),(0,q.jsx)('td',{children:(format==='delta'?df:nf)(report[key])})]},key))})
     ]})}),
    (0,q.jsx)('p',{className:'sr616-hint',children:`الطلاب: ${report.studentCount} | نتائج مرصودة: ${report.evaluated} | حالات دون درجة محتسبة: ${report.ungraded} | عينة المقارنة: ${report.compared} طالبًا. عدد الشعب: ${['7','8','9'].map(g=>report.grades[g].classes.length).join('، ')} على الترتيب.`}),
    (0,q.jsx)('h3',{children:'المستهدفات وفق الخطة التشغيلية للمدرسة'}),
