@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.31', release:'2026-10-12', formDirty:false};
+var SR63 = {version:'6.10.32', release:'2026-10-12', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -136,6 +136,24 @@ SR63.validate = function(raw) {
       const key=SR63.subjectAliasKey(item.key),name=ij(item.label);
       must(!subjectKeys.has(key)&&!names.has(name),'تكرار المادة أو اسم العرض في إعدادات التقارير غير مسموح.');
       subjectKeys.add(key);names.add(name);
+    }
+  }
+  if(raw.behaviorReports!==undefined&&raw.behaviorReports!==null){
+    const record=raw.behaviorReports;
+    must(record&&record.version===1&&Array.isArray(record.students)&&record.students.length<=3000&&
+      Array.isArray(record.sheets)&&record.sheets.length<=16&&
+      Array.isArray(record.issues)&&record.issues.length<=700&&
+      typeof record.month==='string'&&record.month.length<=70,'بيانات التقارير الأكاديمية والسلوكية غير صالحة.');
+    const keys=new Set();
+    for(const student of record.students){
+      must(student&&typeof student.id==='string'&&student.id.length<=350&&
+        typeof student.name==='string'&&student.name.length<=150&&typeof student.className==='string'&&
+        student.className.length<=25&&student.subjects&&typeof student.subjects==='object'&&
+        !keys.has(student.id),'هوية طالب في التقرير السلوكي غير صالحة أو مكررة.');
+      keys.add(student.id);
+      for(const assessment of Object.values(student.subjects)){
+        must(Array.isArray(assessment)&&assessment.length===5&&assessment.every(item=>typeof item==='string'&&item.length<=150),'قيم التقرير السلوكي غير صالحة.');
+      }
     }
   }
   must(raw.aiPlans===undefined||Array.isArray(raw.aiPlans)&&raw.aiPlans.length<=300,'قائمة الخطط العلاجية غير صالحة أو كبيرة جدًا.');
