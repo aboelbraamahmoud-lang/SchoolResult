@@ -48,36 +48,54 @@ SR63.departmentPerformanceAnalyze=function(workspace,options={}){
  const entries=[...unique.values()].map(row=>({
   id:String(row.studentId),name:String(row.studentName||''),grade:SR63.departmentGradeKey(row,exam),className:String(hj(row,exam)||row.className||''),
   current:rate(row,exam),previous:rate(row,previousExam),score:row.scores?.[exam],total:pj(row,exam,settings),
-  status:row.statuses?.[exam]||'unentered'
+  status:row.statuses?.[exam]||'unentered',
+  previousScore:previousExam&&row.statuses?.[previousExam]==='present'?row.scores?.[previousExam]:null,
+  previousTotal:previousExam&&row.statuses?.[previousExam]==='present'?pj(row,previousExam,settings):null
  }));
  const summarize=(arr)=>{
   const graded=arr.filter(s=>s.current!==null),pairs=graded.filter(s=>s.previous!==null);
-  let earned=0,possible=0;
+  let earned=0,possible=0,previousEarned=0,previousPossible=0;
   for(const s of graded){if(typeof s.score==='number'&&Number.isFinite(s.total)&&s.total>0){earned+=s.score;possible+=s.total;}}
+  // Previous attainment is a separate *actual* assessment, not today's
+  // grades relabelled. Only genuinely recorded grades enter its denominator.
+  if(previousExam)for(const s of arr){
+   if(s.previous!==null&&typeof s.previousScore==='number'&&Number.isFinite(s.previousTotal)&&s.previousTotal>0){
+    previousEarned+=s.previousScore;previousPossible+=s.previousTotal;
+   }
+  }
   return {studentCount:arr.length,evaluated:graded.length,ungraded:arr.length-graded.length,compared:pairs.length,
    success:graded.length?round(100*graded.filter(s=>s.current>=pass).length/graded.length):null,
    achievement:possible?round(100*earned/possible):null,
+   currentAchievement:possible?round(100*earned/possible):null,
+   previousAchievement:previousPossible?round(100*previousEarned/previousPossible):null,
    high90:graded.length?round(100*graded.filter(s=>s.current>=90).length/graded.length):null,
    valueAdded:pairs.length?round(pairs.reduce((acc,s)=>acc+s.current-s.previous,0)/pairs.length):null};
  };
  const gradeNames={'7':'السابع','8':'الثامن','9':'التاسع'};
  const byGrade=Object.fromEntries(['7','8','9'].map(g=>[g,{grade:g,label:gradeNames[g],...summarize(entries.filter(x=>x.grade===g)),classes:[...new Set(entries.filter(x=>x.grade===g).map(x=>x.className))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}))}]));
  return {subject,subjectLabel:SR63.reportSubjectLabel(subject,settings),departmentName:SR63.reportSubjectLabel(subject,settings),exam,examName:tj(settings,exam).name,
-  previousExam,previousExamName:previousExam?tj(settings,previousExam).name:null,cohort,grades:byGrade,...summarize(entries),
+  previousExam,previousExamName:previousExam?tj(settings,previousExam).name:null,
+  prevExam:previousExam,prevExamName:previousExam?tj(settings,previousExam).name:null,
+  cohort,grades:byGrade,...summarize(entries),
   schoolName:settings.schoolName||'',academicYear:settings.academicYear||'',coordinator:SR63.subjectCoordinator(workspace,subject)||'',
   academicViceName:settings.academicViceName||'',entries,gradeNames};
 };
-/* Department report keeps the four original rows and replaces only their text labels.
-   Both the HTML preview and Word use this same assessment-aware specification. */
+/* The department and teacher reports now share the same *five-slot*
+   official teacher form. Both reports derive the metric labels and rows
+   dynamically from the selected examination and its immediate predecessor. */
 SR63.departmentQuantitativeMetricRows=function(analysis){
- const selected=String(analysis.examName||'').trim();
+ const name=String(analysis.examName||'').trim();
  const previous=analysis.previousExam?String(analysis.previousExamName||'').trim():null;
- return [
-  {key:'success',label:'نسبة النجاح في '+selected,format:'percent'},
-  {key:'achievement',label:'نسبة التحصيل الأكاديمي في '+selected,format:'percent'},
-  {key:'valueAdded',label:previous?'القيمة المضافة في التحصيل الأكاديمي بين '+previous+' و'+selected:'القيمة المضافة في التحصيل الأكاديمي — لا يوجد تقييم سابق',format:'delta'},
-  {key:'high90',label:'5.2 نسبة الطلبة الحاصلين على 90% فأعلى',format:'percent'}
+ const rows=[
+  {key:'success',slot:1,label:'نسبة النجاح في '+name,format:'plain',target:'success'},
+  {key:'currentAchievement',slot:2,label:'نسبة التحصيل الأكاديمي في '+name,format:'plain',target:'achievement'}
  ];
+ if(previous){
+  rows.push({key:'previousAchievement',slot:3,label:'نسبة التحصيل الأكاديمي في '+previous,format:'plain',target:'achievement'});
+  rows.push({key:'valueAdded',slot:4,label:'القيمة المضافة في التحصيل الأكاديمي بين '+previous+' و'+name,format:'delta',target:'valueAdded'});
+ }
+ rows.push({key:'high90',slot:5,label:'5.2 نسبة الطلبة الحاصلين على 90% فأعلى في جميع الصفوف',format:'percentage',target:'high90'});
+ return rows;
 };
 SR63.departmentNarrative=function(analysis){
  const fmt=v=>typeof v==='number'?v.toFixed(1)+'%':'لا تتوافر بيانات كافية';

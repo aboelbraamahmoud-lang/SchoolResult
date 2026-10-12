@@ -11,7 +11,11 @@ SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
  let report=null,error='';
  try{if(currentSubject)report=SR63.departmentPerformanceAnalyze(workspace,{exam,subject:currentSubject,cohort});}
  catch(ex){error=ex.message||'تعذر تحليل نتائج القسم.';}
- const nf=x=>typeof x==='number'?x.toFixed(1)+'%':'—',df=x=>typeof x==='number'?(x>0?'+':'')+x.toFixed(1)+' نقطة':'—';
+ const officialFmt=(x,format)=>typeof x!=='number'?'—':format==='delta'?(x>0?'+':'')+x.toFixed(1)+' نقطة':format==='plain'?x.toFixed(x%1?1:0):x.toFixed(1)+'%';
+ const officialStatus=(key,target)=>{
+  const raw=targets[target],num=raw!==''?Number(raw):NaN;
+  return !Number.isFinite(num)||report?.[key]===null||report?.[key]===undefined?'غير محدد':report[key]>=num?'متحقق':'غير متحقق';
+ };
  const field=(label,node)=>(0,q.jsxs)('label',{className:'sr619-field',children:[(0,q.jsx)('span',{children:label}),node]});
  const selector=(value,change,options)=>(0,q.jsx)('select',{value,onChange:e=>change(e.target.value),children:options.map(([value,label])=>(0,q.jsx)('option',{value,children:label},value))});
  const download=()=>{if(!report)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير Word.');return;}setProblem('');try{
@@ -21,7 +25,7 @@ SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
  }catch(e){setProblem(e.message||'تعذر إنشاء التقرير.');}};
  return (0,q.jsxs)('main',{className:'sr616-page sr619-teacher-center sr621-department',dir:'rtl',children:[
   (0,q.jsxs)('header',{className:'sr616-title',children:[(0,q.jsx)('h1',{children:'التقرير الكمي والوصفي للقسم كاملًا'}),
-   (0,q.jsx)('p',{children:'وفق النموذج الوزاري المرفق: الصفوف السابع والثامن والتاسع، وجميع شعب المادة والمعلمين. ملف Word عربي قابل للتحرير بنمط النموذج الأصلي وشعار الوزارة.'})]}),
+   (0,q.jsx)('p',{children:'بنفس القالب الرسمي المعتمد لتقرير المعلم: الترويسة والشعار والخطوط والألوان وترتيب التفسير والتوقيعات، مع تجميع الصفوف السابع والثامن والتاسع لكل القسم.'})]}),
   (0,q.jsxs)('section',{className:'sr619-card',children:[(0,q.jsx)('h2',{children:'تحديد القسم والتقييم'}),
    (0,q.jsx)('div',{className:'sr619-grid',children:[
     field('التقييم',selector(exam,setExam,XA.map(x=>[x,tj(workspace.settings,x).name]))),
@@ -34,11 +38,22 @@ SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
   report?(0,q.jsxs)('section',{className:'sr619-card',children:[
    (0,q.jsx)('h2',{children:'معاينة المؤشرات حسب الصفوف الدراسية'}),
    (0,q.jsx)('p',{className:'sr616-hint',children:'التقييم المختار: '+report.examName+(report.previousExam?' · المقارنة بالتقييم السابق مباشرةً: '+report.previousExamName:' · أول تقييم، لا توجد مقارنة سابقة أو قيمة مضافة.') }),
-   (0,q.jsx)('div',{className:'sr619-table-wrap',children:
-    (0,q.jsxs)('table',{children:[
-     (0,q.jsx)('thead',{children:(0,q.jsx)('tr',{children:['بند التقرير','السابع','الثامن','التاسع','إجمالي القسم'].map(t=>(0,q.jsx)('th',{children:t},t))})}),
-     (0,q.jsx)('tbody',{children:SR63.departmentQuantitativeMetricRows(report).map(({label,key,format})=>(0,q.jsx)('tr',{children:[(0,q.jsx)('td',{children:label}),...['7','8','9'].map(g=>(0,q.jsx)('td',{children:(format==='delta'?df:nf)(report.grades[g][key])},g)),(0,q.jsx)('td',{children:(format==='delta'?df:nf)(report[key])})]},key))})
-    ]})}),
+   (0,q.jsx)('div',{className:'sr625-report-preview',dir:'rtl',children:(0,q.jsxs)('section',{className:'sr625-report-page',children:[
+    (0,q.jsxs)('header',{className:'sr631-report-preview-header',children:[
+      (0,q.jsx)('img',{src:'moehe.png',alt:'شعار وزارة التربية والتعليم والتعليم العالي'}),
+      (0,q.jsxs)('div',{children:[(0,q.jsx)('h3',{children:'تقرير كمي ووصفي لتحليل نتائج '+report.examName}),
+       (0,q.jsx)('p',{children:report.schoolName+' — '+report.academicYear+' | القسم: '+report.departmentName})]})
+    ]}),
+    (0,q.jsxs)('table',{dir:'rtl',children:[
+     (0,q.jsx)('thead',{children:(0,q.jsx)('tr',{children:['الشعب الدراسية / بنود التقرير','السابع','الثامن','التاسع','إجمالي المستوى','تحقيق المستهدف'].map((t,i)=>(0,q.jsx)('th',{children:t},i))})}),
+     (0,q.jsx)('tbody',{children:SR63.departmentQuantitativeMetricRows(report).map(({label,key,format,target})=>(0,q.jsx)('tr',{children:[
+      (0,q.jsx)('th',{scope:'row',children:label}),
+      ...['7','8','9'].map(g=>(0,q.jsx)('td',{children:officialFmt(report.grades[g][key],format)},g)),
+      (0,q.jsx)('td',{children:officialFmt(report[key],format)}),
+      (0,q.jsx)('td',{children:officialStatus(key,target)})
+     ]},key))})
+    ]})
+   ]})}),
    (0,q.jsx)('p',{className:'sr616-hint',children:`الطلاب: ${report.studentCount} | نتائج مرصودة: ${report.evaluated} | حالات دون درجة محتسبة: ${report.ungraded} | عينة المقارنة: ${report.compared} طالبًا. عدد الشعب: ${['7','8','9'].map(g=>report.grades[g].classes.length).join('، ')} على الترتيب.`}),
    (0,q.jsx)('h3',{children:'المستهدفات وفق الخطة التشغيلية للمدرسة'}),
    (0,q.jsx)('p',{className:'sr616-hint',children:'لا يُحكم على تحقيق المستهدف إلا بعد إدخال القيمة المعتمدة من المدرسة. لا تُحفظ المستهدفات افتراضيًا ولا يُفترض تحققها.'}),

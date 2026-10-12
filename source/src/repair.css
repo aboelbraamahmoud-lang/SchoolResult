@@ -1351,3 +1351,10 @@
 .sr619-combined-center > .sr616-page{width:100%;min-width:0}
 .sr619-tabs{align-items:stretch}
 .sr619-tabs button{min-height:44px;white-space:normal;text-align:center}
+
+/* 6.10.31 — unified teacher / department quantitative & qualitative form */
+.sr631-report-preview-header{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:16px;padding:13px 18px;border-bottom:1px solid #cbd5da;background:#fff;text-align:right}
+.sr625-report-page .sr631-report-preview-header h3{margin:0;background:none;padding:0;color:#8d153a;font-size:16px;font-weight:950;line-height:1.6}
+.sr631-report-preview-header p{margin:3px 0 0;color:#324b5b;font-size:12px;font-weight:750}
+.sr631-report-preview-header img{width:220px;max-width:38%;height:auto;object-fit:contain;flex-shrink:0}
+@media(max-width:620px){.sr631-report-preview-header{flex-direction:column;align-items:stretch}.sr631-report-preview-header img{width:180px;max-width:100%}}

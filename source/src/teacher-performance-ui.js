@@ -80,6 +80,11 @@ SR63.TeacherPerformanceCenter=function({workspace,canExport=true,initialView='im
    (0,q.jsx)('p',{className:'sr616-hint',children:'التقييم المختار: '+analysis.examName+(analysis.prevExam?' · التقييم السابق مباشرةً: '+analysis.prevExamName:' · هذا أول تقييم، لذلك لا يظهر تحصيل سابق أو قيمة مضافة.')+' · تنعكس المسميات والدرجات على المعاينة وملف Word معًا. يُصدر Word صفحة مستقلة لكل ثلاث شعب، مع شعار الوزارة والتوقيعات.'}),
    (0,q.jsx)('div',{className:'sr625-report-preview',dir:'rtl',children:officialGroups.map((chunk,page)=>(0,q.jsxs)('section',{className:'sr625-report-page',children:[
     officialGroups.length>1?(0,q.jsx)('h3',{children:'الشعب — صفحة '+(page+1)}):null,
+    (0,q.jsxs)('header',{className:'sr631-report-preview-header',children:[
+      (0,q.jsx)('img',{src:'moehe.png',alt:'شعار وزارة التربية والتعليم والتعليم العالي'}),
+      (0,q.jsxs)('div',{children:[(0,q.jsx)('h3',{children:'تقرير كمي ووصفي لتحليل نتائج '+analysis.examName}),
+       (0,q.jsx)('p',{children:analysis.schoolName+' — '+analysis.academicYear+' | المعلم: '+analysis.teacher+' | المادة: '+analysis.subjectLabel})]})
+    ]}),
     (0,q.jsxs)('table',{dir:'rtl',children:[
       (0,q.jsx)('thead',{children:(0,q.jsx)('tr',{children:['الشعب الدراسية / بنود التقرير',...Array.from({length:3},(_,i)=>chunk[i]?.className||'—'),'إجمالي المستوى','تحقيق المستهدف'].map((title,i)=>(0,q.jsx)('th',{children:title},i))})}),
       (0,q.jsx)('tbody',{children:officialRows.map(({key,label,format,target})=>(0,q.jsx)('tr',{children:[

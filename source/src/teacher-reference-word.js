@@ -67,24 +67,28 @@
  };
  SR63.teacherQuantitativeWordBuild=function(analysis,edits={}){
   if(!analysis?.groups?.length)throw Error('لا توجد شعب للمعلم في التقييم المختار.');
-  const groups=analysis.groups,targets={success:90,achievement:75,valueAdded:3,high90:30,...edits.targets};
-  const rows=SR63.teacherQuantitativeMetricRows(analysis);
+  const departmentMode=edits.departmentMode===true;
+  const groups=analysis.groups;
+  const targets=departmentMode?{success:null,achievement:null,valueAdded:null,high90:null,...edits.targets}:{success:90,achievement:75,valueAdded:3,high90:30,...edits.targets};
+  const rows=departmentMode?SR63.departmentQuantitativeMetricRows(analysis):SR63.teacherQuantitativeMetricRows(analysis);
   const metrics=(g,key,type)=>type==='delta'?fmtDelta(g?.[key]):type==='plain'?fmtPlain(g?.[key]):fmt(g?.[key]);
-  const values={SUBTITLE:`لتحليل نتائج ${analysis.examName} لمادة ${analysis.subjectLabel} للعام الأكاديمي ${analysis.academicYear}م`,
-    COORDINATOR_GREETING:`المنسق الفاضل: أ/ ${analysis.coordinator||'........................'}`,
-    INTRODUCTION:`بعد قراءة نتائج الطلبة للصفوف التي أقوم بتدريسها، في ${analysis.examName} لمادة ${analysis.subjectLabel} أقدم لكم تقريرًا كميًا ووصفيًا يوضح نسب النجاح والتحصيل الأكاديمي ومستويات الطلبة المختلفة، وأسباب ارتفاع أو انخفاض نتائج الطلبة.`,
+  const values={SUBTITLE:departmentMode?`لتحليل نتائج ${analysis.examName} لجميع شعب الصفوف السابع والثامن والتاسع بمادة ${analysis.subjectLabel} في ${analysis.schoolName} للعام الأكاديمي ${analysis.academicYear}م`:`لتحليل نتائج ${analysis.examName} لمادة ${analysis.subjectLabel} للعام الأكاديمي ${analysis.academicYear}م`,
+    COORDINATOR_GREETING:departmentMode?`النائب الأكاديمي الفاضل: أ/ ${analysis.academicViceName||'........................'}`:`المنسق الفاضل: أ/ ${analysis.coordinator||'........................'}`,
+    INTRODUCTION:departmentMode?`بعد تحليل نتائج قسم ${analysis.departmentName||analysis.subjectLabel} في ${analysis.examName} للصفوف السابع والثامن والتاسع، نقدم المؤشرات الكمية والتفسير الوصفي ومقترحات التحسين والمتابعة.`:`بعد قراءة نتائج الطلبة للصفوف التي أقوم بتدريسها، في ${analysis.examName} لمادة ${analysis.subjectLabel} أقدم لكم تقريرًا كميًا ووصفيًا يوضح نسب النجاح والتحصيل الأكاديمي ومستويات الطلبة المختلفة، وأسباب ارتفاع أو انخفاض نتائج الطلبة.`,
     CURRENT_METRIC_LABEL:rows.find(row=>row.slot===2).label,
     PREVIOUS_METRIC_LABEL:analysis.prevExam?rows.find(row=>row.slot===3).label:'',
-    INTERPRETATION:edits.interpretation||`أظهرت النتائج نسبة نجاح ${fmt(analysis.success)} وتحصيلًا أكاديميًا ${fmt(analysis.achievement)}. وتُعالج جوانب التعثر التي يحددها التقويم التشخيصي من خلال أنشطة متدرجة وأوراق عمل ومتابعة منتظمة للطلاب.`,
-    FEEDBACK:edits.feedback||'يُرجى الاستمرار في إجراءات الدعم المناسبة، ومراجعة نتائج التقييم اللاحق، وتحديث التدخلات وفق مستويات الطلاب.',
-    TEACHER_NAME:analysis.teacher,COORDINATOR_NAME:analysis.coordinator||'........................'};
+    INTERPRETATION:edits.interpretation||(departmentMode?`شمل التقرير ${analysis.studentCount} طالبًا، منهم ${analysis.evaluated} بنتائج مرصودة. بلغت نسبة النجاح ${fmt(analysis.success)} والتحصيل ${fmt(analysis.achievement)}، والقيمة المضافة ${analysis.previousExam&&analysis.valueAdded!==null?fmtDelta(analysis.valueAdded):'غير متاحة'}. تُعتمد الإجراءات بعد تشخيص المهارات المتعثرة.`:`أظهرت النتائج نسبة نجاح ${fmt(analysis.success)} وتحصيلًا أكاديميًا ${fmt(analysis.achievement)}. وتُعالج جوانب التعثر التي يحددها التقويم التشخيصي من خلال أنشطة متدرجة وأوراق عمل ومتابعة منتظمة للطلاب.`),
+    FEEDBACK:edits.feedback||(departmentMode?'................................................................':'يُرجى الاستمرار في إجراءات الدعم المناسبة، ومراجعة نتائج التقييم اللاحق، وتحديث التدخلات وفق مستويات الطلاب.'),
+    TEACHER_NAME:departmentMode?(analysis.coordinator||'........................'):analysis.teacher,COORDINATOR_NAME:departmentMode?(analysis.academicViceName||'........................'):(analysis.coordinator||'........................')};
   if(edits.challenges||edits.solutions)values.INTERPRETATION+=[edits.challenges,edits.solutions].filter(Boolean).join('\n');
   const groupFields=(list)=>{
    const o={};for(let i=0;i<3;i++)o['CLASS_'+(i+1)]=list[i]?.className||'—';
    rows.forEach(({key,format,target,slot})=>{
     for(let j=0;j<3;j++)o[`METRIC_${slot}_${j+1}`]=list[j]?metrics(list[j],key,format):'—';
     o[`METRIC_${slot}_TOTAL`]=metrics(analysis,key,format);
-    o[`METRIC_${slot}_TARGET`]=targets[target]===null?'—':status(analysis[key],targets[target]);
+    const requested=targets[target];
+    const numeric=typeof requested==='number'?requested:typeof requested==='string'&&requested.trim()?Number(requested):NaN;
+    o[`METRIC_${slot}_TARGET`]=departmentMode?(Number.isFinite(numeric)&&numeric>=(target==='valueAdded'?-100:0)&&numeric<=100?status(analysis[key],numeric):'غير محدد'):(requested===null?'—':status(analysis[key],requested));
    });return o;
   };
   Object.assign(values,groupFields(groups.slice(0,3)));
@@ -97,6 +101,21 @@
   const sectionAt=source.lastIndexOf('<w:sectPr');
   if(bodyAt<bodyMarker.length||sectionAt<bodyAt)throw Error('تعذر تحديد صفحات نموذج المعلم الأصلي.');
   let inner=source.slice(bodyAt,sectionAt).replace('<!--EXTRA_TEACHER_ROWS-->','');
+  if(departmentMode){
+   // Do not redraw the department form: use the very same uploaded teacher
+   // document, header, signature grid, shading, borders, font and RTL cells.
+   // Only alter the role designation and the examination-dependent wording.
+   inner=inner.replace(/<w:t>المعلم<\/w:t>/g,'<w:t>منسق المادة</w:t>')
+    .replace('اسم المعلم وتوقيعه','اسم منسق المادة وتوقيعه')
+    .replace('اسم المنسق وتوقيعه','اعتماد النائب الأكاديمي');
+   const dynamic={
+    'نسبة النجاح في الاختبار.':rows.find(x=>x.slot===1).label,
+    'القيمة المضافة في التحصيل الأكاديمي بين التقييمات.':rows.find(x=>x.slot===4)?.label||'القيمة المضافة في التحصيل الأكاديمي — لا يوجد تقييم سابق'
+   };
+   for(const [before,after] of Object.entries(dynamic)){
+    if(inner.includes('<w:t>'+before+'</w:t>'))inner=inner.replace('<w:t>'+before+'</w:t>','<w:t>'+xmlEsc(after)+'</w:t>');
+   }
+  }
   if(!analysis.prevExam){
    // The first assessment must not show a preceding assessment or value added.
    // Remove only those two Word table rows; retain the official table design.
@@ -118,7 +137,7 @@
    fullBody+=page;
   }
   const xml=source.slice(0,bodyAt)+fullBody+source.slice(sectionAt);
-  return build('quant',{}, {},`التقرير-الكمي-والوصفي-للمعلم-${analysis.teacher}-${analysis.subjectLabel}`,xml);
+  return build('quant',{}, {},departmentMode?`التقرير-الكمي-والوصفي-للقسم-${analysis.departmentName||analysis.subjectLabel}-${analysis.examName}`:`التقرير-الكمي-والوصفي-للمعلم-${analysis.teacher}-${analysis.subjectLabel}`,xml);
  };
  SR63.teacherImprovementWordBuild=function(analysis,edits={}){
   if(analysis.groups.length!==1)throw Error('خطة تحسين الأداء تُصدَّر لشعبة واحدة فقط. اختر الشعبة أولًا.');

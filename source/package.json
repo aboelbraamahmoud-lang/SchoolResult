@@ -25,5 +25,5 @@
     "test:coordinator-analytics": "node --expose-internals tests/coordinator-analytics.cjs",
     "test:combined-reports": "node tests/combined-report-navigation.cjs"
   },
-  "version": "6.10.30"
+  "version": "6.10.31"
 }
