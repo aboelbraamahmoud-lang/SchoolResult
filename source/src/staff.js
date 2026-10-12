@@ -121,7 +121,7 @@ SR63.CoordinatorPortal=function({profile}){
     page==='teachers'?data.teachers:page==='comparison'?benchmarks.map(x=>({name:x.department,achievement:x.achievement})):data.classes)
  ]);
  const cards=[['الطلاب ذوو نتائج',data?.students??0,'طالب فريد'],['النتائج المرصودة',data?.evaluated??0,'يشمل الدعم الإضافي'],['نسبة النجاح',fmt(data?.success),'من نتائج التعليم العام'],['نسبة التحصيل',fmt(data?.achievement),'للاختبار المحدد'],['معلمو القسم',data?.teachers?.length??0,'من لديهم نتائج مرصودة'],['الطلاب المتعثرون',new Set((data?.failed||[]).map(x=>x.studentId||x.name)).size,'درجات دون حد النجاح']];
- const views=[['dashboard','لوحة القسم',true],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو القسم',!!perms.teacherAnalysis],['comparison','مقارنة الأقسام',!!perms.compare],['reports','خطط التحسين وتقارير المعلمين',!!perms.reports],['department','التقرير الكمي والوصفي للقسم',!!perms.reports],['plans','الخطط العلاجية الذكية',!!perms.plans]];
+ const views=[['dashboard','لوحة القسم',true],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو القسم',!!perms.teacherAnalysis],['comparison','مقارنة الأقسام',!!perms.compare],['reports','خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['plans','الخطط العلاجية الذكية',!!perms.plans]];
  const saveWorkspace=async change=>{if(!perms.savePlans)throw Error('ليس لديك صلاحية حفظ الخطط.');
   if(!workspace)throw Error('لم تكتمل البيانات.');const next=change(workspace),before=new Map((workspace.aiPlans||[]).map(p=>[p.id,JSON.stringify(p)])),updated=(next.aiPlans||[]).filter(p=>before.get(p.id)!==JSON.stringify(p));
   if(updated.length!==1)throw Error('يجب تعديل خطة واحدة في كل عملية.');const result=await SR63.cloud.rpc('school_staff_coordinator_plan_save',{p_plan:updated[0],p_expected:payload.revision});
@@ -148,7 +148,7 @@ SR63.CoordinatorPortal=function({profile}){
    page==='teachers'&&perms.teacherAnalysis?h('section',{className:'srstaff-panel'},[h('h2',{},'تحصيل معلمي القسم'),h('div',{className:'srcoord-teacher-grid'},data.teachers.map(t=>h('article',{key:t.name,className:'srcoord-teacher-card'},[h('span',{},t.name),h('strong',{},fmt(t.achievement)),chart('نسبة النجاح',t.successRate),h('small',{},`${t.results} نتيجة مرصودة`)]))) ]):null,
    page==='comparison'&&perms.compare?h('section',{className:'srstaff-panel'},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null,
    page==='reports'&&perms.reports?h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export}):null,
-   page==='department'&&perms.reports?h(SR63.DepartmentQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):null,
+   
    page==='plans'&&perms.plans?h(SR63.AIPlans,{key:exam,workspace:active,setWorkspace:saveWorkspace,coordinator:true,canSave:!!perms.savePlans,canExport:!!perms.export}):null
   ]:null
  ]);

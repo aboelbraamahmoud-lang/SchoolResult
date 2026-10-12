@@ -1,6 +1,6 @@
 /* 6.10.19 — interactive teacher-level improvement plans and quantitative/qualitative reports. */
-SR63.TeacherPerformanceCenter=function({workspace,canExport=true}){
- const [view,setView]=(0,v.useState)('improvement'),[exam,setExam]=(0,v.useState)(workspace.activeExam),
+SR63.TeacherPerformanceCenter=function({workspace,canExport=true,initialView='improvement'}){
+ const [view,setView]=(0,v.useState)(initialView),[exam,setExam]=(0,v.useState)(workspace.activeExam),
  [teacher,setTeacher]=(0,v.useState)(''),[subject,setSubject]=(0,v.useState)(''),[cohort,setCohort]=(0,v.useState)('general'),
  [lower,setLower]=(0,v.useState)(60),[upper,setUpper]=(0,v.useState)(80),
  [actions,setActions]=(0,v.useState)({}),[narrative,setNarrative]=(0,v.useState)({}),
@@ -12,7 +12,7 @@ SR63.TeacherPerformanceCenter=function({workspace,canExport=true}){
  const currentSubject=picked?.subject||'';
  (0,v.useEffect)(()=>{setActions({});setNarrative({});setProblem('');},[currentTeacher,currentSubject,exam,cohort]);
  let analysis=null,fullAnalysis=null,analysisError='';
- try{if(currentTeacher&&currentSubject){
+ try{if(view!=='department'&&currentTeacher&&currentSubject){
    fullAnalysis=SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper});
    const className=fullAnalysis.groups.some(g=>g.className===selectedClass)?selectedClass:fullAnalysis.groups[0]?.className;
    analysis=view==='improvement'?SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper,className}):fullAnalysis;
@@ -34,11 +34,15 @@ SR63.TeacherPerformanceCenter=function({workspace,canExport=true}){
  const bandLabels={low:'متدني',middle:'متوسط',high:'مرتفع',missing:'غير محتسب'};
  const labelMap={low:'الطلبة ذوو الأداء المتدني',middle:'الطلبة ذوو الأداء المتوسط',high:'الطلبة ذوو الأداء المرتفع'};
  const actionFields=['Goal','Actions','Indicator'],actionFieldLabels={Goal:'الأهداف المنشودة',Actions:'آلية التدخل والإجراءات',Indicator:'المخرجات الكمية المتوقعة'};
+ // A single navigation surface contains all three official reports; department report remains a standalone component internally.
+ const reportTabs=(0,q.jsxs)('nav',{className:'sr619-tabs',role:'tablist','aria-label':'أنواع خطط تحسين الأداء والتقارير الكمية والوصفية',children:[
+   (0,q.jsx)('button',{type:'button',role:'tab','aria-selected':view==='improvement',className:view==='improvement'?'active':'',onClick:()=>setView('improvement'),children:'خطة تحسين الأداء الشاملة'}),
+   (0,q.jsx)('button',{type:'button',role:'tab','aria-selected':view==='quantitative',className:view==='quantitative'?'active':'',onClick:()=>setView('quantitative'),children:'التقرير الكمي والوصفي للمعلم'}),
+   (0,q.jsx)('button',{type:'button',role:'tab','aria-selected':view==='department',className:view==='department'?'active':'',onClick:()=>setView('department'),children:'التقرير الكمي والوصفي للقسم'})]});
+ if(view==='department')return (0,q.jsxs)('div',{className:'sr619-combined-center',dir:'rtl',children:[reportTabs,(0,q.jsx)(SR63.DepartmentQuantitativePage,{workspace,canExport})]});
  return (0,q.jsxs)('main',{className:'sr616-page sr619-teacher-center',dir:'rtl',children:[
-  (0,q.jsxs)('header',{className:'sr616-title',children:[(0,q.jsx)('h1',{children:'تحسين أداء الطلبة والتقرير الكمي والوصفي'}),(0,q.jsx)('p',{children:'يستخرج البرنامج بيانات كل معلم وشعبه من النتائج وتكليفات المواد؛ ويُنشئ مستندات Word عربية قابلة للتحرير مع المقارنة بين الاختبارات.'})]}),
-  (0,q.jsxs)('div',{className:'sr619-tabs',children:[
-    (0,q.jsx)('button',{className:view==='improvement'?'active':'',onClick:()=>setView('improvement'),children:'خطة تحسين الأداء الشاملة'}),
-    (0,q.jsx)('button',{className:view==='quantitative'?'active':'',onClick:()=>setView('quantitative'),children:'التقرير الكمي والوصفي للمعلم'})]}),
+  (0,q.jsxs)('header',{className:'sr616-title',children:[(0,q.jsx)('h1',{children:'خطط تحسين الأداء والتقارير الكمية والوصفية'}),(0,q.jsx)('p',{children:'اختر خطة تحسين الأداء لشعبة كاملة أو التقرير الكمي والوصفي للمعلم أو القسم، مع الحفاظ على قوالب Word المعتمدة.'})]}),
+  reportTabs,
   (0,q.jsxs)('section',{className:'sr619-card',children:[(0,q.jsx)('h2',{children:'1. اختيار المعلم وبيانات الاختبار'}),
    (0,q.jsx)('div',{className:'sr619-grid',children:[
     form('التقييم',select(exam,setExam,XA.map(x=>[x,tj(workspace.settings,x).name]))),

@@ -127,4 +127,19 @@ check('additional teacher classes are exported with their own data, not repeated
  const lastHeader=xml.lastIndexOf('9/1');
  assert.ok(lastHeader>firstHeader,'later classes should follow first classes');
 });
+check('user-edited exam names appear in teacher Word preamble, selected achievement and immediate predecessor',()=>{
+ const w=fixture(),names=['التقييم التشخيصي الأول','اختبار نهاية الفصل الأول - مراجعة','منتصف الثاني - التقييم المرحلي','التقييم الختامي الثاني'];
+ w.settings.exams.forEach((e,i)=>e.name=names[i]);
+ for(const r of w.rows){r.scores.exam3=12;r.scores.exam4=26;r.statuses.exam3='present';r.statuses.exam4='present';r.examTeachers.exam3=r.teacher;r.examTeachers.exam4=r.teacher;r.examClasses.exam3=r.className;r.examClasses.exam4=r.className;}
+ for(let i=0;i<4;i++){
+  const a=analyze(w,{exam:'exam'+(i+1)}),metrics=S.teacherQuantitativeMetricRows(a);
+  const xml=parts(S.teacherQuantitativeWordBuild(a))['word/document.xml'];
+  assert.equal(a.examName,names[i]);
+  assert.ok(xml.includes('لتحليل نتائج '+names[i]),'Word subtitle mismatch');
+  assert.ok(xml.includes('في '+names[i]+' لمادة'),'Word preamble mismatch');
+  assert.ok(xml.includes('نسبة التحصيل الأكاديمي في '+names[i]));
+  if(i===0){assert.equal(metrics.length,3);assert.ok(!xml.includes(names[1]));}
+  else{assert.equal(a.prevExamName,names[i-1]);assert.ok(xml.includes('نسبة التحصيل الأكاديمي في '+names[i-1]));}
+ }
+});
 console.log('Teacher performance:',passed,'tests');

@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.29",
-  "released": "2026-10-11",
+  "version": "6.10.30",
+  "released": "2026-10-12",
   "updateFiles": [
     "app.js",
     "style.css",

@@ -11,6 +11,6 @@ assert.equal(late.classes.length,3);
 assert.ok(late.teachers.length>0);
 assert.ok(late.levels.reduce((n,x)=>n+x.value,0)===3);
 const portal=fs.readFileSync(path.resolve(__dirname,'../src/staff.js'),'utf8');
-for(const token of ['moehe.png','schoolName','academicYear','chosenExam','setChosenExam','srcoord-chart-grid','srcoord-trend','srcoord-ring','page===\'teachers\'','page===\'failed\'','page===\'comparison\'','SR63.DepartmentQuantitativePage','coordinatorLoad(requestedExam)','comparisonExam:exam'])assert.ok(portal.includes(token),'Missing dashboard feature: '+token);
+for(const token of ['moehe.png','schoolName','academicYear','chosenExam','setChosenExam','srcoord-chart-grid','srcoord-trend','srcoord-ring','page===\'teachers\'','page===\'failed\'','page===\'comparison\'','SR63.TeacherPerformanceCenter','coordinatorLoad(requestedExam)','comparisonExam:exam'])assert.ok(portal.includes(token),'Missing dashboard feature: '+token);
 const css=fs.readFileSync(path.resolve(__dirname,'../src/repair.css'),'utf8');for(const x of ['.srcoord-hero','.srcoord-chart-grid','.srcoord-ring-layout','.srcoord-bar-fill','@media(max-width:680px)'])assert.ok(css.includes(x));
 console.log('Coordinator dashboard exam-bound analytics and visuals: PASS');
