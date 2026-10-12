@@ -1,4 +1,4 @@
-/* 6.10.32 — Academic and behavior report, exact user-supplied school Word form.
+/* 6.10.33 — Academic and behavior report, exact user-supplied school Word form.
    Excel values are not test scores. A missing evaluation is never interpreted
    as a negative evaluation or fabricated into a value. */
 (function(){
@@ -86,8 +86,54 @@
   const offset=pos;for(const x of records){u32(pos,0x02014b50);u16(pos+4,20);u16(pos+6,20);u16(pos+8,0x0800);u16(pos+10,0);u16(pos+12,dosTime);u16(pos+14,dosDate);u32(pos+16,x.hash);u32(pos+20,x.data.length);u32(pos+24,x.data.length);u16(pos+28,x.file.length);u32(pos+42,x.offset);pos+=46;buf.set(x.file,pos);pos+=x.file.length;}
   u32(pos,0x06054b50);u16(pos+8,records.length);u16(pos+10,records.length);u32(pos+12,pos-offset);u32(pos+16,offset);return buf;
  };
+ // A clean, print-ready A4 landscape certificate, built from the existing validated
+ // DOCX package. The ministry image/rels remain embedded in the official Word file.
+ let certificateReady=false;
+ const certificateWordXml=()=>{
+  const template=SR63.behaviorOfficialTemplate;
+  if(!template||!template['word/document.xml'])throw Error('قالب Word غير متاح.');
+  if(certificateReady)return;
+  const original=template['word/document.xml'];
+  const bodyPos=original.indexOf('<w:body>'),sectionPos=original.lastIndexOf('<w:sectPr'),endBody=original.indexOf('</w:body>',sectionPos);
+  if(bodyPos<0||sectionPos<0||endBody<0)throw Error('تعذر فتح هيكل شهادة Word الرسمية.');
+  const esc=escapeXml;
+  const run=(text,{size=20,bold=false,color='213547'}={})=>`<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/><w:color w:val="${color}"/><w:sz w:val="${size}"/><w:szCs w:val="${size}"/>${bold?'<w:b/><w:bCs/>':''}</w:rPr><w:t xml:space="preserve">${esc(text)}</w:t></w:r>`;
+  const para=(text,style={})=>`<w:p><w:pPr><w:bidi/><w:jc w:val="${style.align||'center'}"/><w:spacing w:before="${style.before||0}" w:after="${style.after||0}" w:line="240" w:lineRule="auto"/></w:pPr>${text===null?'':run(text,style)}</w:p>`;
+  const cell=(text,{color='213547',bg='FFFFFF',bold=false,size=18,align='center',pad=85,width=0}={})=>`<w:tc><w:tcPr>${width?`<w:tcW w:w="${width}" w:type="dxa"/>`:''}<w:shd w:fill="${bg}"/><w:tcMar><w:top w:w="${pad}" w:type="dxa"/><w:bottom w:w="${pad}" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tcMar><w:tcBorders><w:top w:val="single" w:sz="5" w:color="CFD8DF"/><w:bottom w:val="single" w:sz="5" w:color="CFD8DF"/><w:left w:val="single" w:sz="5" w:color="CFD8DF"/><w:right w:val="single" w:sz="5" w:color="CFD8DF"/></w:tcBorders></w:tcPr>${para(text,{color,size,bold,align})}</w:tc>`;
+  const table=(rows,widths)=>`<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="${widths.reduce((a,b)=>a+b,0)}" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:tblCellSpacing w:w="0" w:type="dxa"/><w:jc w:val="center"/></w:tblPr><w:tblGrid>${widths.map(w=>`<w:gridCol w:w="${w}"/>`).join('')}</w:tblGrid>${rows.map(cols=>`<w:tr>${cols.join('')}</w:tr>`).join('')}</w:tbl>`;
+  const logo=`<w:p><w:pPr><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="580000" cy="650000"/><wp:docPr id="633" name="شعار وزارة التربية والتعليم والتعليم العالي"/><wp:cNvGraphicFramePr/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="633" name="Ministry logo"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId7"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="580000" cy="650000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+  const header=table([[
+   cell('{{SCHOOL_NAME}}',{width:5900,bold:true,size:25,color:'24394A',pad:95}),
+   cell('وزارة التربية والتعليم والتعليم العالي',{width:4700,bold:true,size:19,color:'6E1939',pad:95}),
+   `<w:tc><w:tcPr><w:tcW w:w="3000" w:type="dxa"/></w:tcPr>${logo}</w:tc>`
+  ]],[5900,4700,3000]);
+  const title=table([[cell('التقرير الأكاديمي والسلوكي للطالب',{bg:'702441',color:'FFFFFF',size:29,bold:true,pad:135})]],[13600]);
+  const identity=table([[
+   cell('اسم الطالب: {{STUDENT_NAME}}',{width:6800,align:'right',bg:'F4F7F8',size:20,bold:true,pad:105}),
+   cell('الشعبة: {{CLASS_NAME}}',{width:3900,align:'right',bg:'F4F7F8',size:19,bold:true,pad:105}),
+   cell('شهر التقرير: {{MONTH}}',{width:2900,align:'right',bg:'F4F7F8',size:17,bold:true,pad:105})
+  ]],[6800,3900,2900]);
+  const head=['المادة / المستوى','المستوى الأكاديمي','التفاعل والمشاركة','إحضار الكتب والأدوات','الواجبات','السلوك'];
+  const headers=head.map((text,i)=>cell(text,{bg:i===0?'284D5D':i===5?'AE8230':'2C6074',color:'FFFFFF',bold:true,size:17,pad:105}));
+  const widths=[3850,1950,1950,1950,1950,1950];
+  const grades=subjects.map((s,i)=>[
+   cell(s.label,{bg:i%2?'F5F8F8':'FFFFFF',align:'right',size:18,bold:true,pad:105}),
+   ...Array.from({length:5},(_,j)=>cell(`{{S${i+1}_${j+1}}}`,{bg:i%2?'F5F8F8':'FFFFFF',size:17,pad:105}))
+  ]);
+  const report=table([headers,...grades],widths);
+  const footer=table([[
+   cell('ختم المدرسة / الاعتماد',{width:6800,color:'677885',size:17,pad:125}),
+   cell('مدير المدرسة: {{PRINCIPAL_NAME}}',{width:6800,color:'702441',size:20,bold:true,pad:125})
+  ]],[6800,6800]);
+  const body=header+para('العام الأكاديمي: {{ACADEMIC_YEAR}}',{align:'right',size:16,color:'6B7280',before:45,after:80})+title+para(' ',{size:8,before:50,after:50})+identity+para(' ',{size:8,before:70,after:70})+report+para(' ',{size:8,before:70,after:70})+footer;
+  const section=original.slice(sectionPos,endBody).replace(/<w:pgMar[^>]*\/>/,'<w:pgMar w:top="680" w:right="700" w:bottom="680" w:left="700" w:header="300" w:footer="300" w:gutter="0"/>');
+  template['word/document.xml']=original.slice(0,bodyPos+8)+body+section+original.slice(endBody);
+  certificateReady=true;
+ };
+ certificateWordXml();
+
  const documentFor=(stu,options={})=>{
-  const values={SCHOOL_NAME:options.schoolName||'مدرسة أبو عبيدة الإعدادية للبنين',MONTH:options.month||'سبتمبر 2025',STUDENT_NAME:stu.name,CLASS_NAME:stu.className};
+  const values={SCHOOL_NAME:options.schoolName||'اسم المدرسة',MONTH:options.month||'سبتمبر 2025',ACADEMIC_YEAR:options.academicYear||'—',PRINCIPAL_NAME:options.principalName||'...................................',STUDENT_NAME:stu.name,CLASS_NAME:stu.className};
   for(let i=0;i<9;i++){const fields=stu.subjects[subjects[i].id]||[];for(let j=0;j<5;j++)values[`S${i+1}_${j+1}`]=fields[j]||'';}
   const source=SR63.behaviorOfficialTemplate?.['word/document.xml'];if(!source)throw Error('قالب Word الأكاديمي السلوكي غير موجود.');
   return source.replace(/\{\{([A-Z0-9_]+)\}\}/g,(original,name)=>Object.hasOwn(values,name)?escapeXml(values[name]):original);
@@ -116,14 +162,24 @@
  SR63.behaviorReportSave=(bytes,filename,mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document')=>{
   const file=new Blob([bytes],{type:mime}),url=URL.createObjectURL(file),anchor=document.createElement('a');anchor.href=url;anchor.download=filename;document.body.appendChild(anchor);anchor.click();anchor.remove();setTimeout(()=>URL.revokeObjectURL(url),9000);
  };
- const toPrint=stu=>subjects.map(s=>{const cells=stu.subjects[s.id]||[];return `<tr><th>${escapeHtml(s.label)}</th>${Array.from({length:5},(_,i)=>`<td>${escapeHtml(cells[i]||'')}</td>`).join('')}</tr>`}).join('');
- SR63.behaviorPrint=function(students,options){if(!students.length)throw Error('لا توجد بيانات للطباعة.');
-  const title=options.schoolName||'مدرسة أبو عبيدة الإعدادية للبنين',month=options.month||'سبتمبر 2025';
+ const toPrint=stu=>subjects.map(s=>{const cells=stu.subjects[s.id]||[];return `<tr><th scope="row">${escapeHtml(s.label)}</th>${Array.from({length:5},(_,i)=>`<td>${escapeHtml(cells[i]||'')}</td>`).join('')}</tr>`}).join('');
+ const certificateHtml=(stu,options={})=>{
+  const school=escapeHtml(options.schoolName||'اسم المدرسة'),month=escapeHtml(options.month||'—'),year=escapeHtml(options.academicYear||'—'),principal=escapeHtml(options.principalName||'...................................');
+  const logo=escapeHtml(options.logoSrc||'./moehe.png');
+  return `<section class="sr633-certificate" dir="rtl" aria-label="شهادة التقرير الأكاديمي والسلوكي"><header class="sr633-doc-head"><div class="sr633-brand"><div class="sr633-ministry">وزارة التربية والتعليم والتعليم العالي</div><strong class="sr633-school">${school}</strong><small>العام الأكاديمي: ${year}</small></div><img src="${logo}" alt="شعار وزارة التربية والتعليم والتعليم العالي"></header><h2 class="sr633-doc-title">التقرير الأكاديمي والسلوكي للطالب</h2><div class="sr633-identity"><span>اسم الطالب: <b>${escapeHtml(stu.name)}</b></span><span>الشعبة: <b>${escapeHtml(stu.className)}</b></span><span>الشهر: <b>${month}</b></span></div><table class="sr633-results"><colgroup><col style="width:28%"><col span="5" style="width:14.4%"></colgroup><thead><tr>${['المادة / المستوى','المستوى الأكاديمي','التفاعل والمشاركة','إحضار الكتب والأدوات','الواجبات','السلوك'].map(x=>`<th scope="col">${x}</th>`).join('')}</tr></thead><tbody>${toPrint(stu)}</tbody></table><footer class="sr633-doc-footer"><div class="sr633-seal">ختم المدرسة / الاعتماد</div><div class="sr633-principal"><span>مدير المدرسة</span><strong>${principal}</strong><small>التوقيع: ...........................</small></div></footer></section>`;
+ };
+ SR63.behaviorCertificateHtml=certificateHtml;
+ const certificatePrintStyle=`@page{size:A4 landscape;margin:0}*{box-sizing:border-box}html,body{margin:0;padding:0;font-family:Arial,Tahoma,sans-serif;color:#203749;background:#e7eaed}.sr633-certificate{box-sizing:border-box;width:297mm;height:210mm;min-height:210mm;background:#fff;margin:0 auto 15px;padding:13mm 15mm 10mm;display:flex;flex-direction:column;break-after:page;page-break-after:always;direction:rtl;overflow:hidden}.sr633-certificate:last-child{break-after:auto;page-break-after:auto}.sr633-doc-head{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:3px solid #702441;padding:0 0 14px;margin-bottom:13px;min-height:70px}.sr633-doc-head img{width:205px;max-height:60px;object-fit:contain;object-position:left}.sr633-brand{display:grid;gap:3px}.sr633-ministry{font-size:13px;font-weight:800;color:#702441}.sr633-school{font-size:21px;font-weight:900;color:#203749}.sr633-brand small{font-size:11px;color:#678}.sr633-doc-title{margin:0;background:#702441;color:#fff;text-align:center;border-radius:5px;padding:10px;font-size:21px;font-weight:900}.sr633-identity{display:grid;grid-template-columns:2.1fr 1fr 1fr;gap:8px;margin:13px 0 15px}.sr633-identity span{border:1px solid #d7dfe4;background:#f5f8f9;padding:12px 13px;font-size:13px;border-radius:5px;color:#526676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sr633-identity b{color:#142e41;font-weight:900}.sr633-results{width:100%;border-collapse:collapse;table-layout:fixed;text-align:center;direction:rtl}.sr633-results th,.sr633-results td{border:1px solid #cbd6dd;padding:9px 5px;font-weight:800;font-size:12px;line-height:1.55}.sr633-results thead th{background:#2c6074;color:#fff;font-weight:900;font-size:12px}.sr633-results thead th:first-child{background:#284d5d}.sr633-results thead th:last-child{background:#ae8230}.sr633-results tbody th{text-align:right;color:#27485d;font-weight:900}.sr633-results tbody tr:nth-child(even){background:#f4f8fa}.sr633-doc-footer{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;border-top:2px solid #e3cfa2;margin-top:auto;padding-top:15px;min-height:74px}.sr633-seal{font-size:12px;color:#7a8996}.sr633-principal{min-width:260px;text-align:center;display:grid;gap:5px;color:#702441}.sr633-principal span{font-size:13px;font-weight:900}.sr633-principal strong{font-size:17px;font-weight:900}.sr633-principal small{font-size:11px;color:#7a8996}@media print{html,body{background:#fff}.sr633-certificate{margin:0;width:297mm;height:210mm;box-shadow:none}.sr633-doc-title,.sr633-results thead th{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+ SR63.behaviorPrint=function(students,options={}){
+  if(!students.length)throw Error('لا توجد بيانات للطباعة.');
   const win=window.open('','_blank');if(!win)throw Error('يرجى السماح بالنوافذ المنبثقة لطباعة التقارير.');
-  const officialLogo=SR63.behaviorOfficialTemplate?.['word/media/image1.jpeg']?.b64;
-  const logoSrc=officialLogo?'data:image/jpeg;base64,'+officialLogo:'./moehe.png';
-  const html=students.map(stu=>`<section class="page" dir="rtl"><header><img src="${logoSrc}" alt="شعار الوزارة"><b>${escapeHtml(title)}</b></header><h2>التقرير الأكاديمي السلوكي لشهر ${escapeHtml(month)}</h2><div class="identity"><span>اسم الطالب: <b>${escapeHtml(stu.name)}</b></span><span>الصف: <b>${escapeHtml(stu.className)}</b></span></div><table><thead><tr><th>المادة / المستوى</th><th>المستوى الأكاديمي</th><th>التفاعل والمشاركة</th><th>إحضار الكتب والأدوات</th><th>الواجبات</th><th>السلوك</th></tr></thead><tbody>${toPrint(stu)}</tbody></table><footer>إدارة المدرسة</footer></section>`).join('');
-  win.document.open();win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقارير الأكاديمية والسلوكية</title><style>body{font-family:Arial,Tahoma,sans-serif;margin:0;color:#071a2a}.page{box-sizing:border-box;width:297mm;min-height:210mm;padding:14mm 10mm;page-break-after:always;break-after:page}.page:last-child{page-break-after:auto;break-after:auto}header{display:flex;align-items:center;justify-content:space-between;min-height:28mm;font-size:19px}header img{width:21mm;height:auto}h2{font-size:20px;text-align:center;background:#bcd7ec;border:2px solid #142e44;padding:5px}.identity{display:flex;justify-content:space-between;background:#f5cdae;padding:8px 14px;margin:12px 25mm;font-size:17px;font-weight:bold;border:1px solid #333}table{border-collapse:collapse;width:100%;table-layout:fixed;direction:rtl;margin-top:8mm}th,td{border:2px solid #555;text-align:center;vertical-align:middle;padding:10px 4px;height:27px;font-size:13px;font-weight:bold}thead th{background:#b7cdec}thead th:first-child{background:#fff}thead th:nth-child(2),thead th:nth-child(4){background:#c7e0ba}thead th:nth-child(6){background:#ffe69b}th:first-child{width:22%}footer{margin-top:10mm;font-size:18px;font-weight:bold}@page{size:A4 landscape;margin:0}@media screen{body{background:#eee}.page{background:#fff;margin:18px auto;box-shadow:0 2px 10px #999}}@media print{.page{width:auto;min-height:0}}</style></head><body>${html}</body></html>`);win.document.close();win.focus();setTimeout(()=>win.print(),500);
+  const logoSrc=new URL('./moehe.png',document.baseURI).href;
+  const html=students.map(stu=>certificateHtml(stu,{...options,logoSrc})).join('');
+  win.document.open();win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقارير الأكاديمية والسلوكية</title><style>${certificatePrintStyle}</style></head><body>${html}</body></html>`);win.document.close();
+  let printed=false;const print=()=>{if(printed)return;printed=true;win.focus();win.print();};
+  Promise.race([win.document.fonts?.ready||Promise.resolve(),new Promise(resolve=>setTimeout(resolve,1500))]).then(()=>{
+   const image=win.document.querySelector('img');if(!image||image.complete)print();else{image.addEventListener('load',print,{once:true});image.addEventListener('error',print,{once:true});setTimeout(print,2000);}
+  });
  };
  SR63.BehaviorAcademicReports=function({workspace,setWorkspace}){
   const existing=workspace.behaviorReports||null;
@@ -144,8 +200,8 @@
    }catch(err){setMessage('تعذر الاستيراد: '+err.message);}finally{setBusy(false);event.target.value='';}
   };
   const saveMonth=value=>{setMonth(value);if(dataset){setCurrent({...dataset,month:value});setWorkspace(w=>({...w,behaviorReports:{...w.behaviorReports,month:value}}));}};
-  const doWord=()=>{try{const out=SR63.behaviorBuildWord(scoped,{schoolName:workspace.settings.schoolName,month,className:selectedClass});SR63.behaviorReportSave(out.bytes,out.filename);setMessage(`تم تجهيز ${scoped.length} تقرير Word مطابق للنموذج المعتمد.`);}catch(e){setMessage(e.message);}};
-  const doPrint=()=>{try{SR63.behaviorPrint(scoped,{schoolName:workspace.settings.schoolName,month});}catch(e){setMessage(e.message);}};
+  const doWord=()=>{try{const out=SR63.behaviorBuildWord(scoped,{schoolName:workspace.settings.schoolName,academicYear:workspace.settings.academicYear,principalName:workspace.settings.principalName,month,className:selectedClass});SR63.behaviorReportSave(out.bytes,out.filename);setMessage(`تم تجهيز ${scoped.length} تقرير Word مطابق للنموذج المعتمد.`);}catch(e){setMessage(e.message);}};
+  const doPrint=()=>{try{SR63.behaviorPrint(scoped,{schoolName:workspace.settings.schoolName,academicYear:workspace.settings.academicYear,principalName:workspace.settings.principalName,month});}catch(e){setMessage(e.message);}};
   const control=(label,value,setter,options)=>(0,q.jsxs)('label',{className:'sr632-control',children:[(0,q.jsx)('span',{children:label}),(0,q.jsx)('select',{value,onChange:e=>{setter(e.target.value);setPrepared(false)},children:options.map(({value,label})=>(0,q.jsx)('option',{value,children:label},value))})]});
   const missingCount=stu=>subjects.reduce((n,s)=>n+(stu.subjects[s.id]||[]).filter(v=>!v).length+(stu.subjects[s.id]?0:5),0);
   const issueReport=dataset?.issues||[];
@@ -167,7 +223,7 @@
    (0,q.jsxs)('details',{children:[(0,q.jsx)('summary',{children:`سجل مراجعة الاستيراد (${issueReport.length} تنبيه)`}),(0,q.jsx)('div',{className:'sr632-issues',children:issueReport.slice(0,100).map((x,i)=>(0,q.jsx)('p',{children:x.text},i))})]}),
    (0,q.jsxs)('div',{className:'sr632-preview',children:[
     !prepared?(0,q.jsx)('p',{className:'sr632-note',children:'اضغط «تجهيز المعاينة» لرؤية شهادات الطلاب. لا تُنشأ معاينة جميع الشعب تلقائيًا لتجنب إبطاء البرنامج.'}):null,
-    ...reports.slice(0,10).map(stu=>(0,q.jsxs)('article',{className:'sr632-preview-sheet',children:[(0,q.jsxs)('header',{children:[(0,q.jsx)('b',{children:workspace.settings.schoolName}),(0,q.jsx)('small',{children:'التقرير الأكاديمي السلوكي لشهر '+month})]}),(0,q.jsxs)('div',{className:'sr632-name',children:[(0,q.jsx)('b',{children:stu.name}),(0,q.jsx)('span',{children:stu.className})]}),(0,q.jsxs)('table',{children:[(0,q.jsx)('thead',{children:(0,q.jsx)('tr',{children:['المادة / المستوى','المستوى الأكاديمي','التفاعل والمشاركة','إحضار الكتب والأدوات','الواجبات','السلوك'].map(x=>(0,q.jsx)('th',{children:x},x))})}),(0,q.jsx)('tbody',{children:subjects.map(s=>(0,q.jsx)('tr',{children:[(0,q.jsx)('th',{children:s.label}),...(stu.subjects[s.id]||['','','','','']).map((x,i)=>(0,q.jsx)('td',{children:x||''},i))]},s.id))})]}),(0,q.jsx)('small',{children:missingCount(stu)?`حقول بلا تقييم: ${missingCount(stu)}`:'جميع الحقول مكتملة'})]},stu.id)),
+    ...reports.slice(0,10).map(stu=>(0,q.jsx)('article',{className:'sr632-preview-sheet sr633-preview-wrap',children:(0,q.jsx)('div',{dangerouslySetInnerHTML:{__html:certificateHtml(stu,{schoolName:workspace.settings.schoolName,academicYear:workspace.settings.academicYear,principalName:workspace.settings.principalName,month})}})},stu.id)),
     prepared&&reports.length>10?(0,q.jsx)('p',{className:'sr632-note',children:`تُعرض أول 10 شهادات فقط للمعاينة السريعة؛ تصدير Word والطباعة يشملان جميع الطلاب المحددين (${reports.length}).`}):null
    ]})]}):null
   ]});

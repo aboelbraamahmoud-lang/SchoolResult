@@ -26,5 +26,5 @@
     "test:combined-reports": "node tests/combined-report-navigation.cjs",
     "test:behavior": "node --expose-internals tests/behavior-reports.cjs"
   },
-  "version": "6.10.32"
+  "version": "6.10.33"
 }
