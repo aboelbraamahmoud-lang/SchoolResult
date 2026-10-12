@@ -1,0 +1,29 @@
+name: Verify SchoolResult
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22.x'
+      - name: Install source dependencies
+        run: npm --prefix source install --no-audit --no-fund
+      - name: Verify source and release
+        run: npm run verify
+      - name: Desktop startup smoke test
+        run: npm --prefix desktop run verify
+      - name: Verify Vercel static output
+        run: node source/scripts/vercel-static.cjs && test -f public/index.html && test -f public/app.js

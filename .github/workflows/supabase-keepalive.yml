@@ -1,0 +1,27 @@
+name: Supabase Keep Alive
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 06:17 and 18:17 Qatar time (UTC+3)
+    - cron: '17 3,15 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  database-health-read:
+    name: Read SchoolResult health row
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22.x'
+
+      - name: Read Supabase health row
+        run: node source/scripts/supabase-keepalive.cjs

@@ -1,0 +1,19 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+Thumbs.db
+
+source/tests/output/
+desktop/node_modules/
+desktop/dist/
+desktop/web/
+
+public/
+
+# Never commit credentials used by AI provider or Edge Functions
+.env
+.env.*
+!.env.example
+supabase/functions/.env
+supabase/functions/.env.*
