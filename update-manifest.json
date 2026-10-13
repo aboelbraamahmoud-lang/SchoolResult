@@ -1,10 +1,10 @@
 {
   "product": "School Results Cloud",
-  "version": "6.10.33",
+  "version": "6.10.35",
   "files": [
     {
       "name": "app.js",
-      "sha256": "7dd3aef90746035ba27d8c9b79db2ed34ee9c176f05fcb9d2a8b7f563f7f1bc1"
+      "sha256": "788b5bb10daf74f8ec7eae775c6bb99f1a344c180a515431fd16cbe4a651171f"
     },
     {
       "name": "style.css",
@@ -12,7 +12,7 @@
     },
     {
       "name": "version.json",
-      "sha256": "4c458a9e3fec7d81d2a18a2ccfa8bd36143bfba6c1af83e4208b00b821ed3678"
+      "sha256": "8a0efede4284a006e7d9c5c6c47ac6787b3c2335f7c9bade42f6fe28c4ace519"
     },
     {
       "name": "index.html",
@@ -25,6 +25,18 @@
     {
       "name": "moehe.png",
       "sha256": "1c9386e0b184818cf6dd62c3bb5ff0a8ad37fc5a37a1d32bb4c5105c8530172c"
+    },
+    {
+      "name": "assets/word-reference.js",
+      "sha256": "86ddad963d5c69173b52efbc8a0e71dd58cdeebc89ae5e8bb16d52c1235c6432"
+    },
+    {
+      "name": "assets/word-improvement.js",
+      "sha256": "858f0254145bd9c9c15ecc1035002cfa853894b666ebe9c7bea722a71292c24e"
+    },
+    {
+      "name": "assets/word-behavior.js",
+      "sha256": "95ca2a7a9c97eb94ac44418b063fccb3abc19a7fc3b9c7c1cb249f4fe7eae3d0"
     }
   ]
 }

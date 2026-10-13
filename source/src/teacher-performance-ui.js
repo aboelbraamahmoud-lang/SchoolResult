@@ -11,13 +11,14 @@ SR63.TeacherPerformanceCenter=function({workspace,canExport=true,initialView='im
  const subjectChoices=choices.filter(x=>x.teacher===currentTeacher),picked=subjectChoices.find(x=>SR63.subjectAliasKey(x.subject)===SR63.subjectAliasKey(subject))||subjectChoices[0];
  const currentSubject=picked?.subject||'';
  (0,v.useEffect)(()=>{setActions({});setNarrative({});setProblem('');},[currentTeacher,currentSubject,exam,cohort]);
- let analysis=null,fullAnalysis=null,analysisError='';
- try{if(view!=='department'&&currentTeacher&&currentSubject){
+ const calculated=(0,v.useMemo)(()=>{let analysis=null,fullAnalysis=null,analysisError='';
+  try{if(view!=='department'&&currentTeacher&&currentSubject){
    fullAnalysis=SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper});
    const className=fullAnalysis.groups.some(g=>g.className===selectedClass)?selectedClass:fullAnalysis.groups[0]?.className;
    analysis=view==='improvement'?SR63.teacherPerformanceAnalyze(workspace,{teacher:currentTeacher,subject:currentSubject,exam,cohort,lower,upper,className}):fullAnalysis;
- }}
- catch(e){analysisError=e.message||'تعذر تحليل النتائج.';}
+  }}catch(e){analysisError=e.message||'تعذر تحليل النتائج.';}return{analysis,fullAnalysis,analysisError};
+ },[workspace,view,currentTeacher,currentSubject,exam,cohort,lower,upper,selectedClass]);
+ const {analysis,fullAnalysis,analysisError}=calculated;
  const preset=currentSubject?SR63.teacherImprovementDefaults(currentSubject):{},editActions={...preset,...actions};
  const form=(title,node)=>(0,q.jsxs)('label',{className:'sr619-field',children:[(0,q.jsx)('span',{children:title}),node]});
  const select=(value,change,entries)=>(0,q.jsx)('select',{value,onChange:e=>change(e.target.value),children:entries.map(([key,label])=>(0,q.jsx)('option',{value:key,children:label},key))});
@@ -27,7 +28,8 @@ SR63.TeacherPerformanceCenter=function({workspace,canExport=true,initialView='im
  const officialFmt=(value,format)=>value===null||value===undefined?'—':format==='plain'?Number(value).toFixed(Number(value)%1?1:0):format==='delta'?(value>0?'+':'')+Number(value).toFixed(1)+' نقطة':Number(value).toFixed(1)+'%';
  const officialStatus=(key,targetKey)=>analysis?.[key]===null||analysis?.[key]===undefined?'—':Number(analysis[key])>=Number(targets[targetKey])?'متحقق':'غير متحقق';
  const officialGroups=analysis?Array.from({length:Math.ceil(analysis.groups.length/3)},(_,i)=>analysis.groups.slice(i*3,i*3+3)):[];
- const download=(kind)=>{if(!analysis)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير ملفات Word.');return;}setProblem('');try{
+ const download=async(kind)=>{if(!analysis)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير ملفات Word.');return;}setProblem('');try{
+   await SR63.loadWordTemplate(kind==='improvement'?'improvement':'reference');
    const file=kind==='improvement'?SR63.teacherImprovementWordBuild(analysis,editActions):SR63.teacherQuantitativeWordBuild(analysis,{...narrative,targets,feedback});
    const name=SR63.teacherWordDownload(file);eb.success('تم تجهيز ملف Word: '+name);
   }catch(e){setProblem(e.message||'تعذر تنزيل التقرير.');}};

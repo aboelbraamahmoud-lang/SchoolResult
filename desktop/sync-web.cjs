@@ -7,6 +7,7 @@ const target = path.join(desktopRoot, 'web');
 const required = [
   'index.html', 'app.js', 'style.css', 'supabase.js', 'version.json',
   'update-manifest.json', 'checksums.sha256', 'moehe.png',
+  'assets/word-reference.js', 'assets/word-improvement.js', 'assets/word-behavior.js',
   'نموذج-استيراد-نتائج-المدرسة.xlsx',
   'نموذج-قاعدة-بيانات-المعلمين.xlsx',
   'نموذج-نتيجة-مادة.xlsx'
@@ -17,6 +18,7 @@ fs.mkdirSync(target, { recursive: true });
 for (const name of required) {
   const src = path.join(repoRoot, name);
   if (!fs.existsSync(src)) throw new Error(`Missing web file: ${name}`);
+  fs.mkdirSync(path.dirname(path.join(target,name)),{recursive:true});
   fs.copyFileSync(src, path.join(target, name));
 }
 const version = JSON.parse(fs.readFileSync(path.join(target, 'version.json'), 'utf8'));

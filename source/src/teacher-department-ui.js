@@ -8,9 +8,11 @@ SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
  const selected=choices.find(x=>x.key===SR63.subjectAliasKey(subject))||choices[0];
  const currentSubject=selected?.subject||'';
  (0,v.useEffect)(()=>{setInterpretation('');setFeedback('');setProblem('');},[exam,currentSubject,cohort]);
- let report=null,error='';
- try{if(currentSubject)report=SR63.departmentPerformanceAnalyze(workspace,{exam,subject:currentSubject,cohort});}
- catch(ex){error=ex.message||'تعذر تحليل نتائج القسم.';}
+ const calculated=(0,v.useMemo)(()=>{let report=null,error='';
+  try{if(currentSubject)report=SR63.departmentPerformanceAnalyze(workspace,{exam,subject:currentSubject,cohort});}
+  catch(ex){error=ex.message||'تعذر تحليل نتائج القسم.';}
+  return{report,error};},[workspace,exam,currentSubject,cohort]);
+ const {report,error}=calculated;
  const officialFmt=(x,format)=>typeof x!=='number'?'—':format==='delta'?(x>0?'+':'')+x.toFixed(1)+' نقطة':format==='plain'?x.toFixed(x%1?1:0):x.toFixed(1)+'%';
  const officialStatus=(key,target)=>{
   const raw=targets[target],num=raw!==''?Number(raw):NaN;
@@ -18,7 +20,8 @@ SR63.DepartmentQuantitativePage=function({workspace,canExport=true}){
  };
  const field=(label,node)=>(0,q.jsxs)('label',{className:'sr619-field',children:[(0,q.jsx)('span',{children:label}),node]});
  const selector=(value,change,options)=>(0,q.jsx)('select',{value,onChange:e=>change(e.target.value),children:options.map(([value,label])=>(0,q.jsx)('option',{value,children:label},value))});
- const download=()=>{if(!report)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير Word.');return;}setProblem('');try{
+ const download=async()=>{if(!report)return;if(!canExport){setProblem('الأدمن لم يمنحك صلاحية تصدير Word.');return;}setProblem('');try{
+  await SR63.loadWordTemplate('reference');
   const doc=SR63.departmentQuantWordBuild(report,{interpretation,feedback,targets});
   const filename=SR63.teacherWordDownload(doc);
   eb.success('تم تنزيل التقرير الكمي والوصفي للقسم بصيغة Word: '+filename);

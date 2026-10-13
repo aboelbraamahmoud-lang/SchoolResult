@@ -3,7 +3,7 @@ const sourceRoot=__dirname,projectRoot=path.resolve(sourceRoot,'..'),webRoot=pro
 const version=JSON.parse(fs.readFileSync(path.join(webRoot,'version.json'),'utf8'));
 const projectPackage=JSON.parse(fs.readFileSync(path.join(projectRoot,'package.json'),'utf8'));
 if(projectPackage.version!==version.version)throw new Error(`Version mismatch: package ${projectPackage.version} / web ${version.version}`);
-const updateFiles=['app.js','style.css','version.json','index.html','supabase.js','moehe.png'];
+const updateFiles=['app.js','style.css','version.json','index.html','supabase.js','moehe.png','assets/word-reference.js','assets/word-improvement.js','assets/word-behavior.js'];
 const sha=file=>crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 for(const name of updateFiles)if(!fs.existsSync(path.join(webRoot,name)))throw new Error('Missing update file: '+name);
 const manifest={product:'School Results Cloud',version:version.version,files:updateFiles.map(name=>({name,sha256:sha(path.join(webRoot,name))}))};

@@ -2,7 +2,6 @@
    The package is regenerated from a Word-compatible normalised DOCX template,
    replacing content only. No personal sample names are embedded in the program. */
 (function(){
-const src=SR63.approvedImprovementWord;
 const esc=v=>String(v??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;');
 const text=v=>esc(v).replace(/\r\n|\r|\n/g,'</w:t><w:br/><w:t>');
 const fill=(xml,values)=>xml.replace(/\{\{([A-Z][A-Z_0-9]*)\}\}/g,(_,key)=>text(values[key]??'—'));
@@ -29,6 +28,7 @@ const percent=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
 const amount=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(Number.isInteger(n)?0:1):'—';
 const change=n=>typeof n==='number'&&Number.isFinite(n)?`${n>0?'+':''}${n.toFixed(1)} نقطة`:'—';
 SR63.teacherImprovementWordBuild=function(analysis,edits={}){
+ const src=SR63.approvedImprovementWord;if(!src?.parts)throw Error('قالب Word غير محمل، أعد طلب التصدير.');
  if(!analysis?.groups||analysis.groups.length!==1)throw Error('يجب اختيار شعبة واحدة لإنشاء خطة تحسين الأداء.');
  const klass=analysis.groups[0].className||'—',presets=SR63.teacherImprovementDefaults(analysis.subject),edited={...presets,...edits};
  const bands={LOW:'low',MIDDLE:'middle',HIGH:'high'},headings={LOW:'الطلبة ذوو الأداء المتدني',MIDDLE:'الطلبة ذوو الأداء المتوسط',HIGH:'الطلبة ذوو الأداء المرتفع'};

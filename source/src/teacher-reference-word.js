@@ -1,6 +1,5 @@
 /* 6.10.25 — exact teacher form content and safe extra-class rendering; Word-compatible output: omit inherited Office sensitivity-label and external custom XML metadata from the source forms; keep the official Word body, drawings, headers, RTL tables and signatures. */
 (function(){
- const templates=SR63.teacherReferenceTemplates;
  const xmlEsc=value=>String(value??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[ch]));
  const safe=value=>xmlEsc(value).replace(/\r\n|\r|\n/g,'</w:t><w:br/><w:t>');
  const fill=(source,fields)=>source.replace(/\{\{([A-Z][A-Z0-9_]*)\}\}/g,(match,key)=>safe(fields[key]??'—'));
@@ -44,6 +43,7 @@
   for(const item of [...parts,...dir,end]){output.set(item,pos);pos+=item.length;}return output;
  };
  const build=(type,fields,extras={},filename,documentOverride=null)=>{
+  const templates=SR63.teacherReferenceTemplates;if(!templates?.[type])throw Error('قالب Word غير محمل، أعد طلب التصدير.');
   const parts=cleanWordParts(templates[type]),source=documentOverride||parts['word/document.xml'];
   if(typeof source!=='string')throw Error('القالب الأصلي غير متاح.');
   let documentXml=source;
@@ -66,6 +66,7 @@
   return count===1?'طالب واحد':`${count} طالب`;
  };
  SR63.teacherQuantitativeWordBuild=function(analysis,edits={}){
+  const templates=SR63.teacherReferenceTemplates;if(!templates?.quant)throw Error('قالب Word غير محمل، أعد طلب التصدير.');
   if(!analysis?.groups?.length)throw Error('لا توجد شعب للمعلم في التقييم المختار.');
   const departmentMode=edits.departmentMode===true;
   const groups=analysis.groups;

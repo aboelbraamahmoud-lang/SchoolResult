@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.33",
+  "version": "6.10.35",
   "released": "2026-10-13",
   "updateFiles": [
     "app.js",
@@ -9,10 +9,13 @@
     "version.json",
     "index.html",
     "supabase.js",
-    "moehe.png"
+    "moehe.png",
+    "assets/word-reference.js",
+    "assets/word-improvement.js",
+    "assets/word-behavior.js"
   ],
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "شهادة التقرير الأكاديمي والسلوكي بتصميم رسمي موحّد للمعاينة وWord وPDF، مع شعار الوزارة واسم المدرسة والتذييل باسم المدير المسجل في إعدادات المدرسة."
+  "notes": "تنظيف ملفات الإصدارات القديمة والنسخ المكررة، وتحميل قوالب Word الثقيلة عند التصدير فقط، وتحسين العمليات الثقيلة في واجهات التقارير."
 }
