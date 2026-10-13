@@ -12,7 +12,9 @@ assert.ok(!sidebar.includes('id:`departmentQuant`,label:`التقرير الكم
 assert.ok(sidebar.includes("initialView:`department`"),'Legacy department navigation does not resolve to combined center');
 assert.ok(!staff.includes("['department','التقرير الكمي والوصفي للقسم'"),'Duplicate coordinator menu item remains');
 assert.ok(!staff.includes("page==='department'&&perms.reports"),'Coordinator duplicate page branch remains');
-assert.match(staff,/page==='reports'&&perms.reports\?h\(SR63\.TeacherPerformanceCenter/);
+assert.ok(staff.includes("page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage"),'Leadership must see whole-school report');
+assert.ok(staff.includes("h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})"),'Coordinator must retain the approved teacher/department report center');
+assert.ok(staff.includes("!isLeadership&&!!perms.plans"),'Leadership AI plans must be hidden');
 assert.match(app,/id:`teacherPerformance`,label:`خطط تحسين الأداء والتقارير الكمية والوصفية`/);
 assert.ok(!app.includes('id:`departmentQuant`,label:`التقرير الكمي والوصفي للقسم`'));
 assert.match(app,/SR63\.departmentQuantWordBuild/);

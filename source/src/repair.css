@@ -1409,3 +1409,20 @@
 .sr-cloud-text-button:hover{color:#702441}
 .sr-cloud-text-button:focus-visible{outline:3px solid #edc979;border-radius:4px}
 .sr-cloud-success{margin-top:12px;border:1px solid #a8dfb5;border-radius:12px;background:#eefcf0;color:#185a30;padding:12px;font-size:13px;line-height:1.9;font-weight:700}
+
+/* 6.10.40 — scope-respecting live charts and editable whole-school qualitative report. */
+.sr640-chart-live{margin:18px 0 24px;max-width:100%;min-width:0}
+.sr640-chart-live .sr640-chart{background:#fff;border:1px solid #d0e1e5;border-radius:18px;box-shadow:0 8px 22px rgba(12,52,70,.05);padding:18px;min-width:0;overflow:hidden}
+.sr640-chart-live .sr640-chart h3{font-size:16px;font-weight:900;color:#173e54;margin:0 0 12px}
+.sr640-chart-live svg{width:100%;height:auto;display:block;max-height:670px}
+.sr640-chart-live .sr640-legend{font-size:12px;color:#526877;line-height:1.8}
+.sr640-school-report .sr619-card{margin-top:16px}
+.sr640-school-report textarea{width:100%;border:1px solid #c2d5dc;border-radius:12px;padding:14px;min-height:98px;line-height:1.9;font:inherit;resize:vertical;background:#fbfdff}
+.sr640-school-report .sr640-targets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.sr640-school-report .sr640-targets label{display:grid;gap:6px;font-size:13px;font-weight:800;color:#244859}
+.sr640-school-report .sr640-targets input{width:100%;border:1px solid #c2d5dc;border-radius:10px;padding:10px;font-size:14px;background:#fff;color:#182f40}
+.sr640-school-report .sr640-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.sr640-school-report .sr640-note{font-size:12px;color:#607280;line-height:1.75}
+@media(max-width:700px){.sr640-school-report .sr640-targets{grid-template-columns:1fr}}
+
+.sr640-chart-rows{display:grid;gap:12px}.sr640-chart-row{display:grid;grid-template-columns:minmax(110px,215px) minmax(145px,1fr) minmax(70px,120px);gap:13px;align-items:center;min-width:0;direction:rtl}.sr640-chart-label{font-size:13px;font-weight:900;color:#174559;overflow-wrap:anywhere}.sr640-chart-vectors svg{width:100%;height:auto;max-height:48px;display:block}.sr640-chart-values{display:block;text-align:left;font-weight:900;font-size:12px;color:#163a4d;white-space:nowrap;direction:rtl}.sr640-chart-values small{display:block;font-size:12px;margin-top:6px}.sr640-chart-live .sr640-legend{display:flex;flex-wrap:wrap;gap:12px}.sr640-chart-live .sr640-legend span:first-child{color:#0e8479}.sr640-chart-live .sr640-legend span:last-child{color:#a6782e}@media(max-width:680px){.sr640-chart-row{grid-template-columns:minmax(75px,115px) minmax(80px,1fr) 70px;gap:7px}.sr640-chart-values,.sr640-chart-values small{font-size:10px}}
