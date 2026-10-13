@@ -68,19 +68,20 @@
  SR63.teacherQuantitativeWordBuild=function(analysis,edits={}){
   const templates=SR63.teacherReferenceTemplates;if(!templates?.quant)throw Error('قالب Word غير محمل، أعد طلب التصدير.');
   if(!analysis?.groups?.length)throw Error('لا توجد شعب للمعلم في التقييم المختار.');
-  const departmentMode=edits.departmentMode===true;
+  const schoolMode=edits.schoolMode===true;
+  const departmentMode=edits.departmentMode===true||schoolMode;
   const groups=analysis.groups;
   const targets=departmentMode?{success:null,achievement:null,valueAdded:null,high90:null,...edits.targets}:{success:90,achievement:75,valueAdded:3,high90:30,...edits.targets};
   const rows=departmentMode?SR63.departmentQuantitativeMetricRows(analysis):SR63.teacherQuantitativeMetricRows(analysis);
   const metrics=(g,key,type)=>type==='delta'?fmtDelta(g?.[key]):type==='plain'?fmtPlain(g?.[key]):fmt(g?.[key]);
-  const values={SUBTITLE:departmentMode?`لتحليل نتائج ${analysis.examName} لجميع شعب الصفوف السابع والثامن والتاسع بمادة ${analysis.subjectLabel} في ${analysis.schoolName} للعام الأكاديمي ${analysis.academicYear}م`:`لتحليل نتائج ${analysis.examName} لمادة ${analysis.subjectLabel} للعام الأكاديمي ${analysis.academicYear}م`,
-    COORDINATOR_GREETING:departmentMode?`النائب الأكاديمي الفاضل: أ/ ${analysis.academicViceName||'........................'}`:`المنسق الفاضل: أ/ ${analysis.coordinator||'........................'}`,
-    INTRODUCTION:departmentMode?`بعد تحليل نتائج قسم ${analysis.departmentName||analysis.subjectLabel} في ${analysis.examName} للصفوف السابع والثامن والتاسع، نقدم المؤشرات الكمية والتفسير الوصفي ومقترحات التحسين والمتابعة.`:`بعد قراءة نتائج الطلبة للصفوف التي أقوم بتدريسها، في ${analysis.examName} لمادة ${analysis.subjectLabel} أقدم لكم تقريرًا كميًا ووصفيًا يوضح نسب النجاح والتحصيل الأكاديمي ومستويات الطلبة المختلفة، وأسباب ارتفاع أو انخفاض نتائج الطلبة.`,
+  const values={SUBTITLE:schoolMode?`لتحليل نتائج ${analysis.examName} على مستوى ${analysis.schoolName||'المدرسة'} - ${analysis.academicYear}م`:(departmentMode?`لتحليل نتائج ${analysis.examName} لجميع شعب الصفوف السابع والثامن والتاسع بمادة ${analysis.subjectLabel} في ${analysis.schoolName} للعام الأكاديمي ${analysis.academicYear}م`:`لتحليل نتائج ${analysis.examName} لمادة ${analysis.subjectLabel} للعام الأكاديمي ${analysis.academicYear}م`),
+    COORDINATOR_GREETING:schoolMode?`السيد الفاضل/ مدير المدرسة: ${analysis.principalName||'........................'}`:(departmentMode?`النائب الأكاديمي الفاضل: أ/ ${analysis.academicViceName||'........................'}`:`المنسق الفاضل: أ/ ${analysis.coordinator||'........................'}`),
+    INTRODUCTION:schoolMode?`بصفتي النائب الأكاديمي أرفع إلى سيادتكم التقرير الكمي والوصفي لنتائج ${analysis.examName} على مستوى المدرسة، متضمنًا المؤشرات والتحليل والتوصيات.`:(departmentMode?`بعد تحليل نتائج قسم ${analysis.departmentName||analysis.subjectLabel} في ${analysis.examName} للصفوف السابع والثامن والتاسع، نقدم المؤشرات الكمية والتفسير الوصفي ومقترحات التحسين والمتابعة.`:`بعد قراءة نتائج الطلبة للصفوف التي أقوم بتدريسها، في ${analysis.examName} لمادة ${analysis.subjectLabel} أقدم لكم تقريرًا كميًا ووصفيًا يوضح نسب النجاح والتحصيل الأكاديمي ومستويات الطلبة المختلفة، وأسباب ارتفاع أو انخفاض نتائج الطلبة.`),
     CURRENT_METRIC_LABEL:rows.find(row=>row.slot===2).label,
     PREVIOUS_METRIC_LABEL:analysis.prevExam?rows.find(row=>row.slot===3).label:'',
-    INTERPRETATION:edits.interpretation||(departmentMode?`شمل التقرير ${analysis.studentCount} طالبًا، منهم ${analysis.evaluated} بنتائج مرصودة. بلغت نسبة النجاح ${fmt(analysis.success)} والتحصيل ${fmt(analysis.achievement)}، والقيمة المضافة ${analysis.previousExam&&analysis.valueAdded!==null?fmtDelta(analysis.valueAdded):'غير متاحة'}. تُعتمد الإجراءات بعد تشخيص المهارات المتعثرة.`:`أظهرت النتائج نسبة نجاح ${fmt(analysis.success)} وتحصيلًا أكاديميًا ${fmt(analysis.achievement)}. وتُعالج جوانب التعثر التي يحددها التقويم التشخيصي من خلال أنشطة متدرجة وأوراق عمل ومتابعة منتظمة للطلاب.`),
-    FEEDBACK:edits.feedback||(departmentMode?'................................................................':'يُرجى الاستمرار في إجراءات الدعم المناسبة، ومراجعة نتائج التقييم اللاحق، وتحديث التدخلات وفق مستويات الطلاب.'),
-    TEACHER_NAME:departmentMode?(analysis.coordinator||'........................'):analysis.teacher,COORDINATOR_NAME:departmentMode?(analysis.academicViceName||'........................'):(analysis.coordinator||'........................')};
+    INTERPRETATION:edits.interpretation||(schoolMode?`شمل التقرير ${analysis.studentCount} طالبًا مختلفًا و${analysis.evaluated} نتيجة مرصودة للمدرسة. بلغت نسبة النجاح ${fmt(analysis.success)} ونسبة التحصيل ${fmt(analysis.achievement)}، ولا تدخل درجات الغياب أو عدم الرصد بوصفها أصفارًا.`:(departmentMode?`شمل التقرير ${analysis.studentCount} طالبًا، منهم ${analysis.evaluated} بنتائج مرصودة. بلغت نسبة النجاح ${fmt(analysis.success)} والتحصيل ${fmt(analysis.achievement)}، والقيمة المضافة ${analysis.previousExam&&analysis.valueAdded!==null?fmtDelta(analysis.valueAdded):'غير متاحة'}. تُعتمد الإجراءات بعد تشخيص المهارات المتعثرة.`:`أظهرت النتائج نسبة نجاح ${fmt(analysis.success)} وتحصيلًا أكاديميًا ${fmt(analysis.achievement)}. وتُعالج جوانب التعثر التي يحددها التقويم التشخيصي من خلال أنشطة متدرجة وأوراق عمل ومتابعة منتظمة للطلاب.`)),
+    FEEDBACK:edits.feedback||(schoolMode?'توصيات النائب الأكاديمي ومقترحاته للعرض على مدير المدرسة.' :(departmentMode?'................................................................':'يُرجى الاستمرار في إجراءات الدعم المناسبة، ومراجعة نتائج التقييم اللاحق، وتحديث التدخلات وفق مستويات الطلاب.')),
+    TEACHER_NAME:schoolMode?(analysis.academicViceName||'........................'):(departmentMode?(analysis.coordinator||'........................'):analysis.teacher),COORDINATOR_NAME:schoolMode?(analysis.principalName||'........................'):(departmentMode?(analysis.academicViceName||'........................'):(analysis.coordinator||'........................'))};
   if(edits.challenges||edits.solutions)values.INTERPRETATION+=[edits.challenges,edits.solutions].filter(Boolean).join('\n');
   const groupFields=(list)=>{
    const o={};for(let i=0;i<3;i++)o['CLASS_'+(i+1)]=list[i]?.className||'—';
@@ -89,7 +90,7 @@
     o[`METRIC_${slot}_TOTAL`]=metrics(analysis,key,format);
     const requested=targets[target];
     const numeric=typeof requested==='number'?requested:typeof requested==='string'&&requested.trim()?Number(requested):NaN;
-    o[`METRIC_${slot}_TARGET`]=departmentMode?(Number.isFinite(numeric)&&numeric>=(target==='valueAdded'?-100:0)&&numeric<=100?status(analysis[key],numeric):'غير محدد'):(requested===null?'—':status(analysis[key],requested));
+    o[`METRIC_${slot}_TARGET`]=schoolMode&&key==='previousAchievement'?'غير محدد':departmentMode?(Number.isFinite(numeric)&&numeric>=(target==='valueAdded'?-100:0)&&numeric<=100?status(analysis[key],numeric):'غير محدد'):(requested===null?'—':status(analysis[key],requested));
    });return o;
   };
   Object.assign(values,groupFields(groups.slice(0,3)));
@@ -109,6 +110,24 @@
    inner=inner.replace(/<w:t>المعلم<\/w:t>/g,'<w:t>منسق المادة</w:t>')
     .replace('اسم المعلم وتوقيعه','اسم منسق المادة وتوقيعه')
     .replace('اسم المنسق وتوقيعه','اعتماد النائب الأكاديمي');
+   if(schoolMode){
+    // The school's official quantitative/descriptive report is the same form
+    // used for departments. Only the audience, signature roles and column
+    // meaning change: vice principal -> principal, grades -> whole school.
+    const roleLabels=[
+      ['التغذية الراجعة من المنسق','توصيات النائب الأكاديمي المرفوعة إلى مدير المدرسة'],
+      ['اسم منسق المادة وتوقيعه','اسم النائب الأكاديمي وتوقيعه'],
+      ['اعتماد النائب الأكاديمي','اطلاع واعتماد مدير المدرسة'],
+      ['الشعب الدراسية','الصفوف الدراسية']
+    ];
+    for(const [before,after] of roleLabels){
+     if(!inner.includes(before))throw Error('تغيّر نموذج الأقسام الرسمي؛ تعذر اعتماد خطاب المدرسة بأمان.');
+     inner=inner.replace(before,after);
+    }
+    // The adjacent Word runs of the column heading use separate text nodes.
+    if(!inner.includes('<w:t>المستوى</w:t>'))throw Error('تعذر تحديد إجمالي المستوى في النموذج الأصلي.');
+    inner=inner.replace('<w:t>المستوى</w:t>','<w:t>المدرسة</w:t>');
+   }
    const dynamic={
     'نسبة النجاح في الاختبار.':rows.find(x=>x.slot===1).label,
     'القيمة المضافة في التحصيل الأكاديمي بين التقييمات.':rows.find(x=>x.slot===4)?.label||'القيمة المضافة في التحصيل الأكاديمي — لا يوجد تقييم سابق'
@@ -138,7 +157,7 @@
    fullBody+=page;
   }
   const xml=source.slice(0,bodyAt)+fullBody+source.slice(sectionAt);
-  return build('quant',{}, {},departmentMode?`التقرير-الكمي-والوصفي-للقسم-${analysis.departmentName||analysis.subjectLabel}-${analysis.examName}`:`التقرير-الكمي-والوصفي-للمعلم-${analysis.teacher}-${analysis.subjectLabel}`,xml);
+  return build('quant',{}, {},schoolMode?`التقرير-الكمي-والوصفي-للمدرسة-من-النائب-إلى-المدير-${analysis.examName}`:(departmentMode?`التقرير-الكمي-والوصفي-للقسم-${analysis.departmentName||analysis.subjectLabel}-${analysis.examName}`:`التقرير-الكمي-والوصفي-للمعلم-${analysis.teacher}-${analysis.subjectLabel}`),xml);
  };
  SR63.teacherImprovementWordBuild=function(analysis,edits={}){
   if(analysis.groups.length!==1)throw Error('خطة تحسين الأداء تُصدَّر لشعبة واحدة فقط. اختر الشعبة أولًا.');

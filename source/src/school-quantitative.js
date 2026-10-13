@@ -47,40 +47,57 @@
   return suggestions.join('\n');
  };
  const metrics=[['نسبة النجاح','success','percent'],['التحصيل الأكاديمي','achievement','percent'],['تحصيل الاختبار السابق','previousAchievement','percent'],['القيمة المضافة (عينة مشتركة)','valueAdded','delta'],['نسبة نتائج 90% فأعلى','high90','percent']];
+ // Reuse the precise, approved departmental quantitative/descriptive Word
+ // form: official headers, borders, RTL cells, metric slots and signatures.
+ // One school-wide page only, with the three columns representing grades 7-9.
  SR63.schoolQuantitativeWordBuild=function(r,edits={}){
-  if(typeof SR63.teacherWordKit!=='function')throw Error('تعذر تحميل مُنشئ مستندات Word.');
-  const kit=SR63.teacherWordKit({schoolName:r.schoolName,teacher:'إدارة المدرسة',vice:r.academicViceName,principal:r.principalName},{landscape:true});
-  const {p,heading,gridTable,make}=kit,format=(n,type)=>type==='delta'?diff(n):fmt(n);
-  let body=p('التقرير الكمي والوصفي للمدرسة كاملة',{size:30,bold:true,color:'920D39',center:true,after:95});
-  body+=p('تحليل نتائج '+r.examName+' — العام الأكاديمي '+r.academicYear,{size:20,bold:true,center:true,after:95});
-  body+=p('اسم المدرسة: '+r.schoolName+' — الصفوف السابع والثامن والتاسع',{size:18,bold:true,after:90});
-  body+=p('المؤشرات تشمل جميع الأقسام والمواد والشعب المدرسية دون تقسيم إلى تقارير معلمين أو أقسام؛ لا يُعدّ عدم الرصد صفرًا.',{size:17,after:70});
-  const cols=[['بنود التقرير','السابع','الثامن','التاسع','إجمالي المدرسة','تحقيق المستهدف']];
-  for(const [label,key,formatType] of metrics){if(key==='previousAchievement'&&!r.previousExam||key==='valueAdded'&&!r.previousExam)continue;cols.push([label,...['7','8','9'].map(g=>format(r.grades[g][key],formatType)),format(r[key],formatType),edits.targets?.[key]!==undefined&&edits.targets?.[key]!==''&&Number.isFinite(Number(edits.targets?.[key]))?(r[key]===null?'غير متاح':Number(r[key])>=Number(edits.targets[key])?'متحقق':'غير متحقق'):'غير محدد']);}
-  cols.push(['عدد النتائج المرصودة',...['7','8','9'].map(g=>String(r.grades[g].evaluated)),String(r.evaluated),'—']);
-  cols.push(['عدد الطلاب المختلفين',...['7','8','9'].map(g=>String(r.grades[g].studentCount)),String(r.studentCount),'—']);
-  body+=gridTable(cols,[3450,1600,1600,1600,1850,1500],{head:true,size:17,compact:false,alternate:true});
-  body+=p('تنبيه منهجي: النسب مبنية على سجلات طالب × مادة مرصودة؛ العدد الفريد للطلاب يظهر مستقلًا، والقيمة المضافة تستعمل السجلات ذات نتيجتين فعليتين فقط.',{size:16,color:'526B77',after:110});
-  body+=heading('التحليل الوصفي لنتائج المدرسة');body+=p(edits.interpretation?.trim()||SR63.schoolReportNarrative(r),{size:18,after:90});
-  body+=heading('التوصيات وخطة التحسين على مستوى المدرسة');body+=p(edits.recommendations?.trim()||SR63.schoolReportRecommendations(r),{size:18,after:90});
-  body+=heading('اعتماد التقرير');body+=gridTable([['جهة الاعتماد','الاسم','التوقيع'],['النائب الأكاديمي',r.academicViceName||'........................','........................'],['مدير المدرسة',r.principalName||'........................','........................']],[2900,5100,2900],{size:17,head:true});
-  return make(body,'التقرير-الكمي-والوصفي-للمدرسة-'+r.examName);
+  if(!r?.grades)throw Error('لا توجد بيانات صالحة لتقرير المدرسة.');
+  const groups=['7','8','9'].map(g=>({
+   ...r.grades[g],className:'الصف '+gradeName[g],currentAchievement:r.grades[g]?.achievement??null
+  }));
+  const analysis={...r,groups,prevExam:r.previousExam||null,prevExamName:r.previousExamName||null,
+   currentAchievement:r.achievement??null,subjectLabel:'جميع مواد المدرسة',departmentName:'المدرسة',
+   teacher:r.academicViceName||'النائب الأكاديمي'};
+  return SR63.teacherQuantitativeWordBuild(analysis,{
+   schoolMode:true,targets:edits.targets||{},
+   interpretation:edits.interpretation||SR63.schoolReportNarrative(r),
+   feedback:edits.recommendations||SR63.schoolReportRecommendations(r)
+  });
  };
  SR63.schoolReportNarrative=function(r){return `شمل التقرير ${r.studentCount} طالبًا مختلفًا، و${r.evaluated} نتيجة مرصودة من أصل ${r.records} سجل طالب ومادة ضمن التعليم العام. بلغت نسبة النجاح ${fmt(r.success)}، والتحصيل ${fmt(r.achievement)}، ونسبة النتائج التي حققت 90% فأكثر ${fmt(r.high90)}. `+
   (r.previousExam?`بلغت القيمة المضافة ${diff(r.valueAdded)} اعتمادًا على ${r.compared} سجلًا ذا نتيجتين فعليتين بين ${r.previousExamName} و${r.examName}. `:'لا يوجد تقييم سابق مباشر لحساب قيمة مضافة. ')+
   `بلغ عدد السجلات غير المرصودة ${r.ungraded}، ولا تُعامل كدرجات صفرية. لا يُستنتج سبب النجاح أو التعثر من هذه المؤشرات وحدها.`;};
+ // Self-contained print layout keeps the official school routing and signatures;
+ // printer styles never depend on the application's hidden @media print DOM.
+ SR63.schoolQuantitativePrintBuild=function(report,edits={}){
+  const esc=SR63.staffReportEsc,targets=edits.targets||{},
+   narrative=edits.interpretation||SR63.schoolReportNarrative(report),
+   suggestion=edits.recommendations||SR63.schoolReportRecommendations(report);
+  const roles='<section class="sr640-section sr641-routing"><p><strong>إلى:</strong> مدير المدرسة / '+esc(report.principalName||'........................')+'</p><p><strong>من:</strong> النائب الأكاديمي / '+esc(report.academicViceName||'........................')+'</p><p>الموضوع: رفع التقرير الكمي والوصفي لجميع أقسام المدرسة عن '+esc(report.examName)+'</p></section>';
+  const signatures='<section class="sr640-section sr641-signatures"><table class="sr640-table"><thead><tr><th>إعداد النائب الأكاديمي وتوقيعه</th><th>اطلاع واعتماد مدير المدرسة</th></tr></thead><tbody><tr><td>'+esc(report.academicViceName||'........................')+'<p>التوقيع: ........................</p></td><td>'+esc(report.principalName||'........................')+'<p>التوقيع: ........................</p></td></tr></tbody></table></section>';
+  return {title:'التقرير الكمي والوصفي',subtitle:'تقرير المدرسة الشامل · '+report.examName,
+   body:roles+SR63.staffReportBarChart('تحصيل الصفوف ونجاحها',['7','8','9'].map(g=>({name:'الصف '+gradeName[g],value:report.grades[g].achievement,second:report.grades[g].success})),{two:true,firstLabel:'التحصيل',secondLabel:'نسبة النجاح'})+'<section class="sr640-section"><h3>المؤشرات الأكاديمية لجميع صفوف المدرسة</h3>'+SR63.schoolReportTableHtml(report,targets)+'</section><h3>التحليل الوصفي</h3><p style="white-space:pre-wrap">'+esc(narrative)+'</p><h3>توصيات النائب الأكاديمي المرفوعة إلى مدير المدرسة</h3><p style="white-space:pre-wrap">'+esc(suggestion)+'</p>'+signatures};
+ };
  SR63.SchoolQuantitativePage=function({workspace,canExport=true}){
-  const [interpretation,setInterpretation]=(0,v.useState)(''),[recommendations,setRecommendations]=(0,v.useState)(''),[targets,setTargets]=(0,v.useState)({success:'',achievement:'',valueAdded:'',high90:''}),[problem,setProblem]=(0,v.useState)('');
+  const [interpretation,setInterpretation]=(0,v.useState)(''),[recommendations,setRecommendations]=(0,v.useState)(''),[targets,setTargets]=(0,v.useState)({success:'',achievement:'',valueAdded:'',high90:''}),[problem,setProblem]=(0,v.useState)(''),[exporting,setExporting]=(0,v.useState)(false);
   const exam=workspace.activeExam;const report=(0,v.useMemo)(()=>SR63.schoolQuantitativeAnalyze(workspace,exam),[workspace,exam]);
   const suggestion=recommendations||SR63.schoolReportRecommendations(report),narrative=interpretation||SR63.schoolReportNarrative(report);
   const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});
   const chart=SR63.staffReportBarChart('مقارنة تحصيل الصفوف على مستوى المدرسة',['7','8','9'].map(g=>({name:'الصف '+gradeName[g],value:report.grades[g].achievement,second:report.grades[g].success})),{two:true,color:'#1b8d80',secondColor:'#c39130'});
-  const print=()=>{try{SR63.staffPrintHtml({title:'التقرير الكمي والوصفي للمدرسة كاملة',subtitle:'الاختبار: '+report.examName,body:SR63.staffReportBarChart('تحصيل الصفوف ونجاحها',['7','8','9'].map(g=>({name:gradeName[g],value:report.grades[g].achievement,second:report.grades[g].success})),{two:true})+'<section class="sr640-section"><h3>المؤشرات الأكاديمية لجميع صفوف المدرسة</h3>'+SR63.schoolReportTableHtml(report,targets)+'</section><h3>التحليل الوصفي</h3><p>'+SR63.staffReportEsc(narrative)+'</p><h3>التوصيات وخطة التحسين المدرسية</h3><p style="white-space:pre-wrap">'+SR63.staffReportEsc(suggestion)+'</p>'},{schoolName:report.schoolName,academicYear:report.academicYear,principalName:report.principalName});}catch(e){setProblem(e.message);}};
-  const download=()=>{try{if(!canExport)throw Error('ليس لديك صلاحية تصدير التقرير.');const doc=SR63.schoolQuantitativeWordBuild(report,{interpretation,recommendations,targets});SR63.teacherWordDownload(doc);setProblem('');}catch(e){setProblem(e.message);}};
+  const print=()=>{try{
+    SR63.staffPrintHtml(SR63.schoolQuantitativePrintBuild(report,{targets,interpretation:narrative,recommendations:suggestion}),{schoolName:report.schoolName,academicYear:report.academicYear,principalName:report.principalName});
+    setProblem('');
+   }catch(e){setProblem(e.message||'تعذر طباعة التقرير.');}};
+  const download=async()=>{if(exporting)return;setExporting(true);setProblem('');try{
+    if(!canExport)throw Error('ليس لديك صلاحية تصدير التقرير.');
+    await SR63.loadWordTemplate('reference');
+    const doc=SR63.schoolQuantitativeWordBuild(report,{interpretation,recommendations,targets});
+    SR63.teacherWordDownload(doc);
+   }catch(e){setProblem(e.message||'تعذر تصدير التقرير الرسمي.');}finally{setExporting(false);}};
   const rows=metrics.filter(([_,key])=>report.previousExam||!['previousAchievement','valueAdded'].includes(key));
   return h('main',{className:'sr619-teacher-center sr640-school-report',dir:'rtl'},[
-   h('header',{className:'sr616-title'},[h('h1',{},'التقرير الكمي والوصفي للمدرسة كاملة'),h('p',{},'تقرير مدرسي واحد يضم جميع الأقسام والمواد والصفوف، مع التحليل الوصفي والتوصيات المدرسية، دون تحديد معلم أو قسم.')]),
-   h('section',{className:'sr619-card'},[h('h2',{},'مؤشرات '+report.examName),h('p',{},'التعليم العام · العام الأكاديمي '+report.academicYear+' · عدد الطلاب المختلفين '+report.studentCount),h('div',{className:'srstaff-kpis srcoord-kpis'},[
+   h('header',{className:'sr616-title'},[h('h1',{},'التقرير الكمي والوصفي'),h('p',{},'تقرير كمي ووصفي لجميع أقسام المدرسة، وفق نموذج الأقسام الرسمي المعتمد. يرفعه النائب الأكاديمي إلى مدير المدرسة، دون اختيار أقسام أو معلمين.')]),
+   h('section',{className:'sr619-card'},[h('div',{className:'sr641-report-address'},[h('p',{},'إلى: مدير المدرسة / '+(report.principalName||'........................')),h('p',{},'من: النائب الأكاديمي / '+(report.academicViceName||'........................'))]),h('h2',{},'مؤشرات '+report.examName),h('p',{},'التعليم العام · العام الأكاديمي '+report.academicYear+' · عدد الطلاب المختلفين '+report.studentCount),h('div',{className:'srstaff-kpis srcoord-kpis'},[
     ...[['نتائج مرصودة',report.evaluated],['نسبة النجاح',fmt(report.success)],['نسبة التحصيل',fmt(report.achievement)],['القيمة المضافة',diff(report.valueAdded)],['الحالات غير المرصودة',report.ungraded],['الطلاب الفريدون',report.studentCount]].map(([a,b])=>h('article',{key:a},[h('span',{},a),h('strong',{},b)]))
    ]),h('div',{className:'sr640-chart-live',dangerouslySetInnerHTML:{__html:chart}}),
    h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['المؤشر','السابع','الثامن','التاسع','إجمالي المدرسة'].map(x=>h('th',{key:x},x)))),
@@ -89,10 +106,10 @@
    h('p',{},'المستهدفات غير مفترضة؛ أدخل القيم التي اعتمدتها المدرسة لتظهر حالة تحقيق المستهدف.'),
    h('div',{className:'sr640-targets'},[['success','مستهدف النجاح (%)'],['achievement','مستهدف التحصيل (%)'],['valueAdded','مستهدف القيمة المضافة (نقطة)'],['high90','مستهدف نتائج 90% فأعلى (%)']].map(([key,label])=>h('label',{key},[h('span',{},label),h('input',{type:'number',step:'0.1',min:key==='valueAdded'?-100:0,max:100,value:targets[key],onChange:e=>setTargets(old=>({...old,[key]:e.target.value}))})]))),
    h('h3',{},'تفسير النتائج على مستوى المدرسة'),h('textarea',{rows:4,maxLength:3800,value:interpretation,onChange:e=>setInterpretation(e.target.value),placeholder:SR63.schoolReportNarrative(report)}),
-   h('h3',{},'التوصيات وخطة التحسين المدرسية'),h('textarea',{rows:6,maxLength:4000,value:recommendations,onChange:e=>setRecommendations(e.target.value),placeholder:SR63.schoolReportRecommendations(report)}),
-   h('p',{className:'sr640-note'},'اترك الحقول فارغة لإصدار الوصف والتوصيات المبنية على المؤشرات، ويمكن تعديلها قبل التصدير. لا تشمل التقرير بيانات شخصية للطلاب.'),
+   h('h3',{},'توصيات النائب الأكاديمي إلى مدير المدرسة'),h('textarea',{rows:6,maxLength:4000,value:recommendations,onChange:e=>setRecommendations(e.target.value),placeholder:SR63.schoolReportRecommendations(report)}),
+   h('p',{className:'sr640-note'},'يُصدر ملف Word بنفس نموذج الأقسام الرسمي مع توجيه الخطاب من النائب الأكاديمي إلى مدير المدرسة. يمكن تعديل التفسير والتوصيات قبل التصدير. لا يتضمن التقرير بيانات شخصية للطلاب.'),
    problem?h('p',{className:'srstaff-alert',role:'alert'},problem):null,
-   h('div',{className:'sr640-actions'},[h('button',{type:'button',disabled:!canExport,onClick:download},'تنزيل تقرير المدرسة Word'),h('button',{type:'button',disabled:!canExport,onClick:print},'طباعة التقرير / حفظ PDF')])
+   h('div',{className:'sr640-actions'},[h('button',{type:'button',disabled:!canExport||exporting,onClick:()=>void download()},exporting?'جارٍ تحميل النموذج الرسمي…':'تنزيل التقرير الرسمي Word'),h('button',{type:'button',disabled:!canExport,onClick:print},'طباعة التقرير / حفظ PDF')])
    ])
   ]);
  };

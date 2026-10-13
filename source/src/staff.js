@@ -144,7 +144,7 @@ SR63.CoordinatorPortal=function({profile}){
     page==='teachers'?data.teachers:page==='comparison'?benchmarks.map(x=>({name:x.department,achievement:x.achievement})):data.classes)
  ]);
  const cards=[['الطلاب ذوو نتائج',data?.students??0,'طالب فريد'],['النتائج المرصودة',data?.evaluated??0,'يشمل الدعم الإضافي'],['نسبة النجاح',fmt(data?.success),'من نتائج التعليم العام'],['نسبة التحصيل',fmt(data?.achievement),'للاختبار المحدد'],['معلمو '+scopeLabel,data?.teachers?.length??0,'من لديهم نتائج مرصودة'],['الطلاب المتعثرون',new Set((data?.failed||[]).map(x=>x.studentId||x.name)).size,'درجات دون حد النجاح']];
- const views=[['dashboard','لوحة '+scopeLabel,true],['overview','التقرير المدرسي الشامل',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison','مقارنة الاختبارين والأقسام',!!perms.compare],['reports','خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['plans','الخطط العلاجية الذكية',!isLeadership&&!!perms.plans]];
+ const views=[['dashboard','لوحة '+scopeLabel,true],['overview','التقرير المدرسي الشامل',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison','مقارنة الاختبارين والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['plans','الخطط العلاجية الذكية',!isLeadership&&!!perms.plans]];
  const saveWorkspace=async change=>{if(profile.role!=='coordinator'||!perms.savePlans)throw Error('ليس لديك صلاحية حفظ الخطط.');
   if(!workspace)throw Error('لم تكتمل البيانات.');const next=change(workspace),before=new Map((workspace.aiPlans||[]).map(p=>[p.id,JSON.stringify(p)])),updated=(next.aiPlans||[]).filter(p=>before.get(p.id)!==JSON.stringify(p));
   if(updated.length!==1)throw Error('يجب تعديل خطة واحدة في كل عملية.');const result=await SR63.cloud.rpc('school_staff_coordinator_plan_save',{p_plan:updated[0],p_expected:payload.revision});
@@ -174,7 +174,7 @@ SR63.CoordinatorPortal=function({profile}){
     h('h3',{},'مؤشرات الأقسام'),
     h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),
     h('tbody',{},benchmarks.map(x=>h('tr',{key:x.department},[x.department,x.evaluated,fmt(x.success),fmt(x.achievement)].map((c,i)=>h('td',{key:i},c)))))])),
-    h('p',{},'إخراج التقرير الكمي والوصفي الرسمي مع التوصيات والتوقيعات سيتبع النموذج الذي سترفعه المدرسة؛ لم يُعتمد قالب بديل.')
+    h('p',{},'تم اعتماد نموذج التقرير الكمي والوصفي الرسمي المستخدم للأقسام، ليُصدر تقرير المدرسة بالكامل من النائب الأكاديمي إلى مدير المدرسة عبر تبويب التقرير الكمي والوصفي.')
    ]):null,
    page==='levels'&&perms.studentLevels?h('section',{className:'srstaff-panel',id:'srstaff-levels'},[
     h('h2',{},'توزيع الطلاب حسب مستويات الأداء — '+examName),

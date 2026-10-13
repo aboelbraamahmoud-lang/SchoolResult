@@ -1,0 +1,45 @@
+/* 6.10.41 regression: principal-directed deputy report uses the real department Word form. */
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),path=require('node:path');
+const {loadApp}=require('./harness.cjs');
+const root=path.resolve(__dirname,'../..'),{ctx}=loadApp(),S=ctx.SR63;
+const pair=(id,subject,klass,first,second,extra={})=>({studentId:id,studentName:'طالب '+id,subject,department:subject,className:klass,examClasses:{exam1:klass,exam2:klass},scores:{exam1:first,exam2:second},statuses:{exam1:'present',exam2:second===null?'absent':'present'},totals:{exam1:100,exam2:100},...extra});
+const w={activeExam:'exam2',settings:{schoolName:'مدرسة نموذج أمنية',academicYear:'2026/2027',academicViceName:'نائب المدرسة',principalName:'مدير المدرسة',pass:50,exams:[{key:'exam1',name:'الاختبار السابق',total:100},{key:'exam2',name:'الاختبار الحالي',total:100}]},rows:[pair('1','الرياضيات','7/1',20,70),pair('1','اللغة العربية','7/1',60,90),pair('2','الرياضيات','8/1',50,80),pair('3','اللغة العربية','9/1',50,65),pair('4','الرياضيات','9/2',50,null),pair('5','الرياضيات','07/ESE',60,90)]};
+function parts(doc){const b=Buffer.from(doc.bytes),out={};let at=0;while(at+30<=b.length&&b.readUInt32LE(at)===0x04034b50){const size=b.readUInt32LE(at+18),namelen=b.readUInt16LE(at+26),extra=b.readUInt16LE(at+28),name=b.subarray(at+30,at+30+namelen).toString('utf8'),start=at+30+namelen+extra;out[name]=b.subarray(start,start+size);at=start+size;}assert.equal(b.readUInt32LE(at),0x02014b50);return out;}
+const report=S.schoolQuantitativeAnalyze(w,'exam2');
+assert.equal(report.evaluated,4);
+assert.equal(report.studentCount,4);
+assert.equal(report.ungraded,1);
+assert.equal(report.grades['7'].evaluated,2);
+assert.equal(report.grades['8'].evaluated,1);
+assert.equal(report.grades['9'].evaluated,1);
+const narrative='ملخص مراجعة تعليمية: لا بيانات خاصة بالأفراد';
+const suggestions='التوصيات المرفوعة من النائب الأكاديمي للمدير';
+const edits={interpretation:narrative,recommendations:suggestions,targets:{achievement:'85',success:'80'}};
+const doc=S.schoolQuantitativeWordBuild(report,edits),xml=parts(doc)['word/document.xml'].toString('utf8');
+assert.ok(doc.filename.includes('من-النائب-إلى-المدير'));
+for(const needle of ['نموذج تقرير','مدرسة نموذج أمنية','السيد الفاضل/ مدير المدرسة','بصفتي النائب الأكاديمي أرفع','الصف السابع','الصف الثامن','الصف التاسع','إجمالي','المدرسة','تفسير النتائج','توصيات النائب الأكاديمي المرفوعة إلى مدير المدرسة','اطلاع واعتماد مدير المدرسة','اسم النائب الأكاديمي وتوقيعه',narrative,suggestions])assert.ok(xml.includes(needle),'Missing official report detail '+needle);
+for(const mustNot of ['الشعب الدراسية','اسم منسق المادة وتوقيعه','اعتماد النائب الأكاديمي','التغذية الراجعة من المنسق','طالب 1','طالب 5','معلم الرياضيات'])assert.ok(!xml.includes(mustNot),'Leaked obsolete role or pupil: '+mustNot);
+assert.ok(xml.includes('w:bidiVisual'),'Arabic table must remain RTL');
+assert.ok(Object.keys(parts(doc)).some(x=>x.startsWith('word/media/')),'Official Word images must be retained');
+// Current academic targets do not judge a different historical assessment.
+assert.ok(xml.includes('نسبة التحصيل الأكاديمي في الاختبار السابق'));
+const rows=xml.match(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g)||[];
+const previous=rows.find(x=>x.includes('نسبة التحصيل الأكاديمي في الاختبار السابق'));
+assert.ok(previous?.includes('غير محدد'),'prior assessment target must not be inferred');
+const originalDoc=S.departmentQuantWordBuild(S.departmentPerformanceAnalyze(w,{exam:'exam2',subject:'الرياضيات'}));
+const original=parts(originalDoc),official=parts(doc);
+for(const name of ['word/styles.xml','word/header1.xml','word/footer1.xml'])if(original[name])assert.deepEqual(official[name],original[name],`Altered approved shared template part: ${name}`);
+const print=S.schoolQuantitativePrintBuild(report,{...edits,interpretation:'<script>alert(1)</script>'});
+for(const needle of ['<svg','<table','مدير المدرسة','النائب الأكاديمي','الصف السابع','اطلاع واعتماد مدير المدرسة'])assert.ok(print.body.includes(needle));
+assert.ok(print.body.includes('&lt;script&gt;')&&!print.body.includes('<script>'),'Print report must escape user edits');
+const first=S.schoolQuantitativeAnalyze(w,'exam1'),firstXml=parts(S.schoolQuantitativeWordBuild(first))['word/document.xml'].toString('utf8');
+assert.ok(!firstXml.includes('القيمة المضافة في التحصيل الأكاديمي بين'),'First assessment may not invent value-added');
+assert.ok(!firstXml.includes('نسبة التحصيل الأكاديمي في الاختبار الحالي'),'First exam may not invent predecessor');
+const staff=fs.readFileSync(path.join(root,'source/src/staff.js'),'utf8');
+assert.ok(staff.includes("isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية'"),'Only leadership should receive simplified tab');
+assert.ok(staff.includes("page==='plans'&&!isLeadership"),'AI plans must remain hidden for school leaders');
+assert.ok(staff.includes('SR63.SchoolQuantitativePage')&&staff.includes('SR63.TeacherPerformanceCenter'),'Coordinator department form must remain untouched');
+const school=fs.readFileSync(path.join(root,'source/src/school-quantitative.js'),'utf8');
+assert.ok(school.includes("await SR63.loadWordTemplate('reference')"),'Real lazy Word template must load on export');
+console.log('PASS 6.10.41: official same Word form, deputy-to-principal routing, grade totals, signatures, first exam, printing, escaping, navigation');
