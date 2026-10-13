@@ -8,13 +8,24 @@ SR63.staff={
   return 'u-'+[...new Uint8Array(digest)].slice(0,24).map(x=>x.toString(16).padStart(2,'0')).join('')+'@staff.schoolresult.example.com';
  },
  async call(body){
-  const {data,error}=await SR63.cloud.client().functions.invoke('school-staff',{body});
+  // Profile loading must not leave the sign-in screen waiting for the global 45s timeout.
+  // Other operations (imports, large department reports) retain their normal timeout.
+  const isProfile=body?.action==='profile',controller=isProfile?new AbortController():null;
+  const timeout=controller?setTimeout(()=>controller.abort(),14000):null;
+  let result;try{result=await SR63.cloud.client().functions.invoke('school-staff',{body,...(controller?{signal:controller.signal}:{})});}
+  catch(cause){const ex=new Error(isProfile?'تعذر التحقق من الصلاحيات بسبب اتصال مؤقت. يُرجى إعادة التحقق.':'تعذر الاتصال بخدمة إدارة المستخدمين.');ex.code='STAFF_NETWORK_TIMEOUT';ex.transient=true;throw ex;}
+  finally{if(timeout)clearTimeout(timeout);}
+  const {data,error}=result;
   if(error){let reason='تعذّر الاتصال بخدمة إدارة المستخدمين.';
    try{const response=error.context;if(response&&typeof response.json==='function'){const json=await response.json();reason=json?.error||reason;}}catch{}
    const messages={STAFF_FUNCTION_OUTDATED:'خدمة إدارة المستخدمين في Supabase تحتاج تحديثًا لتفعيل حسابات النائب الأكاديمي والمدير. انشر آخر إصدار من وظيفة school-staff وطبّق ترحيل الصلاحيات.',ACCOUNT_DISABLED_OR_UNAUTHORIZED:'هذا الحساب غير مفعّل أو لا يملك صلاحية الدخول.',INVALID_SESSION:'انتهت جلسة تسجيل الدخول.',ADMIN_ONLY:'هذه العملية مخصصة للأدمن.',INVALID_ACCOUNT_DATA:'راجع اسم المستخدم وكلمة المرور (10 أحرف على الأقل).',USERNAME_EXISTS:'اسم المستخدم مستخدم من قبل.',INVALID_DEPARTMENT:'القسم غير موجود ضمن تكليفات المدرسة.',COORDINATOR_NEEDS_DEPARTMENT:'يجب تحديد قسم واحد على الأقل للمنسق.',ACCOUNT_SAVE_FAILED:'تعذر حفظ المستخدم.',INVALID_NAME:'الاسم الظاهر غير صالح.',STAFF_NOT_FOUND:'المستخدم غير موجود.',PERMISSION_DENIED:'لا تملك صلاحية هذه العملية.'};
-   const failure=new Error(messages[reason]||reason);failure.code=reason;throw failure;
+   const failure=new Error(messages[reason]||reason);failure.code=reason;
+   const status=Number(error.context?.status||0);
+   failure.transient=status===408||status===429||status>=500||/network|fetch|abort|timeout/i.test(String(error.message||''));
+   if(failure.transient&&reason==='تعذّر الاتصال بخدمة إدارة المستخدمين.')failure.message='اتصال خدمة الصلاحيات متأخر مؤقتًا، تُعاد المحاولة تلقائيًا.';
+   throw failure;
   }
-  if(data?.error)throw new Error(data.error);
+  if(data?.error){const failure=new Error(data.error);failure.code=data.error;failure.transient=data.error==='ACCOUNT_LOOKUP_FAILED';throw failure;}
   return data;
  },
  async profile(){return (await this.call({action:'profile'})).profile;},

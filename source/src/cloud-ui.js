@@ -1,50 +1,100 @@
-/* SchoolResult 6.10.37 — persistent browser sessions and password recovery.
+/* SchoolResult 6.10.39 — single-flight session verification, persistent login and password recovery.
    Auth refresh tokens are stored by Supabase in localStorage where available;
    school results are never stored in the browser. Do not save passwords. */
 SR63.CloudApp=function(){
  const initialReset=(()=>{try{const u=new URL(window.location.href);return u.searchParams.get('sr_reset')==='1'||/\btype=recovery\b/.test(u.hash);}catch{return false;}})();
  const [user,setUser]=(0,v.useState)(null),[mounted,setMounted]=(0,v.useState)(null),[role,setRole]=(0,v.useState)(null),
- [ready,setReady]=(0,v.useState)(false),[email,setEmail]=(0,v.useState)(''),[loginMode,setLoginMode]=(0,v.useState)('username'),
+ [ready,setReady]=(0,v.useState)(false),[email,setEmail]=(0,v.useState)(()=>{try{return localStorage.getItem('schoolresult-last-identifier')||'';}catch{return '';}}),
  [password,setPassword]=(0,v.useState)(''),[error,setError]=(0,v.useState)(''),[busy,setBusy]=(0,v.useState)(false),
  [tick,setTick]=(0,v.useState)(0),[recovery,setRecovery]=(0,v.useState)(initialReset?'update':''),
  [recoveryEmail,setRecoveryEmail]=(0,v.useState)(''),[newPassword,setNewPassword]=(0,v.useState)(''),
  [confirmPassword,setConfirmPassword]=(0,v.useState)(''),[recoveryNotice,setRecoveryNotice]=(0,v.useState)(''),
- bound=(0,v.useRef)(null),sessionTask=(0,v.useRef)(0),recoveryRef=(0,v.useRef)(initialReset),resumeRef=(0,v.useRef)(null);
+ bound=(0,v.useRef)(null),sessionTask=(0,v.useRef)(0),recoveryRef=(0,v.useRef)(initialReset),resumeRef=(0,v.useRef)(null),applyRef=(0,v.useRef)(null),verifiedRef=(0,v.useRef)(null),loginRef=(0,v.useRef)(false);
  const el=(type,props,children)=>(0,q.jsx)(type,{...props,children});
  (0,v.useEffect)(()=>{
-  let alive=true;
-  const apply=async session=>{
-   const nonce=++sessionTask.current,next=session?.user??null;
+  let alive=true,initialSeen=false,profileFlight=null;
+  const pause=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+  const transient=err=>err?.transient===true||err?.code==='STAFF_NETWORK_TIMEOUT'||err?.code==='ACCOUNT_LOOKUP_FAILED';
+  const profileFor=async id=>{
+   if(verifiedRef.current?.id===id)return verifiedRef.current.profile;
+   if(profileFlight?.id===id)return profileFlight.promise;
+   const task=(async()=>{
+    // Retry only network / service interruptions, never bad credentials, disabled
+    // accounts, permission denial, or other authorization failures.
+    for(let attempt=0;attempt<2;attempt++){
+     try{return await SR63.staff.profile();}
+     catch(err){if(!transient(err)||attempt===1)throw err;await pause(650);}
+    }
+   })();
+   profileFlight={id,promise:task};
+   task.then(()=>{if(profileFlight?.promise===task)profileFlight=null;},()=>{if(profileFlight?.promise===task)profileFlight=null;});
+   return task;
+  };
+  const apply=async(session,force=false)=>{
+   const next=session?.user??null,nonce=++sessionTask.current;
    if(recoveryRef.current){if(alive)setReady(true);return;}
-   if(!next){if(!alive)return;setUser(null);if(!SR63.storage.pending&&!SR63.storage.busy){bound.current=null;SR63.cloud.bind(null);SR63.cloud.setAccess(null);SR63.storage.reset();SR63.currentWorkspace=null;setMounted(null);setRole(null);}setReady(true);return;}
+   if(!next){if(!alive||loginRef.current)return;
+    verifiedRef.current=null;setUser(null);setRole(null);
+    if(!SR63.storage.pending&&!SR63.storage.busy){bound.current=null;SR63.cloud.bind(null);SR63.cloud.setAccess(null);SR63.storage.reset();SR63.currentWorkspace=null;setMounted(null);}
+    setReady(true);return;
+   }
+   if(!force&&verifiedRef.current?.id===next.id){
+    if(alive){setMounted(next.id);setRole(verifiedRef.current.profile);setUser(next);setReady(true);setError('');}
+    return;
+   }
    try{
-    const profile=await SR63.staff.profile();if(!alive||nonce!==sessionTask.current||recoveryRef.current)return;
+    const profile=await profileFor(next.id);
+    if(!alive||nonce!==sessionTask.current||recoveryRef.current)return;
     if(!['owner','admin','coordinator','vice_principal','principal'].includes(profile.role))throw new Error('الحساب ليس لديه صلاحيات نشطة.');
     if(next.id!==bound.current){
-     if(bound.current&&(SR63.storage.pending||SR63.storage.busy)){setError('توجد تغييرات معلّقة؛ سجّل الدخول بالحساب السابق لإكمال حفظها.');return;}
+     if(bound.current&&(SR63.storage.pending||SR63.storage.busy))throw new Error('توجد تغييرات معلّقة؛ أكمل حفظ الحساب السابق قبل تبديل المستخدم.');
      bound.current=next.id;SR63.cloud.bind(next.id);SR63.cloud.setAccess(profile);SR63.storage.reset();setMounted(next.id);
     }else SR63.cloud.setAccess(profile);
+    setMounted(next.id); // Also restore the mounted identity after an earlier transient failure.
+    verifiedRef.current={id:next.id,profile};
     setRole(profile);setUser(next);setError('');setReady(true);
-   }catch(err){if(alive&&nonce===sessionTask.current){setUser(null);setMounted(null);setError(err.message||'تعذر التحقق من صلاحيات الحساب. اضغط إعادة التحقق.');setReady(true);}}
+   }catch(err){
+    if(alive&&nonce===sessionTask.current){
+     verifiedRef.current=null;setUser(null);setRole(null);setMounted(null);
+     setError(err?.message||'تعذر التحقق من صلاحيات الحساب. اضغط إعادة التحقق.');setReady(true);
+    }
+   }
   };
-  resumeRef.current=async()=>{try{const {data,error}=await SR63.cloud.client().auth.getSession();if(error)throw error;await apply(data.session);}catch(err){if(alive){setError(SR63.cloud.message(err).message);setReady(true);}}};
+  applyRef.current=apply;
+  resumeRef.current=async()=>{try{
+   // Fallback / manual verification only; INITIAL_SESSION is the normal entry point.
+   const {data,error}=await SR63.cloud.client().auth.getSession();if(error)throw error;
+   await apply(data.session,true);
+  }catch(err){if(alive){setError(SR63.cloud.message(err).message);setReady(true);}}};
   try{
-   const sdk=SR63.cloud.client();void resumeRef.current();
+   const sdk=SR63.cloud.client();
    const {data}=sdk.auth.onAuthStateChange((event,session)=>setTimeout(()=>{
     if(!alive)return;
     if(event==='PASSWORD_RECOVERY'){recoveryRef.current=true;setRecovery('update');setRecoveryNotice('تم التحقق من رابط الاستعادة. أدخل كلمة مرور جديدة للحساب.');setError('');setReady(true);return;}
-    if(!recoveryRef.current)void apply(session);
+    if(event==='INITIAL_SESSION')initialSeen=true;
+    if(recoveryRef.current)return;
+    if(event==='SIGNED_OUT'){void apply(null);return;}
+    // signInWithPassword will apply the returned session directly; no duplicate profile call.
+    if(loginRef.current&&(event==='SIGNED_IN'||event==='INITIAL_SESSION'))return;
+    if(event==='TOKEN_REFRESHED'&&verifiedRef.current?.id===session?.user?.id)return;
+    if(['INITIAL_SESSION','SIGNED_IN','TOKEN_REFRESHED','USER_UPDATED'].includes(event))void apply(session);
    },0));
+   // Extremely defensive fallback in case INITIAL_SESSION is never delivered.
+   const fallback=setTimeout(()=>{if(alive&&!initialSeen&&!recoveryRef.current)void resumeRef.current?.();},2500);
    const update=()=>setTick(x=>x+1);window.addEventListener('sr63-storage',update);
-   return()=>{alive=false;resumeRef.current=null;data.subscription.unsubscribe();window.removeEventListener('sr63-storage',update);};
+   return()=>{alive=false;clearTimeout(fallback);sessionTask.current++;resumeRef.current=null;data.subscription.unsubscribe();window.removeEventListener('sr63-storage',update);};
   }catch(err){setError(err.message);setReady(true);return()=>{alive=false;resumeRef.current=null;};}
  },[]);
- const login=async event=>{event.preventDefault();if(busy)return;setBusy(true);setError('');try{
+ const login=async event=>{event.preventDefault();if(busy||loginRef.current)return;loginRef.current=true;setBusy(true);setError('');try{
   if(bound.current&&(SR63.storage.pending||SR63.storage.busy))throw new Error('توجد بيانات لم تُحفظ لحساب آخر؛ أكمل حفظها قبل تبديل المستخدم.');
-  const address=loginMode==='username'?await SR63.staff.emailForUsername(email):email.trim();
-  const {error:authError}=await SR63.cloud.client().auth.signInWithPassword({email:address,password});if(authError)throw authError;
+  const identifier=email.trim();const address=identifier.includes('@')?identifier.toLowerCase():await SR63.staff.emailForUsername(identifier);
+  const {data,error:authError}=await SR63.cloud.client().auth.signInWithPassword({email:address,password});if(authError)throw authError;
+  if(!data?.session)throw new Error('تعذر استلام جلسة الدخول من الخادم.');
+  try{localStorage.setItem('schoolresult-last-identifier',identifier);}catch{}
   setPassword('');
- }catch(err){setError(SR63.cloud.message(err).message);}finally{setBusy(false);}};
+  // A successful password login is followed by exactly one scoped authorization check.
+  await applyRef.current?.(data.session);
+ }catch(err){setError(SR63.cloud.message(err).message);}finally{loginRef.current=false;setBusy(false);}};
  const logout=async()=>{setError('');if(SR63.storage.busy){setError('انتظر اكتمال الحفظ قبل تسجيل الخروج.');return;}
   if(SR63.storage.pending||SR63.formDirty||SR63.settingsDirty){setError('لديك تعديلات غير محفوظة؛ احفظها أولًا.');return;}
   setBusy(true);try{const {error:signoutError}=await SR63.cloud.client().auth.signOut({scope:'local'});if(signoutError)throw signoutError;}catch(err){setError(SR63.cloud.message(err).message);}finally{setBusy(false);}};
@@ -104,17 +154,13 @@ SR63.CloudApp=function(){
     el('button',{type:'submit',className:'sr63-button',disabled:busy},busy?'جارٍ إرسال الطلب…':'إرسال رابط إعادة تعيين كلمة المرور'),
     el('button',{type:'button',className:'sr-cloud-text-button',onClick:()=>changeScreen('')},'العودة لتسجيل الدخول')
    ]):[
-    el('p',{},'ادخل باسم المستخدم أو بريد الحساب الحقيقي. تبقى الجلسة محفوظة على هذا المتصفح حتى تسجّل الخروج.'),
-    el('div',{className:'srstaff-mode'},[
-     el('button',{type:'button',className:loginMode==='username'?'active':'',onClick:()=>{setLoginMode('username');setEmail('');}},'اسم مستخدم'),
-     el('button',{type:'button',className:loginMode==='email'?'active':'',onClick:()=>{setLoginMode('email');setEmail('');}},'بريد إلكتروني')
-    ]),
+    el('p',{},'اكتب اسم المستخدم أو البريد الإلكتروني في الخانة نفسها. سيُحفظ تسجيل الدخول على هذا الجهاز حتى تسجّل الخروج.'),
     el('form',{onSubmit:login},[
-     el('label',{},[loginMode==='username'?'اسم المستخدم':'البريد الإلكتروني',el('input',{type:loginMode==='username'?'text':'email',required:true,autoComplete:'username',value:email,onChange:event=>setEmail(event.target.value),dir:'auto'})]),
+     el('label',{},['اسم المستخدم أو البريد الإلكتروني',el('input',{type:'text',required:true,autoComplete:'username',value:email,onChange:event=>setEmail(event.target.value),dir:'auto',placeholder:'اسم المستخدم أو البريد الإلكتروني'})]),
      el('label',{},['كلمة المرور',el('input',{type:'password',required:true,autoComplete:'current-password',value:password,onChange:event=>setPassword(event.target.value),dir:'ltr'})]),
-     el('button',{type:'submit',className:'sr63-button',disabled:busy},busy?'جارٍ تسجيل الدخول…':'تسجيل الدخول')
+     el('button',{type:'submit',className:'sr63-button',disabled:busy},busy?'جارٍ التحقق من الدخول والصلاحيات…':'تسجيل الدخول')
     ]),
-    el('button',{type:'button',className:'sr-cloud-text-button',onClick:()=>{setRecoveryEmail(loginMode==='email'?email:'');changeScreen('request');}},'نسيت كلمة المرور؟'),
+    el('button',{type:'button',className:'sr-cloud-text-button',onClick:()=>{setRecoveryEmail(email.includes('@')?email:'');changeScreen('request');}},'نسيت كلمة المرور؟'),
     error&&el('button',{type:'button',className:'sr-cloud-text-button',disabled:busy,onClick:()=>void resumeRef.current?.()},'إعادة التحقق من الجلسة'),
     el('p',{className:'sr-cloud-note'},'في الأجهزة المشتركة اضغط «تسجيل الخروج» بعد الانتهاء. يستطيع الأدمن إعادة تعيين كلمات مرور حسابات الموظفين ذات أسماء المستخدمين.')
    ],
