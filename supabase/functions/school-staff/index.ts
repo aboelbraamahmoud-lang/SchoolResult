@@ -6,6 +6,8 @@ const safeUsername=(s:string)=>s.length>=3&&s.length<=42&&/^[\p{L}\p{N}_. \-]+$/
 const pkeys=['reports','plans','savePlans','compare','failedStudents','teacherAnalysis','generateAI','export','studentLevels'];
 const readRoles=['coordinator','vice_principal','principal'];
 const editableRoles=['admin',...readRoles];
+const needsDepartment=(role:string)=>role==='coordinator';
+const leadershipRoles=['vice_principal','principal'];
 const boolPermissions=(value:any)=>Object.fromEntries(pkeys.map(k=>[k,value?.[k]===true]));
 const dept=(text:unknown)=>String(text??'').normalize('NFKC').replace(/[\s\u0640]+/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase();
 const indexSubjects=(ws:any,deps:string[])=>{
@@ -82,6 +84,10 @@ Deno.serve(async(req:Request)=>{
  if(!ownerId||!role)return reply({error:'ACCOUNT_DISABLED_OR_UNAUTHORIZED'},403,origin);
  const profile={role,ownerId,username:account?.username||null,displayName:account?.display_name||user.email?.split('@')[0]||'مدير المدرسة',departments:account?.departments||[],permissions:readRoles.includes(role)?boolPermissions(account?.permissions):Object.fromEntries(pkeys.map(k=>[k,true]))};
  if(action==='profile')return reply({profile},200,origin);
+ if(action==='capabilities'){
+  if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);
+  return reply({apiVersion:'6.10.38',leadershipRoles:true,departmentScope:'coordinator_only',supportedRoles:editableRoles},200,origin);
+ }
  if(action==='coordinator_data'){
   if(!readRoles.includes(role))return reply({error:'STAFF_REPORTS_ONLY'},403,origin);
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();
@@ -103,11 +109,14 @@ Deno.serve(async(req:Request)=>{
   if(!safeUsername(username)||displayName.length<2||password.length<10||password.length>128||!editableRoles.includes(newRole))return reply({error:'INVALID_ACCOUNT_DATA'},400,origin);
   const {data:work}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
   const allowed=new Set((work?.workspace?.teacherAssignments||[]).map((r:any)=>String(r.department||r.subject||'').trim()).filter(Boolean));
-  if(newRole==='coordinator'&&(!departments.length||departments.some(x=>!allowed.has(x))))return reply({error:'INVALID_DEPARTMENT'},400,origin);
+  if(needsDepartment(newRole)&&!departments.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
+  if(needsDepartment(newRole)&&departments.some(x=>!allowed.has(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
+  // Leadership and admin roles have school-wide scope; discard any stale client department values.
+  const scopedDepartments=needsDepartment(newRole)?departments:[];
   const email=await emailForUsername(username);
   const {data:created,error:creationError}=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{schoolresult_staff:true}});
   if(creationError||!created?.user)return reply({error:/already|registered|exists/i.test(creationError?.message||'')?'USERNAME_EXISTS':'USER_CREATION_FAILED'},409,origin);
-  const row={user_id:created.user.id,owner_id:ownerId,username,display_name:displayName,role:newRole,departments:newRole==='coordinator'?departments:[],permissions:readRoles.includes(newRole)?{...boolPermissions(body.permissions),...(newRole==='coordinator'?{}:{savePlans:false,generateAI:false})}:{},active:true,created_by:user.id};
+  const row={user_id:created.user.id,owner_id:ownerId,username,display_name:displayName,role:newRole,departments:scopedDepartments,permissions:readRoles.includes(newRole)?{...boolPermissions(body.permissions),...(newRole==='coordinator'?{}:{savePlans:false,generateAI:false})}:{},active:true,created_by:user.id};
   const {error:saveError}=await admin.from('school_staff_accounts').insert(row);
   if(saveError){await admin.auth.admin.deleteUser(created.user.id);return reply({error:saveError.code==='23505'?'USERNAME_EXISTS':'ACCOUNT_SAVE_FAILED'},409,origin);}
   return reply({created:true,account:{user_id:row.user_id,username,display_name:displayName,role:newRole,departments:row.departments,permissions:row.permissions,active:true}},200,origin);
@@ -120,16 +129,22 @@ Deno.serve(async(req:Request)=>{
   if(typeof body.active==='boolean')patch.active=body.active;
   if(body.role!==undefined){if(!editableRoles.includes(body.role))return reply({error:'INVALID_ACCOUNT_DATA'},400,origin);patch.role=body.role;}
   if(body.displayName!==undefined){const name=String(body.displayName).trim();if(name.length<2||name.length>120)return reply({error:'INVALID_NAME'},400,origin);patch.display_name=name;}
-  if(body.departments!==undefined){
+  const targetRole=patch.role||target.role;
+  if(needsDepartment(targetRole)){
+   const rawDepartments=body.departments!==undefined?body.departments:target.departments;
+   if(!Array.isArray(rawDepartments))return reply({error:'INVALID_DEPARTMENT'},400,origin);
+   const selected=[...new Set(rawDepartments.map((x:any)=>String(x).trim()).filter(Boolean))];
+   if(!selected.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
    const {data:work}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
    const allowed=new Set((work?.workspace?.teacherAssignments||[]).map((r:any)=>String(r.department||r.subject||'').trim()).filter(Boolean));
-   if(!Array.isArray(body.departments)||body.departments.some((x:any)=>!allowed.has(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
-   patch.departments=[...new Set(body.departments)];
+   if(selected.some(x=>!allowed.has(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
+   patch.departments=selected;
+  }else{
+   // Owner-approved leadership accounts supervise every department and require no department list.
+   patch.departments=[];
   }
   if(body.permissions!==undefined)patch.permissions=boolPermissions(body.permissions);
-  const targetRole=patch.role||target.role,targetDepartments=patch.departments||target.departments;
-  if(['vice_principal','principal'].includes(targetRole))patch.permissions={...boolPermissions(patch.permissions||target.permissions),savePlans:false,generateAI:false};
-  if(targetRole==='coordinator'&&!targetDepartments.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
+  if(leadershipRoles.includes(targetRole))patch.permissions={...boolPermissions(patch.permissions||target.permissions),savePlans:false,generateAI:false};
   if(body.password!==undefined){const pwd=String(body.password||'');if(pwd.length<10||pwd.length>128)return reply({error:'WEAK_PASSWORD'},400,origin);const {error}=await admin.auth.admin.updateUserById(id,{password:pwd});if(error)return reply({error:'PASSWORD_CHANGE_FAILED'},503,origin);}
   const {error}=await admin.from('school_staff_accounts').update(patch).eq('user_id',id).eq('owner_id',ownerId);
   if(error)return reply({error:'ACCOUNT_UPDATE_FAILED'},503,origin);
