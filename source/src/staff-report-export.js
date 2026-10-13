@@ -21,7 +21,7 @@
    const bars=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 ${opts.two?54:28}" preserveAspectRatio="none" role="img" aria-label="${esc(firstLabel)}${opts.two?'، '+esc(secondLabel):''}"><rect x="0" y="1" rx="6" width="700" height="22" fill="#e9f0f2"/><rect x="0" y="1" rx="6" width="${(700*a/100).toFixed(1)}" height="22" fill="${c}"/>${opts.two?`<rect x="0" y="30" rx="6" width="700" height="22" fill="#edf1f2"/><rect x="0" y="30" rx="6" width="${(700*b/100).toFixed(1)}" height="22" fill="${c2}"/>`:''}</svg>`;
    return `<div class="sr640-chart-row" dir="rtl"><strong class="sr640-chart-label">${esc(String(x.name||'').slice(0,90))}</strong><div class="sr640-chart-vectors">${bars}</div><span class="sr640-chart-values">${esc(firstLabel)}${opts.two?'<small>'+esc(secondLabel)+'</small>':''}</span></div>`;
   }).join(''):'<p>لا توجد نتائج للرسم البياني.</p>';
-  const legend=opts.two?`<p class="sr640-legend"><span>● ${esc(opts.firstLabel||'الشريط العلوي: الاختبار السابق / التحصيل')}</span> <span>● ${esc(opts.secondLabel||'الشريط السفلي: الاختبار الحالي / النجاح')}</span></p>`:'';
+  const legend=opts.two?`<p class="sr640-legend"><span>● ${esc(opts.firstLabel||'الشريط الأول: نسبة التحصيل')}</span> <span>● ${esc(opts.secondLabel||'الشريط الثاني: نسبة النجاح')}</span></p>`:'';
   return `<section class="sr640-chart" dir="rtl"><h3>${esc(title)}</h3>${legend}<div class="sr640-chart-rows">${rows}</div></section>`;
  };
  const levelChart=(bands)=>{
@@ -52,7 +52,7 @@
    const rows=[...teachers].sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar'));
    return {title:'التقرير الشامل لأداء المعلمين',subtitle:`${scopeLabel} · ${examName}`,
     body:stats([['عدد المعلمين',rows.length],['النتائج المرصودة',rows.reduce((a,x)=>a+x.results,0)],['متوسط التحصيل حسب النتائج',(rows.reduce((a,x)=>a+(x.achievement||0)*x.results,0)/(rows.reduce((a,x)=>a+x.results,0)||1)).toFixed(1)+'%']])+
-    group(rows,7).map((batch,i)=>barChart(`مؤشرات أداء المعلمين ${rows.length>7?'— مجموعة '+(i+1):''}`,batch.map(x=>({name:x.name,value:x.achievement,second:x.successRate})),{two:true,color:'#0c887e',secondColor:'#c79236'})).join('')+
+    group(rows,7).map((batch,i)=>barChart(`مؤشرات أداء المعلمين ${rows.length>7?'— مجموعة '+(i+1):''}`,batch.map(x=>({name:x.name,value:x.achievement,second:x.successRate})),{two:true,color:'#0c887e',secondColor:'#c79236',firstLabel:'الشريط الأول: التحصيل الأكاديمي',secondLabel:'الشريط الثاني: نسبة نجاح النتائج'})).join('')+
     detail(table(['المعلم','النتائج المرصودة','نسبة النجاح','نسبة التحصيل'],rows.map(x=>[x.name,x.results,pct(x.successRate),pct(x.achievement)])))+
     '<p class="sr640-note">المؤشرات تصف نتائج الطلاب المرصودة ولا تمثل تقييمًا فرديًا كاملًا للمعلم؛ تُراجع في ضوء اختلاف المواد وحجم العينات.</p>'};
   },
@@ -60,7 +60,7 @@
    const valid=rows.filter(x=>x.previous!==null&&x.current!==null);
    return {title:'تقرير المقارنة بين الاختبارين',subtitle:`${scopeLabel} · السابق: ${fromName} · الحالي: ${toName}`,
     body:stats([['عدد الشعب',rows.length],['شعب بمقارنة صالحة',valid.length],['شعب تحسنت',valid.filter(x=>x.change>0).length]])+
-    group(rows,7).map((batch,i)=>barChart(`مقارنة التحصيل ${rows.length>7?'— مجموعة '+(i+1):''}`,batch.map(x=>({name:x.className,value:x.previous,second:x.current})),{two:true,color:'#0c887e',secondColor:'#c79236'})).join('')+
+    group(rows,7).map((batch,i)=>barChart(`مقارنة التحصيل ${rows.length>7?'— مجموعة '+(i+1):''}`,batch.map(x=>({name:x.className,value:x.previous,second:x.current})),{two:true,color:'#0c887e',secondColor:'#c79236',firstLabel:'الشريط الأول: الاختبار السابق',secondLabel:'الشريط الثاني: الاختبار الحالي'})).join('')+
     detail(table(['الشعبة','السابق','الحالي','الفارق بالنقاط المئوية','نتائج سابقة / حالية'],rows.map(x=>[x.className,pct(x.previous),pct(x.current),delta(x.change),x.previousCount+' / '+x.currentCount])))+
     (benchmarks?.length?detail('<h3>مؤشرات الأقسام في الاختبار الحالي — إجماليات فقط</h3>'+table(['القسم','النتائج','النجاح','التحصيل'],benchmarks.map(x=>[x.department,x.evaluated,pct(x.success),pct(x.achievement)]))):'')+
     '<p class="sr640-note">الفرق هو فرق تحصيل الشعبة بين الاختبارين وليس قيمة مضافة لأفراد مطابقين. أعداد النتائج السابقة والحالية قد تختلف.</p>'};

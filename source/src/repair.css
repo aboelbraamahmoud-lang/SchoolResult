@@ -1430,3 +1430,40 @@
 /* 6.10.41 — school-wide report routing matches official department form. */
 .sr641-report-address{display:flex;gap:20px;flex-wrap:wrap;border:1px solid #cbdde3;border-right:5px solid #803450;background:#f8fafb;padding:10px 16px;border-radius:10px;margin-bottom:15px;font-weight:700;color:#25485c}
 .sr641-report-address p{margin:4px 0}
+
+/* 6.10.42 — Schoolwide dashboards: accessible, labelled comparisons, real student counts. */
+.srstaff-coordinator .sr642-chart-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:17px;align-items:stretch}
+.srstaff-coordinator .sr642-chart-grid>.srcoord-chart{min-width:0;border:1px solid #cfdee5;border-radius:20px;padding:19px 20px;background:#fff;box-shadow:0 10px 23px #082e4010}
+.srstaff-coordinator .sr642-chart-grid>.sr642-wide{grid-column:1/-1}
+.sr642-chart-heading{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap}
+.srstaff-coordinator .sr642-chart-heading h3{font-size:17px;line-height:1.7;color:#0f384e;min-height:0;margin:0;max-width:94%}
+.sr642-chart-tag{border:1px solid #c4dce1;border-radius:100px;color:#315a6d;background:#f6fafb;padding:4px 10px;font-size:11px;font-weight:800;white-space:nowrap}
+.sr642-chart-note{font-size:12px;color:#536d7b;line-height:1.9;margin:4px 0 15px}
+.sr642-chart-legend{display:flex;gap:19px;flex-wrap:wrap;margin:12px 0;color:#24495b;font-weight:850;font-size:12px}
+.sr642-chart-legend span{display:inline-flex;align-items:center;gap:7px}.sr642-chart-legend i{display:inline-block;width:13px;height:13px;border-radius:4px}
+.sr642-trend-svg{direction:ltr;overflow:hidden}.sr642-trend-svg svg{width:100%;height:auto;max-height:270px;display:block}
+.sr642-trend-points{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.sr642-trend-point{border:1px solid #d8e6e9;background:#f6fafb;border-radius:12px;padding:11px 8px;display:grid;gap:5px;text-align:center;min-width:0}
+.sr642-trend-point b{font-size:12px;color:#16394c;line-height:1.5;overflow-wrap:anywhere}
+.sr642-trend-point span{font-size:12px;color:#4e6372;line-height:1.4;display:flex;justify-content:center;gap:5px;flex-wrap:wrap}
+.sr642-trend-point span strong{font-weight:950;font-variant-numeric:tabular-nums}
+.sr642-trend-point small{font-size:11px;color:#617986}
+.sr642-ring-wrap{width:158px;height:158px;flex:none;position:relative}
+.sr642-ring-wrap .srcoord-ring{width:158px;height:158px}
+.sr642-ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;gap:2px}
+.sr642-ring-center strong{font-size:29px;color:#173e51;font-weight:950;font-variant-numeric:tabular-nums}.sr642-ring-center span{font-size:12px;color:#647983}
+.sr642-level-panel .srcoord-ring-layout{justify-content:space-between;gap:15px;align-items:center}
+.sr642-level-panel .srcoord-legend{gap:8px}.sr642-level-panel .srcoord-legend>div{padding:7px 0;border-bottom:1px solid #eaf1f3;flex-wrap:wrap}
+.sr642-level-panel .srcoord-legend strong{font-size:11px;white-space:nowrap;color:#173e51}
+.sr642-rank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.sr642-rank-item{border:1px solid #e1e9ed;background:#f8fbfc;border-radius:13px;padding:13px 15px;min-width:0}
+.sr642-rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.sr642-rank-head strong{font-size:14px;color:#123f56;font-weight:950;overflow-wrap:anywhere}.sr642-rank-head span{color:#627988;font-size:11px;white-space:nowrap}
+.sr642-compare-bar{display:grid;grid-template-columns:68px minmax(0,1fr) 61px;align-items:center;gap:8px;margin-top:8px;font-size:11px;font-weight:800}
+.sr642-compare-bar>span{color:#3c5968}.sr642-compare-bar>strong{text-align:left;color:#183d54;font-variant-numeric:tabular-nums}
+.sr642-meter{height:11px;background:#e3ebef;border-radius:15px;overflow:hidden}.sr642-meter>div{height:100%;border-radius:inherit}
+.sr642-level-panel h3,.sr642-trend-panel h3{font-size:17px!important;line-height:1.7;min-height:0!important;margin:0!important}
+.srstaff-coordinator .srcoord-mini{border-color:#d1e4e8;box-shadow:0 4px 12px #0e43500a}.srstaff-coordinator .srcoord-mini .srcoord-bar-row{margin-top:10px}
+@media(max-width:1180px){.srstaff-coordinator .sr642-chart-grid{grid-template-columns:1fr}.srstaff-coordinator .sr642-chart-grid>.sr642-wide{grid-column:auto}}
+@media(max-width:760px){.sr642-rank-grid{grid-template-columns:1fr}.sr642-trend-points{grid-template-columns:repeat(2,minmax(0,1fr))}.sr642-level-panel .srcoord-ring-layout{flex-wrap:wrap}.sr642-chart-heading h3{max-width:100%}.sr642-rank-head{flex-wrap:wrap}}
+@media print{.sr642-chart-grid>.srcoord-chart,.sr642-rank-item,.sr642-trend-point{break-inside:avoid;box-shadow:none!important}.sr642-meter,.sr642-compare-bar>strong,.sr642-ring-wrap{print-color-adjust:exact;-webkit-print-color-adjust:exact}.sr642-chart-grid{display:block!important}.sr642-chart-grid>.srcoord-chart{margin:12px 0}}

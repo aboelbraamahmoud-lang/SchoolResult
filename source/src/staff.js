@@ -97,7 +97,21 @@ SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
   for(const [m,k] of [[teachers,teacher],[classes,klass]]){const old=m.get(k)||{name:k,results:0,success:0,sum:0};old.results++;old.sum+=x.result.percentage;if(x.result.percentage>=Number(settings.pass??50))old.success++;m.set(k,old);}}
  const stats=m=>[...m.values()].map(x=>({...x,achievement:x.results?x.sum/x.results:null,successRate:x.results?100*x.success/x.results:null})).sort((a,b)=>(b.achievement??0)-(a.achievement??0));
  const trend=labels.map(x=>{const ready=rows.filter(r=>!SR63.isSupportRow(r,x.key)).map(r=>value(r,x.key)).filter(Boolean);return {key:x.key,name:x.name,results:ready.length,achievement:ready.length?ready.reduce((a,b)=>a+b.percentage,0)/ready.length:null,success:ready.length?100*ready.filter(y=>y.percentage>=Number(settings.pass??50)).length/ready.length:null};});
- return {students:persons.length,evaluated:evaluated.length,regular:nonSupport.length,success:nonSupport.length?100*success/nonSupport.length:null,achievement,levels,failed,teachers:stats(teachers),classes:stats(classes),trend,benchmarks};
+ // Distribution is by unique students and weighted observed subject scores, not by rows.
+ // Use the exact classification rules of the student-level report; never turn missing grades into zero.
+ const bands=Array.isArray(settings.bands)&&settings.bands.length?settings.bands:[
+  {id:'low',label:'دون 60%',min:0,max:60,color:'#c55664'},
+  {id:'medium',label:'من 60% إلى أقل من 80%',min:60,max:80,color:'#d5a238'},
+  {id:'high',label:'80% فأكثر',min:80,max:100,color:'#0a877b'}];
+ const studentLevels=SR63.staffStudentLevels({settings:{...settings,bands},rows:rows.filter(r=>!SR63.isSupportRow(r,exam))},exam);
+ const grades=new Map();for(const x of nonSupport){
+  const klass=String(hj(x.row,exam)||x.row.className||'').trim();
+  const match=klass.match(/(?:^|[^\d])(7|8|9)(?=\s*[/\-–]|\s|$)/);
+  const grade=match?match[1]:null;if(!grade)continue;
+  const entry=grades.get(grade)||{grade,results:0,passed:0,sum:0};entry.results++;entry.sum+=x.result.percentage;if(x.result.percentage>=Number(settings.pass??50))entry.passed++;grades.set(grade,entry);
+ }
+ const gradeSummary=[...grades.values()].sort((a,b)=>Number(a.grade)-Number(b.grade)).map(x=>({name:'الصف '+({'7':'السابع','8':'الثامن','9':'التاسع'}[x.grade]||x.grade),grade:x.grade,results:x.results,achievement:x.sum/x.results,successRate:100*x.passed/x.results}));
+ return {students:persons.length,evaluated:evaluated.length,regular:nonSupport.length,success:nonSupport.length?100*success/nonSupport.length:null,achievement,levels,studentLevels,gradeSummary,failed,teachers:stats(teachers),classes:stats(classes),trend,benchmarks};
 };
 SR63.CoordinatorPortal=function({profile}){
  const [payload,setPayload]=(0,v.useState)(null),[error,setError]=(0,v.useState)(''),[loading,setLoading]=(0,v.useState)(true),
@@ -118,33 +132,72 @@ SR63.CoordinatorPortal=function({profile}){
  const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
  const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});
  const liveChart=html=>h('div',{className:'sr640-chart-live',dangerouslySetInnerHTML:{__html:html}});
- const row=(a,b,c)=>(0,q.jsxs)('div',{className:'srcoord-stat',children:[h('span',{},a),h('strong',{},b),c?h('small',{},c):null]});
  const chart=(label,value,color)=>h('div',{className:'srcoord-bar-row'},[h('div',{className:'srcoord-bar-name'},label),h('div',{className:'srcoord-bar-track'},h('div',{className:'srcoord-bar-fill',style:{width:`${Math.max(0,Math.min(100,value||0))}%`,background:color||'#0b867d'}})),h('strong',{},fmt(value))]);
- const chartPanel=(title,items,colors=null)=>h('article',{className:'srcoord-chart'},[h('h3',{},title),items.length?h('div',{className:'srcoord-bar-list'},items.map((x,i)=>h('div',{key:x.name+'-'+i},chart(x.name,x.achievement??x.value,colors?.[i]||x.color)))):h('p',{className:'srcoord-muted'},'لا توجد بيانات مرصودة لهذا الاختبار.')]);
- const trendPanel=()=>{const points=data.trend.filter(x=>x.achievement!==null),w=450,H=130,pad=20;
-  const coords=points.map((x,i)=>({x:pad+(points.length===1?(w-2*pad)/2:i*(w-2*pad)/(points.length-1)),y:H-pad-x.achievement*(H-2*pad)/100,name:x.name,percentage:x.achievement}));
-  return h('article',{className:'srcoord-chart'},[h('h3',{},'مقارنة التحصيل عبر الاختبارات الأربعة'),h('div',{className:'srcoord-trend'},[
-   h('svg',{viewBox:`0 0 ${w} ${H}`,role:'img','aria-label':'خط زمني لنسبة التحصيل عبر الاختبارات'},[
-    ...[0,50,100].map(v=>h('line',{key:'g'+v,x1:pad,x2:w-pad,y1:H-pad-v*(H-2*pad)/100,y2:H-pad-v*(H-2*pad)/100,stroke:'#d9e8e9','stroke-dasharray':'4 4'})),
-    points.length>1?h('polyline',{points:coords.map(c=>`${c.x},${c.y}`).join(' '),fill:'none',stroke:'#0b807a','stroke-width':4,'stroke-linecap':'round','stroke-linejoin':'round'}):null,
-    ...coords.map((c,i)=>h('circle',{key:'c'+i,cx:c.x,cy:c.y,r:6,fill:'#0b807a',stroke:'#fff','stroke-width':2}))
-   ]),h('div',{className:'srcoord-trend-labels'},data.trend.map(x=>h('div',{key:x.key},[h('span',{},x.name),h('strong',{},fmt(x.achievement))])))
-  ])]);};
- const bandPanel=()=>{const levels=data.levels,total=levels.reduce((n,x)=>n+x.value,0),r=50,C=2*Math.PI*r;let used=0;
-  const arcs=levels.map(x=>{const len=total?C*x.value/total:0,start=used;used+=len;return h('circle',{key:x.label,cx:75,cy:75,r,fill:'none',stroke:x.color,'stroke-width':19,'stroke-dasharray':`${len} ${C-len}`,'stroke-dashoffset':-start,transform:'rotate(-90 75 75)'});});
-  return h('article',{className:'srcoord-chart'},[h('h3',{},'توزيع مستويات طلاب القسم'),h('div',{className:'srcoord-ring-layout'},[
-   h('svg',{className:'srcoord-ring',viewBox:'0 0 150 150',role:'img','aria-label':'توزيع المستويات'},[
-    h('circle',{cx:75,cy:75,r,fill:'none',stroke:'#ebf1f2','stroke-width':19}),...arcs,
-    h('text',{x:75,y:73,'text-anchor':'middle','font-size':25,'font-weight':900,fill:'#153a50'},String(total)),
-    h('text',{x:75,y:92,'text-anchor':'middle','font-size':11,fill:'#607481'},'نتيجة مرصودة')
-   ]),h('div',{className:'srcoord-legend'},levels.map(x=>h('div',{key:x.label},[h('i',{style:{background:x.color}}),h('span',{},x.label),h('strong',{},`${x.value} · ${total?(100*x.value/total).toFixed(0):0}%`)])))
-  ])]);};
- const sectionCharts=()=>h('section',{className:'srcoord-chart-grid'},[
-  trendPanel(),bandPanel(),chartPanel(page==='teachers'?'تحصيل المعلمين':page==='failed'?'الشعب ذات التحصيل الأعلى':page==='comparison'?'مقارنة تحصيل الأقسام':page==='plans'?'توزيع التحصيل حسب الشعبة':'تحصيل الشعب',
-    page==='teachers'?data.teachers:page==='comparison'?benchmarks.map(x=>({name:x.department,achievement:x.achievement})):data.classes)
+ const note=(text)=>h('p',{className:'sr642-chart-note'},text);
+ const compareBar=(label,value,color)=>h('div',{className:'sr642-compare-bar',key:label},[h('span',{},label),h('div',{className:'sr642-meter'},h('div',{style:{width:`${Math.max(0,Math.min(100,value??0))}%`,background:color}})),h('strong',{},fmt(value))]);
+ const rankedPanel=(title,items,opts={})=>{
+  const list=[...items].filter(x=>typeof x.achievement==='number'&&Number.isFinite(x.achievement));
+  list.sort((a,b)=>opts.lowFirst?(a.achievement-b.achievement):(b.achievement-a.achievement));
+  const selected=list.slice(0,opts.limit||18);
+  return h('article',{className:'srcoord-chart sr642-ranked '+(opts.wide?'sr642-wide':'')},[
+   h('header',{className:'sr642-chart-heading'},[h('h3',{},title),h('span',{className:'sr642-chart-tag'},opts.lowFirst?'الأقل تحصيلًا أولًا':'الأعلى تحصيلًا أولًا')]),
+   note(opts.note||'الشريط يوضح نسبة التحصيل؛ الرقم بجانبه هو حجم النتائج المرصودة.'),
+   selected.length?h('div',{className:'sr642-rank-grid'},selected.map((x,i)=>h('div',{className:'sr642-rank-item',key:x.name+'-'+i},[
+    h('div',{className:'sr642-rank-head'},[h('strong',{},x.name),h('span',{},`${x.results||0} نتيجة مرصودة`)]),
+    compareBar('التحصيل',x.achievement,'#0a887a'),
+    opts.success!==false?compareBar('النجاح',x.successRate,'#bf872e'):null
+   ]))):h('p',{className:'srcoord-muted'},'لا تتوفر نتائج مرصودة صالحة لعرض المقارنة.'),
+   list.length>selected.length?note(`يعرض الرسم ${selected.length} من ${list.length}؛ بقية البيانات موجودة في التفاصيل أدناه.`):null
+  ]);
+ };
+ const trendPanel=()=>{
+  const valid=data.trend,chartW=680,chartH=250,padLeft=50,padRight=25,padTop=25,padBottom=30;
+  const plotW=chartW-padLeft-padRight,plotH=chartH-padTop-padBottom;
+  const at=(i,v)=>({x:padLeft+(valid.length===1?plotW/2:i*plotW/(valid.length-1)),y:padTop+(100-v)*plotH/100});
+  const lines=(metric,color)=>{
+   const parts=[];let segment=[];
+   const flush=()=>{if(segment.length>1)parts.push(h('polyline',{key:metric+'-'+parts.length,points:segment.map(c=>c.x+','+c.y).join(' '),fill:'none',stroke:color,'stroke-width':4,'stroke-linecap':'round','stroke-linejoin':'round'}));segment=[];};
+   valid.forEach((item,i)=>{if(typeof item[metric]==='number')segment.push(at(i,item[metric]));else flush();});flush();
+   valid.forEach((item,i)=>{if(typeof item[metric]==='number'){const pos=at(i,item[metric]);parts.push(h('circle',{key:metric+'p'+i,cx:pos.x,cy:pos.y,r:6,fill:color,stroke:'#fff','stroke-width':3}));}});
+   return parts;
+  };
+  return h('article',{className:'srcoord-chart sr642-trend-panel'},[
+   h('header',{className:'sr642-chart-heading'},[h('h3',{},'كيف تغيّر أداء '+(isLeadership?'المدرسة':'القسم')+' بين الاختبارات؟'),h('span',{className:'sr642-chart-tag'},'من 0 إلى 100%')]),
+   note('التحصيل = متوسط نسب النتائج المرصودة؛ النجاح = نسبة النتائج التي بلغت حد النجاح. تُستبعد حالات الغياب والدعم الإضافي.'),
+   h('div',{className:'sr642-chart-legend'},[h('span',{},[h('i',{style:{background:'#087d76'}}),'التحصيل الأكاديمي']),h('span',{},[h('i',{style:{background:'#c58c2c'}}),'نسبة النجاح'])]),
+   h('div',{className:'sr642-trend-svg'},h('svg',{viewBox:`0 0 ${chartW} ${chartH}`,role:'img','aria-label':'مقارنة تحصيل ونجاح النتائج عبر الاختبارات بنسب مئوية من صفر إلى مئة'},[
+    ...[0,25,50,75,100].map(n=>{const y=at(0,n).y;return h('g',{key:'grid'+n},[h('line',{x1:padLeft,y1:y,x2:chartW-padRight,y2:y,stroke:'#dce9eb','stroke-dasharray':'5 6'}),h('text',{x:padLeft-9,y:y+5,'text-anchor':'end','font-size':12,fill:'#536e7d'},String(n)+'%')]);}),
+    ...valid.map((ex,i)=>h('line',{key:'axis'+i,x1:at(i,0).x,x2:at(i,0).x,y1:padTop,y2:chartH-padBottom,stroke:'#ecf2f3'})),
+    ...lines('achievement','#087d76'),...lines('success','#c58c2c')
+   ])),
+   h('div',{className:'sr642-trend-points'},valid.map(x=>h('div',{className:'sr642-trend-point',key:x.key},[
+    h('b',{},x.name),h('span',{},['التحصيل ',h('strong',{style:{color:'#087d76'}},fmt(x.achievement))]),
+    h('span',{},['النجاح ',h('strong',{style:{color:'#a77420'}},fmt(x.success))]),
+    h('small',{},`${x.results} نتيجة مرصودة`)
+   ])))
+  ]);
+ };
+ const bandPanel=()=>{
+  const bands=data.studentLevels||[],total=bands.reduce((n,x)=>n+x.students.length,0),r=52,C=2*Math.PI*r;let used=0;
+  const slices=bands.map(b=>{const count=b.students.length,len=total?C*count/total:0,start=used;used+=len;return h('circle',{key:b.id,cx:80,cy:80,r,fill:'none',stroke:b.color,'stroke-width':21,'stroke-dasharray':`${len} ${C-len}`,'stroke-dashoffset':-start,transform:'rotate(-90 80 80)'});});
+  return h('article',{className:'srcoord-chart sr642-level-panel'},[
+   h('h3',{},'ما مستويات الطلاب في '+(isLeadership?'المدرسة':'القسم')+'؟'),
+   note('كل طالب يُحسب مرة واحدة بناءً على مجموع درجات مواده المرصودة، وفق حدود مستويات المدرسة. الغياب لا يُحسب صفرًا.'),
+   total?h('div',{className:'srcoord-ring-layout'},[
+    h('div',{className:'sr642-ring-wrap'},[h('svg',{className:'srcoord-ring',viewBox:'0 0 160 160',role:'img','aria-label':'رسم دائري لنسب توزيع الطلاب على مستويات الأداء'},[h('circle',{cx:80,cy:80,r,fill:'none',stroke:'#edf1f3','stroke-width':21}),...slices]),h('div',{className:'sr642-ring-center'},[h('strong',{},String(total)),h('span',{},'طالب')])]),
+    h('div',{className:'srcoord-legend'},bands.map(x=>h('div',{key:x.id},[h('i',{style:{background:x.color}}),h('span',{},x.label),h('strong',{},`${x.students.length} طالب · ${(100*x.students.length/total).toFixed(1)}%`)])))
+   ]):h('p',{className:'srcoord-muted'},'لا توجد بيانات طلاب لعرض توزيع المستويات.'),
+   note('يُظهر هذا الرسم عدد الطلاب الفريدين وليس عدد نتائج المواد. حالات الدعم الإضافي خارج هذه المقارنة.')
+  ]);
+ };
+ const gradePanel=()=>rankedPanel('كيف يتوزع تحصيل المدرسة على الصفوف؟',data.gradeSummary,{note:'مقارنة نسب التحصيل والنجاح للصفوف، وأعداد نتائج المواد المرصودة بكل صف.',success:true,wide:true,lowFirst:true});
+ const sectionCharts=()=>h('section',{className:'srcoord-chart-grid sr642-chart-grid'},[
+  trendPanel(),bandPanel(),
+  isLeadership&&data.gradeSummary?.length?gradePanel():null,
+  rankedPanel('أي الشعب تحتاج إلى متابعة أكبر؟',data.classes,{note:'الشعب مرتبة من الأقل تحصيلًا. المقارنة حسب نتائج التعليم العام المرصودة في الاختبار المختار.',success:true,wide:true,lowFirst:true,limit:20})
  ]);
- const cards=[['الطلاب ذوو نتائج',data?.students??0,'طالب فريد'],['النتائج المرصودة',data?.evaluated??0,'يشمل الدعم الإضافي'],['نسبة النجاح',fmt(data?.success),'من نتائج التعليم العام'],['نسبة التحصيل',fmt(data?.achievement),'للاختبار المحدد'],['معلمو '+scopeLabel,data?.teachers?.length??0,'من لديهم نتائج مرصودة'],['الطلاب المتعثرون',new Set((data?.failed||[]).map(x=>x.studentId||x.name)).size,'درجات دون حد النجاح']];
- const views=[['dashboard','لوحة '+scopeLabel,true],['overview','التقرير المدرسي الشامل',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison','مقارنة الاختبارين والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['plans','الخطط العلاجية الذكية',!isLeadership&&!!perms.plans]];
+ const cards=[['الطلاب ذوو نتائج',data?.students??0,'طالب فريد يشمل الدعم الإضافي'],['النتائج المرصودة',data?.evaluated??0,'يشمل الدعم الإضافي'],['نسبة نجاح النتائج',fmt(data?.success),'من نتائج التعليم العام المرصودة'],['التحصيل الأكاديمي',fmt(data?.achievement),'متوسط نسبة النتائج المرصودة'],['معلمو '+scopeLabel,data?.teachers?.length??0,'من لديهم نتائج مرصودة'],['الطلاب المتعثرون',new Set((data?.failed||[]).map(x=>(x.studentId||x.name)+'|'+x.className)).size,'عدد الطلاب المختلفين تحت حد النجاح في مادة واحدة أو أكثر']];
+ const views=[['dashboard','لوحة '+scopeLabel,true],['overview','ملخص أداء المدرسة',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison',isLeadership?'مقارنة نتائج المدرسة بين اختبارين':'مقارنة اختبارين للقسم والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['plans','الخطط العلاجية الذكية',!isLeadership&&!!perms.plans]];
  const saveWorkspace=async change=>{if(profile.role!=='coordinator'||!perms.savePlans)throw Error('ليس لديك صلاحية حفظ الخطط.');
   if(!workspace)throw Error('لم تكتمل البيانات.');const next=change(workspace),before=new Map((workspace.aiPlans||[]).map(p=>[p.id,JSON.stringify(p)])),updated=(next.aiPlans||[]).filter(p=>before.get(p.id)!==JSON.stringify(p));
   if(updated.length!==1)throw Error('يجب تعديل خطة واحدة في كل عملية.');const result=await SR63.cloud.rpc('school_staff_coordinator_plan_save',{p_plan:updated[0],p_expected:payload.revision});
@@ -153,7 +206,7 @@ SR63.CoordinatorPortal=function({profile}){
   h('div',{className:'srcoord-brand'},[
    h('img',{src:'./moehe.png',alt:'شعار وزارة التربية والتعليم والتعليم العالي'}),
    h('div',{},[h('span',{className:'srcoord-kicker'},'مرصد النتائج المدرسية · SchoolResult'),h('h1',{},settings.schoolName||'اسم المدرسة غير محدد'),h('p',{},`العام الأكاديمي: ${settings.academicYear||'—'} · لوحة التحليل والمتابعة ${isLeadership?'للمدرسة':'للقسم'}`)])
-  ]),h('div',{className:'srcoord-identity'},[h('span',{},profile.role==='principal'?'حساب مدير المدرسة':profile.role==='vice_principal'?'حساب النائب الأكاديمي':'حساب المنسق'),h('strong',{},profile.displayName||profile.username),h('small',{},isLeadership?'جميع الأقسام':(profile.departments||[]).join('، '))]),
+  ]),h('div',{className:'srcoord-identity'},[h('span',{},profile.role==='principal'?'حساب مدير المدرسة':profile.role==='vice_principal'?'حساب النائب الأكاديمي':'حساب المنسق'),h('strong',{},profile.displayName||profile.username),h('small',{},isLeadership?'المدرسة بالكامل':(profile.departments||[]).join('، '))]),
   h('div',{className:'srcoord-head-controls'},[
    h('label',{},[h('span',{},'اختيار التقييم'),h('select',{value:exam,onChange:e=>{setChosenExam(e.target.value);void reload(e.target.value);}},exams.map(x=>h('option',{key:x.key,value:x.key},x.name)))]),
    h('button',{type:'button',disabled:loading,onClick:()=>void reload()},loading?'جارٍ التحديث…':'تحديث النتائج')
@@ -162,23 +215,23 @@ SR63.CoordinatorPortal=function({profile}){
  return h('main',{className:'srstaff-coordinator srcoord-upgraded',dir:'rtl'},[
   header,h('nav',{className:'srstaff-nav','aria-label':'صفحات المنسق'},views.filter(x=>x[2]).map(([key,label])=>h('button',{key,type:'button',className:page===key?'active':'',onClick:()=>setPage(key)},label))),
   error?h('p',{className:'srstaff-alert',role:'alert'},error):null,
-  loading?h('p',{className:'srstaff-panel'},'جارٍ تحميل بيانات القسم المصرح بها من الخادم…'):null,
+  loading?h('p',{className:'srstaff-panel'},isLeadership?'جارٍ تحميل بيانات المدرسة من الخادم…':'جارٍ تحميل بيانات القسم المصرح بها من الخادم…'):null,
   workspace&&!loading&&data?[
    h('div',{className:'srcoord-exam-summary'},[h('strong',{},examName),h('span',{},'تُحسب المؤشرات من النتائج المتاحة لهذا الحساب حسب صلاحياته على الخادم، ولا يمكن تعديل الدرجات من هذه اللوحة.')]),
-   (page==='dashboard'||page==='overview')?h('section',{className:'srcoord-charts-section'},[h('div',{className:'srcoord-section-title'},[h('h2',{},'التحليل البياني '+(isLeadership?'للمدرسة':'للقسم')),h('span',{},'يتغير تلقائيًا مع الاختبار المختار')]),sectionCharts()]):null,
-   page==='dashboard'?h('section',{className:'srstaff-panel'},[h('h2',{},'مؤشرات القسم'),h('div',{className:'srstaff-kpis srcoord-kpis'},cards.map(([title,value,note])=>h('article',{key:title},[h('span',{},title),h('strong',{},value),h('small',{},note)]))),h('h3',{},'تحصيل الشعب حسب الاختبار'),h('div',{className:'srcoord-class-grid'},data.classes.map(t=>h('div',{className:'srcoord-mini',key:t.name},[h('strong',{},t.name),h('span',{},'تحصيل '+fmt(t.achievement)),chart('نسبة النجاح',t.successRate)]))) ]):null,
+   (page==='dashboard'||page==='overview')?h('section',{className:'srcoord-charts-section'},[h('div',{className:'srcoord-section-title'},[h('h2',{},'مؤشرات الأداء والتحليل البياني '+(isLeadership?'للمدرسة بالكامل':'لقسم المنسق')),h('span',{},'نسب مئوية موثقة بحجم العينة وتُحدّث حسب الاختبار المختار')]),sectionCharts()]):null,
+   page==='dashboard'?h('section',{className:'srstaff-panel'},[h('h2',{},'مؤشرات '+scopeLabel+' — '+examName),h('div',{className:'srstaff-kpis srcoord-kpis'},cards.map(([title,value,note])=>h('article',{key:title},[h('span',{},title),h('strong',{},value),h('small',{},note)]))),h('h3',{},'تفاصيل التحصيل والنجاح لكل شعبة — '+examName),h('div',{className:'srcoord-class-grid'},data.classes.map(t=>h('div',{className:'srcoord-mini',key:t.name},[h('strong',{},t.name),h('span',{},`${t.results} نتيجة مرصودة`),chart('التحصيل',t.achievement),chart('النجاح',t.successRate,'#c58c2c')]))) ]):null,
    page==='overview'&&isLeadership&&perms.reports?h('section',{className:'srstaff-panel'},[
-    h('h2',{},'الملخص الكمي للمدرسة كاملة — '+examName),
+    h('h2',{},'الملخص التنفيذي لأداء المدرسة — '+examName),
     h('p',{},'مؤشرات جميع الأقسام (التعليم العام وحده لمؤشري النجاح والتحصيل)؛ يظهر الدعم الإضافي منفصلًا في التقارير التفصيلية.'),
     h('div',{className:'srstaff-kpis srcoord-kpis'},cards.map(([title,value,note])=>h('article',{key:title},[h('span',{},title),h('strong',{},value),h('small',{},note)]))),
-    h('h3',{},'مؤشرات الأقسام'),
-    h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),
-    h('tbody',{},benchmarks.map(x=>h('tr',{key:x.department},[x.department,x.evaluated,fmt(x.success),fmt(x.achievement)].map((c,i)=>h('td',{key:i},c)))))])),
+    h('h3',{},'ملخص النتائج حسب الصف الدراسي'),
+    h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الصف','عدد النتائج المرصودة','نسبة النجاح','نسبة التحصيل'].map(x=>h('th',{key:x},x)))),
+    h('tbody',{},data.gradeSummary.map(x=>h('tr',{key:x.grade},[x.name,x.results,fmt(x.successRate),fmt(x.achievement)].map((c,i)=>h('td',{key:i},c)))))])),
     h('p',{},'تم اعتماد نموذج التقرير الكمي والوصفي الرسمي المستخدم للأقسام، ليُصدر تقرير المدرسة بالكامل من النائب الأكاديمي إلى مدير المدرسة عبر تبويب التقرير الكمي والوصفي.')
    ]):null,
    page==='levels'&&perms.studentLevels?h('section',{className:'srstaff-panel',id:'srstaff-levels'},[
     h('h2',{},'توزيع الطلاب حسب مستويات الأداء — '+examName),
-    h('p',{},'النسبة هي مجموع درجات الطالب في المواد المختارة على مجموع نهاياتها المرصودة؛ لا تُحتسب القيم الغائبة صفرًا.'),
+    h('p',{},'يوضع كل طالب في مستوى واحد وفق نسبة مجموع درجات المواد المرصودة، وتظهر أعداد الطلاب ونسبهم حسب الحدود المعتمدة في المدرسة. لا تُحتسب القيم الغائبة صفرًا.'),
     h('div',{className:'srstaff-level-controls'},[
       h('label',{},['الشعبة',h('select',{value:scopedClasses.includes(levelClass)?levelClass:'الكل',onChange:e=>setLevelClass(e.target.value)},[h('option',{value:'الكل'},'كل الشعب'),...scopedClasses.map(x=>h('option',{key:x,value:x},x))])]),
       h('label',{},['المادة',h('select',{value:scopedSubjects.includes(levelSubject)?levelSubject:'الكل',onChange:e=>setLevelSubject(e.target.value)},[h('option',{value:'الكل'},'كل مواد '+scopeLabel),...scopedSubjects.map(x=>h('option',{key:x,value:x},x))])]),
@@ -192,20 +245,20 @@ SR63.CoordinatorPortal=function({profile}){
       ]))),group.students.length>140?h('p',{},'تعرض المعاينة أول 140 طالبًا؛ اختر شعبة لعرض القائمة كاملة.'):null
     ])))
    ]):null,
-   page==='failed'&&perms.failedStudents?h('section',{className:'srstaff-panel'},[h('h2',{},'الطلاب المتعثرون في '+scopeLabel),h('p',{},'يتم استبعاد الغياب والدرجات غير المرصودة من حساب الرسوب.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failed',{failed:data.failed,examName,scopeLabel})},'طباعة المتعثرين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('حالات التعثر حسب المادة',(()=>{const tally=new Map;for(const item of data.failed)tally.set(item.subject,(tally.get(item.subject)||0)+1);const values=[...tally];const max=Math.max(1,...values.map(x=>x[1]));return values.map(([name,count])=>({name,value:100*count/max,label:count+' نتيجة',color:'#df784e'}));})(),{limit:14})),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الطالب','الشعبة','المادة','المعلم','الدرجة','النسبة'].map(x=>h('th',{key:x},x)))),h('tbody',{},data.failed.map((r,i)=>h('tr',{key:(r.studentId||r.name)+'|'+r.subject+'|'+i},[r.name,r.className,r.subject,r.teacher,`${r.score}/${r.total}`,fmt(r.percentage)].map((x,j)=>h('td',{key:j},x)))))])),!data.failed.length?h('p',{},'لا توجد نتائج أقل من حد النجاح في الاختبار المحدد.'):null]):null,
-   page==='teachers'&&perms.teacherAnalysis?h('section',{className:'srstaff-panel'},[h('h2',{},'تحصيل معلمي '+scopeLabel),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('teachers',{teachers:data.teachers,examName,scopeLabel})},'طباعة تقرير شامل للمعلمين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('مقارنة نسبة التحصيل والنجاح للمعلمين',data.teachers.slice(0,14).map(t=>({name:t.name,value:t.achievement,second:t.successRate})),{two:true,secondColor:'#c39130'})),h('div',{className:'srcoord-teacher-grid'},data.teachers.map(t=>h('article',{key:t.name,className:'srcoord-teacher-card'},[h('span',{},t.name),h('strong',{},fmt(t.achievement)),chart('نسبة النجاح',t.successRate),h('small',{},`${t.results} نتيجة مرصودة`)]))) ]):null,
+   page==='failed'&&perms.failedStudents?h('section',{className:'srstaff-panel'},[h('h2',{},'الطلاب المتعثرون في '+scopeLabel),h('p',{},'يتم استبعاد الغياب والدرجات غير المرصودة من حساب الرسوب.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failed',{failed:data.failed,examName,scopeLabel})},'طباعة المتعثرين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('عدد حالات التعثر حسب المادة — طول الشريط نسبي للأكثر حالات',(()=>{const tally=new Map;for(const item of data.failed)tally.set(item.subject,(tally.get(item.subject)||0)+1);const values=[...tally];const max=Math.max(1,...values.map(x=>x[1]));return values.map(([name,count])=>({name,value:100*count/max,label:count+' نتيجة',color:'#df784e'}));})(),{limit:14})),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الطالب','الشعبة','المادة','المعلم','الدرجة','النسبة'].map(x=>h('th',{key:x},x)))),h('tbody',{},data.failed.map((r,i)=>h('tr',{key:(r.studentId||r.name)+'|'+r.subject+'|'+i},[r.name,r.className,r.subject,r.teacher,`${r.score}/${r.total}`,fmt(r.percentage)].map((x,j)=>h('td',{key:j},x)))))])),!data.failed.length?h('p',{},'لا توجد نتائج أقل من حد النجاح في الاختبار المحدد.'):null]):null,
+   page==='teachers'&&perms.teacherAnalysis?h('section',{className:'srstaff-panel'},[h('h2',{},'تحصيل ونجاح نتائج معلمي '+scopeLabel),h('p',{},'تُظهر الأشرطة نسب النجاح والتحصيل وحجم النتائج المرصودة، ولا تُعد وحدها تقييمًا مهنيًا للمعلم.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('teachers',{teachers:data.teachers,examName,scopeLabel})},'طباعة تقرير شامل للمعلمين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('مقارنة نسبة التحصيل والنجاح للمعلمين',data.teachers.slice(0,14).map(t=>({name:t.name,value:t.achievement,second:t.successRate})),{two:true,secondColor:'#c39130',firstLabel:'نسبة التحصيل',secondLabel:'نسبة النجاح'})),h('div',{className:'srcoord-teacher-grid'},data.teachers.map(t=>h('article',{key:t.name,className:'srcoord-teacher-card'},[h('span',{},t.name),h('strong',{},fmt(t.achievement)),chart('نسبة النجاح',t.successRate),h('small',{},`${t.results} نتيجة مرصودة`)]))) ]):null,
    page==='comparison'&&perms.compare?h('section',{className:'srstaff-panel',id:'srstaff-comparison'},[
-    h('h2',{},'مقارنة تحصيل شعب '+scopeLabel+' بين اختبارين'),
+    h('h2',{},'مقارنة تحصيل شعب '+(isLeadership?'المدرسة':'القسم')+' بين اختبارين'),
     h('div',{className:'srstaff-level-controls'},[
       h('label',{},['الاختبار السابق',h('select',{value:previousExam,onChange:e=>setPreviousExam(e.target.value)},exams.map(x=>h('option',{key:x.key,value:x.key},x.name)))]),
       h('span',{},'الاختبار الحالي: '+examName),
-      h('button',{type:'button',disabled:!perms.export||previousExam===exam,onClick:()=>staffPrint('comparison',{rows:compared,benchmarks,fromName:exams.find(e=>e.key===previousExam)?.name||previousExam,toName:examName,scopeLabel})},'طباعة المقارنة والرسوم البيانية')
+      h('button',{type:'button',disabled:!perms.export||previousExam===exam,onClick:()=>staffPrint('comparison',{rows:compared,benchmarks:isLeadership?[]:benchmarks,fromName:exams.find(e=>e.key===previousExam)?.name||previousExam,toName:examName,scopeLabel})},'طباعة المقارنة والرسوم البيانية')
     ]),
-    h('p',{},'القيمة المضافة هنا فرق تحصيل كل شعبة بين الاختبارين، وليست مقارنة الأفراد المتطابقين.'),
-    previousExam!==exam?liveChart(SR63.staffReportBarChart('مقارنة تحصيل الشعب بالأرقام',compared.slice(0,13).map(t=>({name:t.className,value:t.previous,second:t.current})),{two:true,color:'#0c887e',secondColor:'#c39130'})):null,
+    h('p',{},'الفرق هنا بين نسب تحصيل الشعب في الاختبارين، وليس قيمة مضافة لنفس الطلاب. اطلع على حجم العينة السابقة والحالية قبل الاستنتاج.'),
+    previousExam!==exam?liveChart(SR63.staffReportBarChart('التحصيل في الاختبار السابق والحالي لكل شعبة',compared.slice(0,13).map(t=>({name:t.className,value:t.previous,second:t.current})),{two:true,color:'#0c887e',secondColor:'#c39130'})):null,
     h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الشعبة','تحصيل الاختبار السابق','تحصيل الاختبار الحالي','فرق النقاط','نتائج سابقة / حالية'].map(x=>h('th',{key:x},x)))),
       h('tbody',{},compared.map(x=>h('tr',{key:x.className},[x.className,fmt(x.previous),fmt(x.current),x.change===null?'—':x.change+' نقطة',x.previousCount+' / '+x.currentCount].map((t,i)=>h('td',{key:i},t)))))])),
-    h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null,
+    !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null]):null,
    page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})):null,
    
    page==='plans'&&!isLeadership&&perms.plans?h(SR63.AIPlans,{key:exam,workspace:active,setWorkspace:saveWorkspace,coordinator:true,canSave:profile.role==='coordinator'&&!!perms.savePlans,canExport:!!perms.export}):null
