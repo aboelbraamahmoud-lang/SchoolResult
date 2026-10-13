@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.38",
+  "version": "6.10.39",
   "released": "2026-10-13",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح حساب النائب الأكاديمي ومدير المدرسة بدون ربط بالأقسام، مع فحص توافق خدمة الصلاحيات والتعامل مع ترحيل قاعدة البيانات."
+  "notes": "تسجيل دخول أسرع بطلب تحقق واحد لكل مستخدم، واستمرار الجلسة عبر المتصفح، وحقل موحّد للاسم أو البريد وإعادة محاولة آمنة عند تعطل الخدمة مؤقتًا."
 }
