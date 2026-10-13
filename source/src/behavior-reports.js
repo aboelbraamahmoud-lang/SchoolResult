@@ -130,6 +130,7 @@
   template['word/document.xml']=original.slice(0,bodyPos+8)+body+section+original.slice(endBody);
   certificateReady=true;
  };
+ SR63.behaviorZipPdfBytes=packageZip;
  const documentFor=(stu,options={})=>{
   const values={SCHOOL_NAME:options.schoolName||'اسم المدرسة',MONTH:options.month||'سبتمبر 2025',ACADEMIC_YEAR:options.academicYear||'—',PRINCIPAL_NAME:options.principalName||'...................................',STUDENT_NAME:stu.name,CLASS_NAME:stu.className};
   for(let i=0;i<9;i++){const fields=stu.subjects[subjects[i].id]||[];for(let j=0;j<5;j++)values[`S${i+1}_${j+1}`]=fields[j]||'';}
@@ -183,7 +184,7 @@
  };
  SR63.BehaviorAcademicReports=function({workspace,setWorkspace}){
   const existing=workspace.behaviorReports||null;
-  const [month,setMonth]=(0,v.useState)(existing?.month||'سبتمبر 2025'),[selectedClass,setClass]=(0,v.useState)('الكل'),[selectedStudent,setStudent]=(0,v.useState)('الكل'),[prepared,setPrepared]=(0,v.useState)(false),[busy,setBusy]=(0,v.useState)(false),[message,setMessage]=(0,v.useState)('');
+  const [month,setMonth]=(0,v.useState)(existing?.month||'سبتمبر 2025'),[selectedClass,setClass]=(0,v.useState)('الكل'),[selectedStudent,setStudent]=(0,v.useState)('الكل'),[prepared,setPrepared]=(0,v.useState)(false),[busy,setBusy]=(0,v.useState)(false),[message,setMessage]=(0,v.useState)(''),[pdfBusy,setPdfBusy]=(0,v.useState)(false),[pdfProgress,setPdfProgress]=(0,v.useState)('');
   const [current,setCurrent]=(0,v.useState)(null);
   const dataset=current||existing,students=dataset?.students||[];
   const classList=[...new Set(students.map(s=>s.className))].sort((a,b)=>cls(a).localeCompare(cls(b),'en',{numeric:true}));
@@ -200,6 +201,34 @@
    }catch(err){setMessage('تعذر الاستيراد: '+err.message);}finally{setBusy(false);event.target.value='';}
   };
   const saveMonth=value=>{setMonth(value);if(dataset){setCurrent({...dataset,month:value});setWorkspace(w=>({...w,behaviorReports:{...w.behaviorReports,month:value}}));}};
+  // Export strictly one student per PDF; ZIP names are stable and unique by student+class.
+  const pdfOptions=()=>({schoolName:workspace.settings.schoolName,academicYear:workspace.settings.academicYear,principalName:workspace.settings.principalName,month,stampSrc:workspace.settings.reportDesign?.stampDataUrl||'',showStamp:workspace.settings.reportDesign?.showStamp!==false});
+  const individualPdf=async()=>{
+   if(scoped.length!==1||pdfBusy)return;setPdfBusy(true);setMessage('');
+   try{const student=scoped[0],bytes=await SR63.behaviorPdfForStudent(student,pdfOptions());
+    const filename='التقرير-الأكاديمي-والسلوكي-'+SR63.behaviorPdfSafeName(student.className)+'-'+SR63.behaviorPdfSafeName(student.name)+'.pdf';
+    SR63.behaviorReportSave(bytes,filename,'application/pdf');setMessage('تم إنشاء ملف PDF مستقل للطالب '+student.name);
+   }catch(error){setMessage('تعذر إصدار PDF: '+error.message);}finally{setPdfBusy(false);}
+  };
+  const allPdfs=async()=>{
+   if(!scoped.length||pdfBusy)return;setPdfBusy(true);setMessage('');setPdfProgress('0 / '+scoped.length);
+   try{
+    if(scoped.length>1500)throw Error('الحد الأقصى للحزمة الواحدة 1500 طالب حفاظًا على ذاكرة المتصفح؛ اختر صفًّا لتحميل بقية الشهادات.');
+    const files={},names=new Set(),options=pdfOptions();
+    for(let i=0;i<scoped.length;i++){
+     const stu=scoped[i],bytes=await SR63.behaviorPdfForStudent(stu,options);
+     const basename='شهادة-'+SR63.behaviorPdfSafeName(stu.className)+'-'+SR63.behaviorPdfSafeName(stu.name);
+     let name=basename+'.pdf',suffix=1;
+     while(names.has(name)){suffix++;name=basename+'-'+suffix+'.pdf';}names.add(name);files[name]=bytes;
+     if(i%4===0||i===scoped.length-1)setPdfProgress((i+1)+' / '+scoped.length);
+     // Give the browser an opportunity to respond to input and update progress.
+     if(i%4===3)await new Promise(resolve=>setTimeout(resolve,0));
+    }
+    const name='شهادات-أكاديمية-وسلوكية-'+SR63.behaviorPdfSafeName(selectedClass==='الكل'?'جميع-الشعب':selectedClass)+'-'+scoped.length+'-طالب.zip';
+    SR63.behaviorReportSave(SR63.behaviorZipPdfBytes(files),name,'application/zip');
+    setMessage('تم تنزيل '+scoped.length+' شهادة PDF منفصلة داخل ملف ZIP واحد.');
+   }catch(error){setMessage('تعذر إنشاء حزمة PDF: '+error.message);}finally{setPdfBusy(false);setPdfProgress('');}
+  };
   const doWord=async()=>{try{setBusy(true);await SR63.loadWordTemplate('behavior');const out=SR63.behaviorBuildWord(scoped,{schoolName:workspace.settings.schoolName,academicYear:workspace.settings.academicYear,principalName:workspace.settings.principalName,month,className:selectedClass});SR63.behaviorReportSave(out.bytes,out.filename);setMessage(`تم تجهيز ${scoped.length} تقرير Word مطابق للنموذج المعتمد.`);}catch(e){setMessage(e.message);}finally{setBusy(false);}};
   const doPrint=()=>{try{SR63.behaviorPrint(scoped,{schoolName:workspace.settings.schoolName,academicYear:workspace.settings.academicYear,principalName:workspace.settings.principalName,month,stampSrc:workspace.settings.reportDesign?.stampDataUrl||'',showStamp:workspace.settings.reportDesign?.showStamp!==false});}catch(e){setMessage(e.message);}};
   const control=(label,value,setter,options)=>(0,q.jsxs)('label',{className:'sr632-control',children:[(0,q.jsx)('span',{children:label}),(0,q.jsx)('select',{value,onChange:e=>{setter(e.target.value);setPrepared(false)},children:options.map(({value,label})=>(0,q.jsx)('option',{value,children:label},value))})]});
@@ -218,7 +247,7 @@
     control('الشعبة',selectedClass,value=>{setClass(value);setStudent('الكل')},[{value:'الكل',label:'جميع الشعب'},...classList.map(x=>({value:x,label:x}))]),
     control('الطالب',selectedStudent,setStudent,[{value:'الكل',label:'كل طلاب الشعبة'},...students.filter(s=>selectedClass==='الكل'||cls(s.className)===cls(selectedClass)).map(s=>({value:s.id,label:s.name+' — '+s.className}))])
    ]}),
-   (0,q.jsxs)('div',{className:'sr632-actions',children:[(0,q.jsx)('button',{type:'button',onClick:()=>setPrepared(true),children:'تجهيز المعاينة'}),(0,q.jsx)('button',{type:'button',disabled:busy||!scoped.length,onClick:()=>void doWord(),children:scoped.length===1?'تنزيل تقرير الطالب Word':`تنزيل ${scoped.length} تقريرًا بملف Word واحد`}),(0,q.jsx)('button',{type:'button',disabled:!scoped.length,onClick:doPrint,children:'طباعة التقارير / حفظ PDF'})]}),
+   (0,q.jsxs)('div',{className:'sr632-actions',children:[(0,q.jsx)('button',{type:'button',onClick:()=>setPrepared(true),children:'تجهيز المعاينة'}),(0,q.jsx)('button',{type:'button',disabled:busy||!scoped.length,onClick:()=>void doWord(),children:scoped.length===1?'تنزيل تقرير الطالب Word':`تنزيل ${scoped.length} تقريرًا بملف Word واحد`}),(0,q.jsx)('button',{type:'button',disabled:pdfBusy||scoped.length!==1,onClick:()=>void individualPdf(),children:'تنزيل PDF منفصل للطالب'}),(0,q.jsx)('button',{type:'button',disabled:pdfBusy||!scoped.length,onClick:()=>void allPdfs(),children:pdfBusy?'جارٍ إنشاء ملفات PDF…':`تنزيل ${scoped.length} شهادة PDF في ZIP واحد`}),(0,q.jsx)('button',{type:'button',disabled:pdfBusy||!scoped.length,onClick:doPrint,children:'طباعة من المتصفح'})]}),
    (0,q.jsxs)('div',{children:[(0,q.jsx)('p',{className:'sr632-note',children:`الطلاب ضمن الاختيار: ${scoped.length}. يتم ترك القيم غير الموجودة في Excel فارغة، دون وضع تقييمات افتراضية.`}),(0,q.jsx)('p',{className:'sr632-note',children:workspace.settings.reportDesign?.stampDataUrl?(workspace.settings.reportDesign?.showStamp!==false?'الختم الإلكتروني مفعّل وسيظهر تلقائيًا في معاينة الشهادات والطباعة / PDF.':'تم رفع ختم إلكتروني لكنه مخفي حاليًا من إعدادات تصميم التقارير.'):'لإظهار ختم إلكتروني على الشهادات، ارفعه من إعدادات «تصميم التقارير» ثم فعّل خيار إظهار الختم.'})]}),
    (0,q.jsxs)('details',{children:[(0,q.jsx)('summary',{children:`سجل مراجعة الاستيراد (${issueReport.length} تنبيه)`}),(0,q.jsx)('div',{className:'sr632-issues',children:issueReport.slice(0,100).map((x,i)=>(0,q.jsx)('p',{children:x.text},i))})]}),
    (0,q.jsxs)('div',{className:'sr632-preview',children:[

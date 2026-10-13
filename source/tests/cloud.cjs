@@ -26,7 +26,33 @@ function client(owner='account-a'){
  const first=client(),c=first.c;
  await test('Cloud save forbidden before initial load',async()=>{await assert.rejects(c.Xj(c.Aj()));assert.equal(server.rows.size,0);});
  await test('New cloud account loads empty without local grades',async()=>assert.equal(await c.Yj(),null));
- await test('SDK uses tab session storage and auto refresh',()=>{assert.equal(first.options.auth.storage,c.sessionStorage);assert.equal(first.options.auth.autoRefreshToken,true);assert.equal(first.options.auth.detectSessionInUrl,false);});
+ await test('SDK falls back to tab storage if persistent storage is unavailable and auto refreshes',()=>{assert.equal(first.options.auth.storage,c.sessionStorage);assert.equal(first.options.auth.autoRefreshToken,true);assert.equal(first.options.auth.detectSessionInUrl,true);});
+ await test('Successful browser storage uses durable localStorage for auth only',()=>{
+  const source=require('fs').readFileSync(require('path').join(__dirname,'../src/cloud.js'),'utf8');
+  assert.match(source,/localStorage\.setItem\(probe/);
+  assert.match(source,/storage=localStorage/);
+  assert.match(source,/persistSession:!!storage/);
+  assert.match(source,/storageKey:'school-results-cloud-session'/);
+ });
+ await test('Persistent localStorage is selected and old tab session is migrated',()=>{
+  const c2=loadApp().ctx,items=new Map(),old=new Map([['school-results-cloud-session',JSON.stringify({access_token:'valid-test-token',refresh_token:'test-refresh-token'})]]);
+  let options;
+  c2.localStorage={getItem:k=>items.get(k)||null,setItem:(k,v)=>{items.set(k,v)},removeItem:k=>{items.delete(k)}};
+  c2.sessionStorage={getItem:k=>old.get(k)||null,setItem:(k,v)=>old.set(k,v),removeItem:k=>old.delete(k)};
+  c2.SchoolSupabase={createClient:(url,key,o)=>{options=o;return {}}};
+  c2.SR63.cloud.client();
+  assert.equal(options.auth.storage,c2.localStorage);
+  assert.equal(JSON.parse(items.get('school-results-cloud-session')).access_token,'valid-test-token');
+  assert.equal(old.has('school-results-cloud-session'),false);
+  assert.equal(options.auth.persistSession,true);
+  assert.equal(options.auth.detectSessionInUrl,true);
+ });
+ await test('Banned, throttled and network login problems have distinguishable Arabic messages',()=>{
+  assert.match(c.SR63.cloud.message({message:'User is banned',code:'user_banned'}).message,/محظور/);
+  assert.match(c.SR63.cloud.message({message:'Too many requests',status:429}).message,/كثيرة/);
+  assert.match(c.SR63.cloud.message({message:'Failed to fetch',code:'fetch_error'}).message,/الاتصال/);
+  assert.match(c.SR63.cloud.message({message:'البريد غير صالح'}).message,/البريد غير صالح/);
+ });
  await test('Confirmed cloud save clears pending status',async()=>{c.SR63.storage.touch();const r=await c.Xj(c.Aj());assert.equal(r.storage,'cloud');assert.equal(r.revision,1);assert.equal(c.SR63.storage.pending,false);});
  await test('Second device loads identical account data',async()=>{const other=client();const w=await other.c.Yj();assert.equal(w.settings.schoolName,c.Aj().settings.schoolName);assert.equal(w.__storage.revision,1);});
  await test('Network failure remains unsaved without browser fallback',async()=>{server.fail=true;c.SR63.storage.touch();await assert.rejects(c.Xj(c.Aj()));assert.equal(c.SR63.storage.pending,true);assert.ok(c.SR63.storage.error);server.fail=false;});

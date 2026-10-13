@@ -8,6 +8,8 @@ function loadApp(){
  const statements=ast.body.filter(node=>{const code=source.slice(node.start,node.end);if(node.start>=bootstrapStart||code.startsWith('(function(){let e=document.createElement')){skipped.push(code.slice(0,85));return false;}return true;});
  const ctx=vm.createContext({console,crypto,structuredClone,Blob,URL,TextEncoder,TextDecoder,queueMicrotask,setTimeout,clearTimeout,setInterval,clearInterval,performance});
  vm.runInContext(statements.map(n=>source.slice(n.start,n.end)).join('\n'),ctx,{timeout:20000,filename:'app-without-dom-bootstrap.js'});
+ // Browser resolves these only when Word export is requested. Test fixtures use explicit controlled loads.
+ for(const file of ['teacher-reference-data.js','approved-improvement-template.js','behavior-template.js'])vm.runInContext(fs.readFileSync(path.join(PROJECT_ROOT,'source/src',file),'utf8'),ctx,{timeout:20000,filename:file});
  const nodes=new Map();function index(body,prefix=''){for(const n of body){if(n.type==='FunctionDeclaration'){const key=prefix+n.id.name;nodes.set(key,n);index(n.body.body,key+'.');}if(n.type==='VariableDeclaration')for(const d of n.declarations)if(d.id.type==='Identifier')nodes.set(prefix+d.id.name,d);}}index(ast.body);
  return {ctx,source,skipped,run(name,env,args=[]){const node=nodes.get(name);if(!node)throw Error('Unknown symbol '+name);let code=source.slice(node.start,node.end);if(node.type==='VariableDeclarator')code=source.slice(node.init.start,node.init.end);return new Function(...Object.keys(ctx),...Object.keys(env),'__args',`return (${code})(...__args)`)(...Object.values(ctx),...Object.values(env),args);}};
 }

@@ -5,10 +5,18 @@ SR63.aiPlanSafeNote=function(value,max=500){
     .replace(/(?:\+?\d[\d -]{6,}\d)/g,'[محذوف]').replace(/\s+/g,' ').trim().slice(0,max);
 };
 SR63.aiPlanSettings=function(workspace){return {...SR63.aiPlanDefaults,...(workspace.aiPlanSettings||{})};};
+// Cache student result pages per immutable workspace and assessment, so opening
+// intelligent plans does not rebuild them three times on the same render.
+const aiPagesCache=new WeakMap();
+SR63.aiPlanStudentPages=function(workspace,exam){
+ let cached=aiPagesCache.get(workspace);if(!cached){cached=new Map();aiPagesCache.set(workspace,cached);}
+ if(!cached.has(exam))cached.set(exam,SR63.studentResultPages(workspace,exam));
+ return cached.get(exam);
+};
 SR63.aiPlanCandidateSet=function(workspace,filters){
   const exam=filters.exam||workspace.activeExam,subject=filters.subject,cohort=filters.cohort||'general';
   if(!XA.includes(exam)||!subject)SR63.fail('اختر الاختبار والمادة أولًا.');
-  const pages=SR63.studentResultPages(workspace,exam),chosen=[],type=filters.level||'below60';
+  const pages=SR63.aiPlanStudentPages(workspace,exam),chosen=[],type=filters.level||'below60';
   for(const page of pages){
     if((cohort==='support')!==SR63.isSupportClass(page.className))continue;
     if(filters.grade&&filters.grade!=='الكل'&&ij(page.grade)!==ij(filters.grade))continue;

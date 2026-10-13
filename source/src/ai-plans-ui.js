@@ -27,15 +27,15 @@ SR63.AIPlans=function({workspace,setWorkspace,coordinator=false,canSave=true,can
       eb.success('تم تجهيز مسودة الخطة بصيغة Word.');
     }catch(err){setError(err.message||'تعذر إنشاء ملف Word.');}
   };
-  const subjects=[...new Map((workspace.rows||[]).map(r=>[SR63.subjectAliasKey(r.subject),r.subject])).entries()]
-    .filter(([key])=>key).sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],workspace.settings));
+  const subjects=(0,v.useMemo)(()=>[...new Map((workspace.rows||[]).map(r=>[SR63.subjectAliasKey(r.subject),r.subject])).entries()]
+    .filter(([key])=>key).sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],workspace.settings)),[workspace]);
   const realSubject=subjects.some(([key])=>key===subject)?subject:subjects[0]?.[0]||'';
   const rawSubject=subjects.find(([key])=>key===realSubject)?.[1]||'';
-  const groupPages=(0,v.useMemo)(()=>SR63.studentResultPages(workspace,exam),[workspace,exam]);
+  const groupPages=(0,v.useMemo)(()=>SR63.aiPlanStudentPages(workspace,exam),[workspace,exam]);
   const grades=[...new Set(groupPages.filter(p=>(cohort==='support')===SR63.isSupportClass(p.className)).map(p=>p.grade))];
   const classes=[...new Set(groupPages.filter(p=>(cohort==='support')===SR63.isSupportClass(p.className)&&(grade==='الكل'||ij(p.grade)===ij(grade))).map(p=>p.className))];
   const teachers=[...new Set((workspace.rows||[]).filter(r=>SR63.subjectAliasKey(r.subject)===realSubject).map(r=>r.examTeachers?.[exam]||r.teacher).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
-  const candidates=(0,v.useMemo)(()=>rawSubject?SR63.aiPlanCandidateSet(workspace,{exam,subject:rawSubject,cohort,grade,className,teacher:mode==='teacher'?teacher:'الكل',mode:'group',level:'all'}):[],[workspace,exam,rawSubject,cohort,grade,className,teacher,mode]);
+  const candidates=(0,v.useMemo)(()=>rawSubject&&mode==='individual'?SR63.aiPlanCandidateSet(workspace,{exam,subject:rawSubject,cohort,grade,className,teacher:mode==='teacher'?teacher:'الكل',mode:'group',level:'all'}):[],[workspace,exam,rawSubject,cohort,grade,className,teacher,mode]);
   const selectedMembers=(0,v.useMemo)(()=>{
     if(!rawSubject)return [];
     return SR63.aiPlanCandidateSet(workspace,{exam,subject:rawSubject,cohort,grade,className,
