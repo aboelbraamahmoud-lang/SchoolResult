@@ -1391,3 +1391,24 @@
 .sr633-preview-wrap .sr633-principal strong{font-size:17px;font-weight:900}
 .sr633-preview-wrap .sr633-principal small{font-size:11px;color:#7a8996;padding:0}
 @media(max-width:800px){.sr633-preview-wrap .sr633-certificate{padding:26px 25px}}
+
+/* 6.10.36 — scoped staff student levels */
+.srstaff-level-controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:14px 0 20px}
+.srstaff-level-controls label{display:grid;gap:5px;font-weight:700;color:#21435b;min-width:185px}
+.srstaff-level-controls select{border:1px solid #b8cbd6;border-radius:9px;padding:9px;background:#fff;max-width:290px}
+.srstaff-level-controls button{padding:10px 16px;border:0;border-radius:10px;background:#24536b;color:#fff;font-weight:800}
+.srstaff-band-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.srstaff-band-card{border:1px solid #dce5ea;border-top:5px solid #64748b;border-radius:12px;padding:10px;background:#fff;min-width:0}
+.srstaff-band-card header{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+.srstaff-band-card header b{margin-right:auto}
+.srstaff-band-dot{display:inline-block;width:13px;height:13px;border-radius:50%;flex:none}
+.srstaff-band-names{display:grid;gap:6px;max-height:450px;overflow:auto}
+.srstaff-band-names>div{display:flex;justify-content:space-between;gap:8px;padding:7px 4px;border-bottom:1px solid #eef2f4;font-size:12px}
+.srstaff-band-names>div strong{white-space:nowrap;font-weight:900}
+@media print{.srstaff-band-names{max-height:none;overflow:visible}.srstaff-band-card{break-inside:avoid}}
+
+/* 6.10.37 — keyboard-friendly account recovery and state messages. */
+.sr-cloud-text-button{border:0;background:transparent;color:#116474;font-size:13px;font-weight:800;text-decoration:underline;text-underline-offset:3px;padding:9px 5px;cursor:pointer;margin-inline-end:10px}
+.sr-cloud-text-button:hover{color:#702441}
+.sr-cloud-text-button:focus-visible{outline:3px solid #edc979;border-radius:4px}
+.sr-cloud-success{margin-top:12px;border:1px solid #a8dfb5;border-radius:12px;background:#eefcf0;color:#185a30;padding:12px;font-size:13px;line-height:1.9;font-weight:700}

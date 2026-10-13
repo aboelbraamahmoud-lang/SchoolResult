@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.35",
+  "version": "6.10.37",
   "released": "2026-10-13",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تنظيف ملفات الإصدارات القديمة والنسخ المكررة، وتحميل قوالب Word الثقيلة عند التصدير فقط، وتحسين العمليات الثقيلة في واجهات التقارير."
+  "notes": "استمرار جلسة تسجيل الدخول في نفس المتصفح بأمان، رسائل تشخيص الحظر، ونموذج استعادة كلمة المرور عبر البريد الحقيقي؛ إصلاح اختيار أقسام المنسق."
 }
