@@ -1429,3 +1429,7 @@
 @media(max-width:700px){.sr640-school-report .sr640-targets{grid-template-columns:1fr}}
 
 .sr640-chart-rows{display:grid;gap:12px}.sr640-chart-row{display:grid;grid-template-columns:minmax(110px,215px) minmax(145px,1fr) minmax(70px,120px);gap:13px;align-items:center;min-width:0;direction:rtl}.sr640-chart-label{font-size:13px;font-weight:900;color:#174559;overflow-wrap:anywhere}.sr640-chart-vectors svg{width:100%;height:auto;max-height:48px;display:block}.sr640-chart-values{display:block;text-align:left;font-weight:900;font-size:12px;color:#163a4d;white-space:nowrap;direction:rtl}.sr640-chart-values small{display:block;font-size:12px;margin-top:6px}.sr640-chart-live .sr640-legend{display:flex;flex-wrap:wrap;gap:12px}.sr640-chart-live .sr640-legend span:first-child{color:#0e8479}.sr640-chart-live .sr640-legend span:last-child{color:#a6782e}@media(max-width:680px){.sr640-chart-row{grid-template-columns:minmax(75px,115px) minmax(80px,1fr) 70px;gap:7px}.sr640-chart-values,.sr640-chart-values small{font-size:10px}}
+
+/* 6.10.41 — school-wide report routing matches official department form. */
+.sr641-report-address{display:flex;gap:20px;flex-wrap:wrap;border:1px solid #cbdde3;border-right:5px solid #803450;background:#f8fafb;padding:10px 16px;border-radius:10px;margin-bottom:15px;font-weight:700;color:#25485c}
+.sr641-report-address p{margin:4px 0}
