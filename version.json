@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.39",
+  "version": "6.10.40",
   "released": "2026-10-13",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تسجيل دخول أسرع بطلب تحقق واحد لكل مستخدم، واستمرار الجلسة عبر المتصفح، وحقل موحّد للاسم أو البريد وإعادة محاولة آمنة عند تعطل الخدمة مؤقتًا."
+  "notes": "تقارير ملونة برسوم SVG للطباعة لدى المنسق والنائب والمدير، إصلاح الصفحات البيضاء عبر نافذة طباعة مستقلة، تقرير كمي ووصفي شامل للمدرسة دون المعلمين والأقسام، وإخفاء الخطط الذكية عن القيادة."
 }
