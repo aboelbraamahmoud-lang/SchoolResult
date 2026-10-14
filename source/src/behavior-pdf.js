@@ -1,4 +1,4 @@
-/* 6.10.36 — browser-local, per-student A4-landscape PDF engine. No student data leaves the device. */
+/* 6.10.44 — browser-local, per-student RTL A4-landscape PDF engine. No student data leaves the device. */
 (function(){
  const encoder=new TextEncoder();
  const ascii=s=>encoder.encode(s);
@@ -43,25 +43,27 @@
    ctx.save();ctx.direction='rtl';ctx.textBaseline='middle';ctx.textAlign=align;ctx.font=`${weight} ${size}px Arial, Tahoma, sans-serif`;ctx.fillStyle=color;
    const line=printable(value);ctx.fillText(line,x,y,maxWidth);ctx.restore();
   };
-  text('وزارة التربية والتعليم والتعليم العالي',705,45,18,'#702441',800,'right',640);
-  text(options.schoolName||'اسم المدرسة',705,78,24,'#203749',900,'right',640);
-  text('العام الأكاديمي: '+(options.academicYear||'—'),705,102,14,'#667988',700,'right',640);
-  if(ministry)ctx.drawImage(ministry,760,28,180,79);
+  // Match the approved Word certificate: school heading on the right, ministry logo on the left.
+  text('وزارة التربية والتعليم والتعليم العالي',945,45,18,'#702441',800,'right',640);
+  text(options.schoolName||'اسم المدرسة',945,78,24,'#203749',900,'right',640);
+  text('العام الأكاديمي: '+(options.academicYear||'—'),945,102,14,'#667988',700,'right',640);
+  if(ministry)ctx.drawImage(ministry,55,28,180,79);
   rectangle(55,118,890,2,'#702441');
   rectangle(55,135,890,56,'#702441');text('التقرير الأكاديمي والسلوكي للطالب',500,164,23,'#ffffff',900,'center',820);
   const cells=[['اسم الطالب',student.name,420],['الشعبة',student.className,215],['الشهر',options.month||'—',215]];
-  let x=55;for(const [label,value,w] of cells){rectangle(x,208,w,50,'#f5f8f9');border(x,208,w,50);text(label+':',x+w-14,223,13,'#576f7d',700,'right',w-26);text(value,x+w-14,243,w>300?17:15,'#18364a',800,'right',w-26);x+=w+20;}
-  const cols=[260,126,126,126,126,126],left=55,tableTop=276,headH=50,rowH=31;
-  let current=left;
+  // RTL identity: name occupies the rightmost cell, then class, then month.
+  let x=945;for(const [label,value,w] of cells){x-=w;rectangle(x,208,w,50,'#f5f8f9');border(x,208,w,50);text(label+':',x+w-14,223,13,'#576f7d',700,'right',w-26);text(value,x+w-14,243,w>300?17:15,'#18364a',800,'right',w-26);x-=20;}
+  const cols=[260,126,126,126,126,126],right=945,tableTop=276,headH=50,rowH=31;
+  let current=right;
   for(let i=0;i<6;i++){
-   const colW=cols[i];rectangle(current,tableTop,colW,headH,i===0?'#284d5d':i===5?'#ae8230':'#2c6074');
+   const colW=cols[i];current-=colW;rectangle(current,tableTop,colW,headH,i===0?'#284d5d':i===5?'#ae8230':'#2c6074');
    border(current,tableTop,colW,headH,'#dde6eb');
-   text(headers[i],current+colW/2,tableTop+25,i===3?11:13,'#fff',900,'center');current+=colW;
+   text(headers[i],current+colW/2,tableTop+25,i===3?11:13,'#fff',900,'center');
   }
   for(let i=0;i<subjects.length;i++){
-   const top=tableTop+headH+i*rowH;current=left;
+   const top=tableTop+headH+i*rowH;current=right;
    const values=[subjects[i][0],...Array.from({length:5},(_,j)=>student.subjects[subjects[i][1]]?.[j]||'')];
-   for(let j=0;j<6;j++){rectangle(current,top,cols[j],rowH,i%2?'#f3f7f9':'#fff');border(current,top,cols[j],rowH);text(values[j],j===0?current+cols[j]-8:current+cols[j]/2,top+rowH/2,j===0?12:11,j===0?'#25475b':'#21394c',j===0?800:700,j===0?'right':'center',cols[j]-12);current+=cols[j];}
+   for(let j=0;j<6;j++){current-=cols[j];rectangle(current,top,cols[j],rowH,i%2?'#f3f7f9':'#fff');border(current,top,cols[j],rowH);text(values[j],j===0?current+cols[j]-8:current+cols[j]/2,top+rowH/2,j===0?12:11,j===0?'#25475b':'#21394c',j===0?800:700,j===0?'right':'center',cols[j]-12);}
   }
   const footerY=637;rectangle(55,footerY,890,2,'#e3cfa2');
   text('مدير المدرسة',922,658,15,'#702441',900);text(options.principalName||'................................',922,680,17,'#702441',900);

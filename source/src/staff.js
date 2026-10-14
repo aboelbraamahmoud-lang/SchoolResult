@@ -115,7 +115,7 @@ SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
 };
 SR63.CoordinatorPortal=function({profile}){
  const [payload,setPayload]=(0,v.useState)(null),[error,setError]=(0,v.useState)(''),[loading,setLoading]=(0,v.useState)(true),
- [page,setPage]=(0,v.useState)('dashboard'),[chosenExam,setChosenExam]=(0,v.useState)(''),[showLegend,setShowLegend]=(0,v.useState)(true),[levelClass,setLevelClass]=(0,v.useState)('الكل'),[levelSubject,setLevelSubject]=(0,v.useState)('الكل'),[previousExam,setPreviousExam]=(0,v.useState)('exam1');
+ [page,setPage]=(0,v.useState)('dashboard'),[chosenExam,setChosenExam]=(0,v.useState)(''),[showLegend,setShowLegend]=(0,v.useState)(true),[levelClass,setLevelClass]=(0,v.useState)('الكل'),[levelSubject,setLevelSubject]=(0,v.useState)('الكل'),[previousExam,setPreviousExam]=(0,v.useState)('');
  const reload=async(requestedExam=chosenExam)=>{setLoading(true);setError('');try{const next=await SR63.staff.coordinatorLoad(requestedExam);setPayload(next);}catch(e){setError(e.message||'تعذر تحديث النتائج');}finally{setLoading(false);}};
  (0,v.useEffect)(()=>{void reload();},[profile.ownerId,profile.username]);
  const workspace=payload?.workspace||null,perms=profile.permissions||{},settings=workspace?.settings||{},exams=settings.exams||[],
@@ -131,7 +131,9 @@ SR63.CoordinatorPortal=function({profile}){
  const scopedClasses=[...new Set((workspace?.rows||[]).map(r=>String(r.examClasses?.[exam]||r.className||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
  const scopedSubjects=[...new Set((workspace?.rows||[]).map(r=>String(r.subject||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
  const levelGroups=(0,v.useMemo)(()=>workspace?SR63.staffStudentLevels(workspace,exam,levelClass,levelSubject):[],[workspace,exam,levelClass,levelSubject]);
- const compared=(0,v.useMemo)(()=>workspace?SR63.staffExamComparison(workspace,previousExam,exam):[],[workspace,previousExam,exam]);
+ const otherExam=exams.some(x=>x.key===previousExam&&x.key!==exam)?previousExam:(exams.find(x=>x.key!==exam&&exams.indexOf(x)<exams.findIndex(y=>y.key===exam))?.key||exams.find(x=>x.key!==exam)?.key||'');
+ const chronological=SR63.staffExamChronology(settings,exam,otherExam),canCompare=!!chronological;
+ const compared=(0,v.useMemo)(()=>workspace&&chronological?SR63.staffExamComparison(workspace,chronological.older,chronological.later):[],[workspace,chronological?.older,chronological?.later]);
  const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName});}catch(error){setError(error.message||'تعذرت الطباعة.');}};
  const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
  const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});
@@ -251,18 +253,20 @@ SR63.CoordinatorPortal=function({profile}){
    ]):null,
    page==='failed'&&perms.failedStudents?h('section',{className:'srstaff-panel'},[h('h2',{},'الطلاب المتعثرون في '+scopeLabel),h('p',{},'يتم استبعاد الغياب والدرجات غير المرصودة من حساب الرسوب.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failed',{failed:data.failed,examName,scopeLabel})},'طباعة المتعثرين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('عدد حالات التعثر حسب المادة — طول الشريط نسبي للأكثر حالات',(()=>{const tally=new Map;for(const item of data.failed)tally.set(item.subject,(tally.get(item.subject)||0)+1);const values=[...tally];const max=Math.max(1,...values.map(x=>x[1]));return values.map(([name,count])=>({name,value:100*count/max,label:count+' نتيجة',color:'#df784e'}));})(),{limit:14})),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الطالب','الشعبة','المادة','المعلم','الدرجة','النسبة'].map(x=>h('th',{key:x},x)))),h('tbody',{},data.failed.map((r,i)=>h('tr',{key:(r.studentId||r.name)+'|'+r.subject+'|'+i},[r.name,r.className,r.subject,r.teacher,`${r.score}/${r.total}`,fmt(r.percentage)].map((x,j)=>h('td',{key:j},x)))))])),!data.failed.length?h('p',{},'لا توجد نتائج أقل من حد النجاح في الاختبار المحدد.'):null]):null,
    page==='teachers'&&perms.teacherAnalysis?h('section',{className:'srstaff-panel'},[h('h2',{},'تحصيل ونجاح نتائج معلمي '+scopeLabel),h('p',{},'تُظهر الأشرطة نسب النجاح والتحصيل وحجم النتائج المرصودة، ولا تُعد وحدها تقييمًا مهنيًا للمعلم.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('teachers',{teachers:data.teachers,examName,scopeLabel})},'طباعة تقرير شامل للمعلمين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('مقارنة نسبة التحصيل والنجاح للمعلمين',data.teachers.slice(0,14).map(t=>({name:t.name,value:t.achievement,second:t.successRate})),{two:true,secondColor:'#c39130',firstLabel:'نسبة التحصيل',secondLabel:'نسبة النجاح'})),h('div',{className:'srcoord-teacher-grid'},data.teachers.map(t=>h('article',{key:t.name,className:'srcoord-teacher-card'},[h('span',{},t.name),h('strong',{},fmt(t.achievement)),chart('نسبة النجاح',t.successRate),h('small',{},`${t.results} نتيجة مرصودة`)]))) ]):null,
-   page==='comparison'&&perms.compare?h('section',{className:'srstaff-panel',id:'srstaff-comparison'},[
+   page==='comparison'&&perms.compare?h('section',{className:'srstaff-panel sr644-comparison',id:'srstaff-comparison'},[
     h('h2',{},'مقارنة تحصيل شعب '+(isLeadership?'المدرسة':'القسم')+' بين اختبارين'),
     h('div',{className:'srstaff-level-controls'},[
-      h('label',{},['الاختبار السابق',h('select',{value:previousExam,onChange:e=>setPreviousExam(e.target.value)},exams.map(x=>h('option',{key:x.key,value:x.key},x.name)))]),
-      h('span',{},'الاختبار الحالي: '+examName),
-      h('button',{type:'button',disabled:!perms.export||previousExam===exam,onClick:()=>staffPrint('comparison',{rows:compared,benchmarks:isLeadership?[]:benchmarks,fromName:exams.find(e=>e.key===previousExam)?.name||previousExam,toName:examName,scopeLabel})},'طباعة المقارنة والرسوم البيانية')
+     h('label',{},['اختبار المقارنة',h('select',{value:otherExam,onChange:e=>setPreviousExam(e.target.value)},exams.filter(x=>x.key!==exam).map(x=>h('option',{key:x.key,value:x.key},x.name)))]),
+     h('span',{},'الاختبار المختار: '+examName),
+     h('button',{type:'button',disabled:!perms.export||!canCompare,onClick:()=>canCompare&&staffPrint('comparison',{rows:compared,benchmarks:isLeadership?[]:benchmarks,fromName:chronological.olderName,toName:chronological.laterName,scopeLabel})},'طباعة المقارنة والرسوم البيانية')
     ]),
-    h('p',{},'الفرق هنا بين نسب تحصيل الشعب في الاختبارين، وليس قيمة مضافة لنفس الطلاب. اطلع على حجم العينة السابقة والحالية قبل الاستنتاج.'),
-    previousExam!==exam?liveChart(SR63.staffReportBarChart('التحصيل في الاختبار السابق والحالي لكل شعبة',compared.slice(0,13).map(t=>({name:t.className,value:t.previous,second:t.current})),{two:true,color:'#0c887e',secondColor:'#c39130'})):null,
-    h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الشعبة','تحصيل الاختبار السابق','تحصيل الاختبار الحالي','فرق النقاط','نتائج سابقة / حالية'].map(x=>h('th',{key:x},x)))),
-      h('tbody',{},compared.map(x=>h('tr',{key:x.className},[x.className,fmt(x.previous),fmt(x.current),x.change===null?'—':x.change+' نقطة',x.previousCount+' / '+x.currentCount].map((t,i)=>h('td',{key:i},t)))))])),
-    !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null]):null,
+    chronological?h('p',{className:'sr644-comparison-explainer'},'ترتيب المقارنة زمنيًا: '+chronological.olderName+' (الأقدم) ← '+chronological.laterName+' (الأحدث). الفارق = تحصيل الأحدث ناقص الأقدم، وليس قيمة مضافة للطلاب أنفسهم.'):
+      h('p',{className:'srstaff-alert'},'يلزم وجود اختبارين مختلفين لإجراء المقارنة.'),
+    canCompare?liveChart(SR63.staffReportBarChart('تحصيل الشعب في الاختبارين (الأقدم والأحدث)',compared.slice(0,18).map(t=>({name:t.className,value:t.previous,second:t.current,label:t.previous===null?'غير مرصود':t.previous.toFixed(1)+'% · '+t.previousCount+' نتيجة'})),{two:true,color:'#64748b',secondColor:'#0e887f',firstLabel:'الأقدم: '+chronological.olderName,secondLabel:'الأحدث: '+chronological.laterName})):null,
+    canCompare?h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الشعبة',chronological.olderName+' (الأقدم)',chronological.laterName+' (الأحدث)','الفرق (نقطة مئوية)','نتائج أقدم / أحدث','الاتجاه'].map(x=>h('th',{key:x},x)))),
+     h('tbody',{},compared.map(x=>h('tr',{key:x.className},[x.className,fmt(x.previous),fmt(x.current),x.change===null?'—':(x.change>0?'+':'')+x.change.toFixed(1),x.previousCount+' / '+x.currentCount,x.change===null?'عينة غير مكتملة':x.change>0?'تحسن':x.change<0?'تراجع':'ثبات'].map((t,i)=>h('td',{key:i},t)))))])):null,
+    !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null
+   ]):null,
    page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})):null,
    page==='reportCenter'&&isLeadership&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
     h('header',{className:'srstaff-panel'},[
@@ -270,7 +274,7 @@ SR63.CoordinatorPortal=function({profile}){
      h('p',{},'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.'),
      !perms.export?h('p',{className:'srstaff-alert',role:'alert'},'العرض متاح، لكن الطباعة غير مفعلة لهذا الحساب. اطلب من مسؤول النظام تفعيل صلاحية «تصدير Word والتقارير».'):null
     ]),
-    h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export})
+    h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage('overview')})
    ]):null,
    
    

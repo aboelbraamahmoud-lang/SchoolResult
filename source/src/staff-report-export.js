@@ -60,7 +60,7 @@
    const valid=rows.filter(x=>x.previous!==null&&x.current!==null);
    return {title:'تقرير المقارنة بين الاختبارين',subtitle:`${scopeLabel} · السابق: ${fromName} · الحالي: ${toName}`,
     body:stats([['عدد الشعب',rows.length],['شعب بمقارنة صالحة',valid.length],['شعب تحسنت',valid.filter(x=>x.change>0).length]])+
-    group(rows,7).map((batch,i)=>barChart(`مقارنة التحصيل ${rows.length>7?'— مجموعة '+(i+1):''}`,batch.map(x=>({name:x.className,value:x.previous,second:x.current})),{two:true,color:'#0c887e',secondColor:'#c79236',firstLabel:'الشريط الأول: الاختبار السابق',secondLabel:'الشريط الثاني: الاختبار الحالي'})).join('')+
+    group(rows,7).map((batch,i)=>barChart(`مقارنة التحصيل ${rows.length>7?'— مجموعة '+(i+1):''}`,batch.map(x=>({name:x.className,value:x.previous,second:x.current})),{two:true,color:'#0c887e',secondColor:'#c79236',firstLabel:'الاختبار الأقدم: '+fromName,secondLabel:'الاختبار الأحدث: '+toName})).join('')+
     detail(table(['الشعبة','السابق','الحالي','الفارق بالنقاط المئوية','نتائج سابقة / حالية'],rows.map(x=>[x.className,pct(x.previous),pct(x.current),delta(x.change),x.previousCount+' / '+x.currentCount])))+
     (benchmarks?.length?detail('<h3>مؤشرات الأقسام في الاختبار الحالي — إجماليات فقط</h3>'+table(['القسم','النتائج','النجاح','التحصيل'],benchmarks.map(x=>[x.department,x.evaluated,pct(x.success),pct(x.achievement)]))):'')+
     '<p class="sr640-note">الفرق هو فرق تحصيل الشعبة بين الاختبارين وليس قيمة مضافة لأفراد مطابقين. أعداد النتائج السابقة والحالية قد تختلف.</p>'};
@@ -71,6 +71,11 @@
  SR63.staffReportBuild=function(type,args){if(!reports[type])throw Error('نوع التقرير غير معروف.');return reports[type](args);};
  SR63.staffReportDocument=function(report,meta={}){
   const logo=new URL('./moehe.png',document.baseURI).href;
+  if(report.official===true){
+   // The print/PDF route uses the approved Word report's order, metrics,
+   // labels, narrative and signatories, rather than a separate chart report.
+   return '<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>'+esc(report.title)+'</title><style>'+report.css+'</style></head><body>'+report.body.replaceAll('__OFFICIAL_LOGO__',esc(logo))+'</body></html>';
+  }
   return '<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>'+esc(report.title)+'</title><style>'+css+'</style></head><body><main><header class="sr640-header"><div><small>وزارة التربية والتعليم والتعليم العالي</small><h1>'+esc(meta.schoolName||'المدرسة')+'</h1><h2>'+esc(report.title)+'</h2><div class="sr640-subtitle">'+esc(report.subtitle||'')+' · العام الأكاديمي: '+esc(meta.academicYear||'—')+'</div></div><img alt="شعار وزارة التربية والتعليم والتعليم العالي" src="'+esc(logo)+'"></header>'+report.body+'<footer class="sr640-foot">'+esc(meta.schoolName||'')+' · تقرير للعرض والطباعة · المدير: '+esc(meta.principalName||'—')+'</footer></main></body></html>';
  };
  SR63.staffPrintHtml=function(report,meta={}){

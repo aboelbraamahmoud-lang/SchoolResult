@@ -67,16 +67,42 @@
  SR63.schoolReportNarrative=function(r){return `شمل التقرير ${r.studentCount} طالبًا مختلفًا، و${r.evaluated} نتيجة مرصودة من أصل ${r.records} سجل طالب ومادة ضمن التعليم العام. بلغت نسبة النجاح ${fmt(r.success)}، والتحصيل ${fmt(r.achievement)}، ونسبة النتائج التي حققت 90% فأكثر ${fmt(r.high90)}. `+
   (r.previousExam?`بلغت القيمة المضافة ${diff(r.valueAdded)} اعتمادًا على ${r.compared} سجلًا ذا نتيجتين فعليتين بين ${r.previousExamName} و${r.examName}. `:'لا يوجد تقييم سابق مباشر لحساب قيمة مضافة. ')+
   `بلغ عدد السجلات غير المرصودة ${r.ungraded}، ولا تُعامل كدرجات صفرية. لا يُستنتج سبب النجاح أو التعثر من هذه المؤشرات وحدها.`;};
- // Self-contained print layout keeps the official school routing and signatures;
- // printer styles never depend on the application's hidden @media print DOM.
+ // Word and PDF are now two renderers for one *official-form* data model:
+ // identical metric slots, targets, interpretation, signatories and school scope.
+ SR63.schoolQuantitativeOfficialRows=function(report,edits={}){
+  if(!report?.grades)throw Error('لا توجد بيانات صالحة لتقرير المدرسة.');
+  const target=edits.targets||{},analysis={...report,prevExam:report.previousExam||null,prevExamName:report.previousExamName||null,
+   currentAchievement:report.achievement,subjectLabel:'جميع مواد المدرسة'},rows=SR63.departmentQuantitativeMetricRows(analysis);
+  const display=(object,key,format)=>{
+   const value=(key==='currentAchievement'?object?.achievement:object?.[key]);
+   if(typeof value!=='number'||!Number.isFinite(value))return '—';
+   return format==='delta'?(value>0?'+':'')+value.toFixed(1)+' نقطة':format==='percentage'?value.toFixed(1)+'%':value.toFixed(value%1===0?0:1);
+  };
+  const status=row=>{
+   if(row.key==='previousAchievement')return 'غير محدد';
+   const input=target[row.target],num=typeof input==='string'&&input.trim()?Number(input):typeof input==='number'?input:NaN;
+   if(!Number.isFinite(num)||num<(row.target==='valueAdded'?-100:0)||num>100)return 'غير محدد';
+   const value=(row.key==='currentAchievement'?report.achievement:report[row.key]);
+   return typeof value==='number'&&Number.isFinite(value)?value>=num?'متحقق':'غير متحقق':'—';
+  };
+  return rows.map(row=>({slot:row.slot,label:row.label,grades:['7','8','9'].map(g=>display(report.grades[g],row.key,row.format)),school:display(report,row.key,row.format),target:status(row)}));
+ };
  SR63.schoolQuantitativePrintBuild=function(report,edits={}){
-  const esc=SR63.staffReportEsc,targets=edits.targets||{},
+  const esc=SR63.staffReportEsc,rows=SR63.schoolQuantitativeOfficialRows(report,edits),
    narrative=edits.interpretation||SR63.schoolReportNarrative(report),
-   suggestion=edits.recommendations||SR63.schoolReportRecommendations(report);
-  const roles='<section class="sr640-section sr641-routing"><p><strong>إلى:</strong> مدير المدرسة / '+esc(report.principalName||'........................')+'</p><p><strong>من:</strong> النائب الأكاديمي / '+esc(report.academicViceName||'........................')+'</p><p>الموضوع: رفع التقرير الكمي والوصفي لجميع أقسام المدرسة عن '+esc(report.examName)+'</p></section>';
-  const signatures='<section class="sr640-section sr641-signatures"><table class="sr640-table"><thead><tr><th>إعداد النائب الأكاديمي وتوقيعه</th><th>اطلاع واعتماد مدير المدرسة</th></tr></thead><tbody><tr><td>'+esc(report.academicViceName||'........................')+'<p>التوقيع: ........................</p></td><td>'+esc(report.principalName||'........................')+'<p>التوقيع: ........................</p></td></tr></tbody></table></section>';
-  return {title:'التقرير الكمي والوصفي',subtitle:'تقرير المدرسة الشامل · '+report.examName,
-   body:roles+SR63.staffReportBarChart('تحصيل الصفوف ونجاحها',['7','8','9'].map(g=>({name:'الصف '+gradeName[g],value:report.grades[g].achievement,second:report.grades[g].success})),{two:true,firstLabel:'التحصيل',secondLabel:'نسبة النجاح'})+'<section class="sr640-section"><h3>المؤشرات الأكاديمية لجميع صفوف المدرسة</h3>'+SR63.schoolReportTableHtml(report,targets)+'</section><h3>التحليل الوصفي</h3><p style="white-space:pre-wrap">'+esc(narrative)+'</p><h3>توصيات النائب الأكاديمي المرفوعة إلى مدير المدرسة</h3><p style="white-space:pre-wrap">'+esc(suggestion)+'</p>'+signatures};
+   feedback=edits.recommendations||SR63.schoolReportRecommendations(report);
+  const officialIntro=`بصفتي النائب الأكاديمي أرفع إلى سيادتكم التقرير الكمي والوصفي لنتائج ${report.examName} على مستوى المدرسة، متضمنًا المؤشرات والتحليل والتوصيات.`;
+  const cell=value=>'<td>'+esc(value)+'</td>';
+  const body=`<main class="sr644-official-doc" dir="rtl">
+   <header class="sr644-official-header"><div class="sr644-ministry"><img src="__OFFICIAL_LOGO__" alt="شعار وزارة التربية والتعليم والتعليم العالي"/><span>وزارة التربية والتعليم والتعليم العالي<br/>إدارة التوجيه التربوي</span></div><h1>نموذج تقرير كمي وصفي</h1><h2>لتحليل نتائج ${esc(report.examName)} على مستوى ${esc(report.schoolName||'المدرسة')} - ${esc(report.academicYear)}م</h2></header>
+   <section class="sr644-official-intro"><p><b>السيد الفاضل/ مدير المدرسة: ${esc(report.principalName||'........................')}</b></p><p>${esc(officialIntro)}</p></section>
+   <table class="sr644-official-table"><thead><tr><th class="sr644-metric-label">بنود التقرير</th><th>الصف السابع</th><th>الصف الثامن</th><th>الصف التاسع</th><th>إجمالي المدرسة</th><th>تحقيق المستهدف</th></tr></thead><tbody>${rows.map(row=>'<tr><th>'+esc(row.label)+'</th>'+row.grades.map(cell).join('')+cell(row.school)+cell(row.target)+'</tr>').join('')}</tbody></table>
+   <section class="sr644-official-prose"><h3>تفسير النتائج</h3><p>${esc(narrative).replace(/\n/g,'<br>')}</p><h3>توصيات النائب الأكاديمي المرفوعة إلى مدير المدرسة</h3><p>${esc(feedback).replace(/\n/g,'<br>')}</p></section>
+   <table class="sr644-signature-table"><thead><tr><th>اسم النائب الأكاديمي وتوقيعه</th><th>اطلاع واعتماد مدير المدرسة</th></tr></thead><tbody><tr><td><strong>${esc(report.academicViceName||'........................')}</strong><div class="sr644-sign-line">التوقيع: ______________________</div></td><td><strong>${esc(report.principalName||'........................')}</strong><div class="sr644-sign-line">التوقيع: ______________________</div></td></tr></tbody></table>
+   <footer class="sr644-print-footer">تقرير كمي ووصفي على مستوى المدرسة — ${esc(report.academicYear)}</footer>
+  </main>`;
+  return {official:true,title:'نموذج تقرير كمي وصفي',body,
+   css:`@page{size:A4 portrait;margin:13mm 13mm 12mm}*{box-sizing:border-box}html,body{margin:0;background:#fff;color:#151515;direction:rtl;font-family:'Traditional Arabic','Times New Roman',Tahoma,serif;font-size:14px;line-height:1.65}.sr644-official-doc{max-width:185mm;margin:0 auto;direction:rtl}.sr644-official-header{text-align:center}.sr644-ministry{display:flex;align-items:center;justify-content:space-between;text-align:right;gap:18px;color:#6f2946;font-size:13px;min-height:65px}.sr644-ministry img{max-width:170px;max-height:70px;object-fit:contain}.sr644-official-header h1{font-size:20px;text-decoration:underline;margin:8px 0 3px;color:#111;font-weight:900}.sr644-official-header h2{font-size:13px;font-weight:700;margin:0 0 10px;color:#111}.sr644-official-intro{font-size:14px;line-height:1.75;margin:8px 0 13px}.sr644-official-intro p{margin:6px 0}.sr644-official-table,.sr644-signature-table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;font-size:12px}.sr644-official-table td,.sr644-official-table th,.sr644-signature-table td,.sr644-signature-table th{border:1px solid #242424;padding:6px 5px;vertical-align:middle;text-align:center;line-height:1.4;overflow-wrap:anywhere}.sr644-official-table th.sr644-metric-label{width:28%}.sr644-official-table thead th,.sr644-signature-table thead th{background:#770b34;color:#fff;font-weight:900;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sr644-official-table tbody th{background:#e8e8e8;font-weight:800;text-align:right}.sr644-official-table tbody td{background:#f2f2f2}.sr644-official-prose{margin-top:13px;line-height:1.65;font-size:14px}.sr644-official-prose h3{background:#770b34;color:#fff;padding:5px 10px;font-size:14px;margin:9px 0 5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}.sr644-official-prose p{margin:4px 0 9px;white-space:normal}.sr644-signature-table{margin-top:12px}.sr644-signature-table td{height:66px;text-align:center}.sr644-sign-line{margin-top:10px;color:#555}.sr644-print-footer{text-align:center;color:#666;font-size:10px;margin-top:6px}@media print{.sr644-official-doc{max-width:none}tr,.sr644-signature-table,.sr644-official-prose h3{break-inside:avoid;page-break-inside:avoid}}`};
  };
  SR63.SchoolQuantitativePage=function({workspace,canExport=true}){
   const [interpretation,setInterpretation]=(0,v.useState)(''),[recommendations,setRecommendations]=(0,v.useState)(''),[targets,setTargets]=(0,v.useState)({success:'',achievement:'',valueAdded:'',high90:''}),[problem,setProblem]=(0,v.useState)(''),[exporting,setExporting]=(0,v.useState)(false);
@@ -96,7 +122,7 @@
    }catch(e){setProblem(e.message||'تعذر تصدير التقرير الرسمي.');}finally{setExporting(false);}};
   const rows=metrics.filter(([_,key])=>report.previousExam||!['previousAchievement','valueAdded'].includes(key));
   return h('main',{className:'sr619-teacher-center sr640-school-report',dir:'rtl'},[
-   h('header',{className:'sr616-title'},[h('h1',{},'التقرير الكمي والوصفي'),h('p',{},'تقرير كمي ووصفي لجميع أقسام المدرسة، وفق نموذج الأقسام الرسمي المعتمد. يرفعه النائب الأكاديمي إلى مدير المدرسة، دون اختيار أقسام أو معلمين.')]),
+   h('header',{className:'sr616-title'},[h('h1',{},'التقرير الكمي والوصفي'),h('p',{},'تقرير كمي ووصفي للمدرسة بالكامل، وفق نموذج الأقسام الرسمي المعتمد. يرفعه النائب الأكاديمي إلى مدير المدرسة، دون اختيار أقسام أو معلمين.')]),
    h('section',{className:'sr619-card'},[h('div',{className:'sr641-report-address'},[h('p',{},'إلى: مدير المدرسة / '+(report.principalName||'........................')),h('p',{},'من: النائب الأكاديمي / '+(report.academicViceName||'........................'))]),h('h2',{},'مؤشرات '+report.examName),h('p',{},'التعليم العام · العام الأكاديمي '+report.academicYear+' · عدد الطلاب المختلفين '+report.studentCount),h('div',{className:'srstaff-kpis srcoord-kpis'},[
     ...[['نتائج مرصودة',report.evaluated],['نسبة النجاح',fmt(report.success)],['نسبة التحصيل',fmt(report.achievement)],['القيمة المضافة',diff(report.valueAdded)],['الحالات غير المرصودة',report.ungraded],['الطلاب الفريدون',report.studentCount]].map(([a,b])=>h('article',{key:a},[h('span',{},a),h('strong',{},b)]))
    ]),h('div',{className:'sr640-chart-live',dangerouslySetInnerHTML:{__html:chart}}),
