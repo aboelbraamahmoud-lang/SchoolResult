@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.43",
+  "version": "6.10.44",
   "released": "2026-10-14",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إتاحة مركز التقارير والطباعة الأصلي نفسه للمدير والنائب بصلاحية العرض والطباعة، مع مطابقة إعدادات القالب وحساباته ومنع إجراء تعديلات على نتائج الطلاب."
+  "notes": "تصحيح التسلسل الزمني لمقارنات الاختبارات، توحيد نموذج Word والطباعة الكمي والوصفي، وتبسيط مركز تقارير المدير والنائب."
 }
