@@ -11,8 +11,8 @@ const reportSrc=fs.readFileSync(path.join(__dirname,'../src/patches/ui.js'),'utf
 
 assert.ok(portalSrc.includes('SR63.currentWorkspace=reportWorkspace'),'official report audit must use authenticated leader scope');
 assert.match(portalSrc,/\['reportCenter','مركز التقارير والطباعة',isLeadership&&!!perms\.reports\]/);
-assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'-'\+payload\?\.revision\+'-'\+exam,workspace:active,readOnly:true,canPrint:!!perms\.export\}\)/);
-assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true\}\)/);
+assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'-'\+payload\?\.revision\+'-'\+exam,workspace:active,readOnly:true,canPrint:!!perms\.export,onSchoolSummary:/);
+assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null\}\)/);
 assert.match(reportSrc,/!readOnly&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2);
 assert.match(reportSrc,/printBatch=\(\)=>\{if\(!canPrint\)return;/);
@@ -49,13 +49,13 @@ assert.equal(read(runPortal('principal',{...permissions,export:false}),node=>nod
 // Render the real existing admin center in both modes; verify the same official 6 types, with no Excel admin export in leader mode.
 const renderCenter=readOnly=>{
  let index=0;ctx.v={...ctx.v,useState:initial=>{index++;return [typeof initial==='function'?initial():initial,()=>{}]},useMemo:fn=>fn(),useEffect:()=>{},useCallback:fn=>fn(),useRef:x=>({current:x})};
- return ctx.xde({workspace,onExportExcel:()=>{},readOnly,canPrint:true});
+ return ctx.xde({workspace,onExportExcel:()=>{},readOnly,canPrint:true,onSchoolSummary:readOnly?()=>{}:null});
 };
 const labels=['ملخص النتائج','تحليل المستويات','الطلاب المتعثرون','متوسطات المعلمين','مقارنة اختبارين','مقارنة المواد'];
 const admin=renderCenter(false),leader=renderCenter(true);
-for(const label of labels){
- assert.ok(read(admin,n=>n.props?.children===label).length>0,'admin official model '+label);
- assert.ok(read(leader,n=>n.props?.children===label).length>0,'leader reuses official model '+label);
-}
+for(const label of labels)assert.ok(read(admin,n=>n.props?.children===label).length>0,'admin official model '+label);
+for(const label of ['ملخص المدرسة','مستويات الطلاب','تحصيل الصفوف والشعب','تحصيل المعلمين','مقارنة الاختبارين','مقارنة جميع المواد'])assert.ok(read(leader,n=>n.props?.children===label).length>0,'leader focused report '+label);
+assert.equal(read(leader,n=>n.props?.children==='الطلاب المتعثرون').length,0,'hidden from leader report-card hub; still available in original dedicated tab');
+
 assert.equal(read(leader,n=>n.props?.children==='Excel شامل').length,0,'global admin Excel action hidden from read-only portal');
 console.log('PASS 6.10.43: original xde component reused by director and vice, six report templates unchanged, access gates, no admin Excel/export privileges.');

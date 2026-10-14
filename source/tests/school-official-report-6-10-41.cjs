@@ -31,7 +31,7 @@ const originalDoc=S.departmentQuantWordBuild(S.departmentPerformanceAnalyze(w,{e
 const original=parts(originalDoc),official=parts(doc);
 for(const name of ['word/styles.xml','word/header1.xml','word/footer1.xml'])if(original[name])assert.deepEqual(official[name],original[name],`Altered approved shared template part: ${name}`);
 const print=S.schoolQuantitativePrintBuild(report,{...edits,interpretation:'<script>alert(1)</script>'});
-for(const needle of ['<svg','<table','مدير المدرسة','النائب الأكاديمي','الصف السابع','اطلاع واعتماد مدير المدرسة'])assert.ok(print.body.includes(needle));
+for(const needle of ['sr644-official-table','<table','مدير المدرسة','النائب الأكاديمي','الصف السابع','اطلاع واعتماد مدير المدرسة','نموذج تقرير كمي وصفي'])assert.ok(print.body.includes(needle));
 assert.ok(print.body.includes('&lt;script&gt;')&&!print.body.includes('<script>'),'Print report must escape user edits');
 const first=S.schoolQuantitativeAnalyze(w,'exam1'),firstXml=parts(S.schoolQuantitativeWordBuild(first))['word/document.xml'].toString('utf8');
 assert.ok(!firstXml.includes('القيمة المضافة في التحصيل الأكاديمي بين'),'First assessment may not invent value-added');

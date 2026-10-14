@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
 const root=path.resolve(__dirname,'../..');
-const s={SR63:{},console,Set,Map,Number,Array};vm.createContext(s);
+const s={SR63:{isSupportRow:(r,e)=>/\bESE\b/i.test(String(r.examClasses?.[e]||r.className||''))},console,Set,Map,Number,Array};vm.createContext(s);
 vm.runInContext(fs.readFileSync(path.join(root,'source/src/staff-student-levels.js'),'utf8'),s);
 const row=(id,name,klass,subject,from,to,st1='present',st2='present')=>({studentId:id,studentName:name,className:klass,subject,department:subject,examClasses:{exam1:klass,exam2:klass},scores:{exam1:from,exam2:to},statuses:{exam1:st1,exam2:st2},totals:{exam1:100,exam2:100}});
 const ws={activeExam:'exam2',settings:{exams:[{key:'exam1',total:100},{key:'exam2',total:100}],pass:50,bands:[{id:'excellent',label:'ممتاز',min:90,max:100,color:'#0f766e'},{id:'good',label:'جيد',min:60,max:90,color:'#d49a2f'},{id:'weak',label:'ضعيف',min:0,max:60,color:'#b84a55'}]},rows:[row('1','طالب أول','7/1','علوم',70,90),row('1','طالب أول','7/1','رياضيات',80,100),row('2','طالب ثانٍ','7/1','رياضيات',50,null,'present','unentered'),row('3','طالب دمج','7/ESE','رياضيات',40,45)]};
@@ -13,7 +13,9 @@ assert.equal(bands.reduce((sum,x)=>sum+x.students.length,0),2,'support pupil mus
 assert.equal(s.SR63.staffStudentLevels(ws,'exam2','7/ESE').find(x=>x.id==='weak').students.length,1);
 const compare=s.SR63.staffExamComparison(ws,'exam1','exam2');
 assert.equal(compare.find(x=>x.className==='7/1').currentCount,2);
-assert.equal(compare.find(x=>x.className==='7/ESE').previousCount,1);
+assert.equal(compare.find(x=>x.className==='7/ESE'),undefined,'school general-education comparison must exclude ESE support');
+assert.equal(s.SR63.staffExamChronology(ws.settings,'exam2','exam1').older,'exam1');
+assert.equal(s.SR63.staffExamComparison(ws,'exam2','exam1').find(x=>x.className==='7/1').currentCount,2,'reverse selection must still be chronological');
 const edge=fs.readFileSync(path.join(root,'supabase/functions/school-staff/index.ts'),'utf8');
 for(const word of ['cleanLeadership','readRoles.includes(role)','role===\'coordinator\'?cleanCoordinator','admin.from(\'school_workspaces\')'])assert(edge.includes(word),'Missing server-side scoped permission '+word);
 const sql=fs.readFileSync(path.join(root,'supabase/migrations/20261013_leadership_staff_roles.sql'),'utf8');

@@ -37,7 +37,7 @@ assert.equal(bands.find(x=>x.id==='excellent').students[0].percentage,90);
 const source=fs.readFileSync(path.join(__dirname,'../src/staff.js'),'utf8');
 for(const needle of ["'مؤشرات '+scopeLabel+' — '+examName", "isLeadership?'مقارنة نتائج المدرسة بين اختبارين'", "'الملخص التنفيذي لأداء المدرسة", "'المدرسة بالكامل'",'sr642-trend-svg','sr642-ring-wrap','sr642-rank-item',"benchmarks:isLeadership?[]:benchmarks",'!isLeadership?h(\'section\'', 'SR63.staffStudentLevels'])assert.ok(source.includes(needle),'scope/clarity regression: '+needle);
 const printer=fs.readFileSync(path.join(__dirname,'../src/staff-report-export.js'),'utf8');
-assert.ok(printer.includes('الشريط الأول: الاختبار السابق')&&printer.includes('الشريط الثاني: الاختبار الحالي'));
+assert.ok(printer.includes('الاختبار الأقدم: ')&&printer.includes('الاختبار الأحدث: '));
 assert.ok(printer.includes('الشريط الأول: التحصيل الأكاديمي')&&printer.includes('الشريط الثاني: نسبة نجاح النتائج'));
 const chartHtml=S.staffReportBarChart('اختبار',[{name:'شعبة',value:70,second:80}],{two:true,firstLabel:'تحصيل',secondLabel:'نجاح'});
 assert.ok(chartHtml.includes('تحصيل')&&chartHtml.includes('نجاح')&&chartHtml.includes('70.0%')&&chartHtml.includes('80.0%'));
