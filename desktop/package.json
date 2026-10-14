@@ -12,12 +12,13 @@
   },
   "scripts": {
     "sync:web": "node sync-web.cjs",
-    "check": "node --check main.cjs && node --check preload.cjs && node --check server.cjs && node --check sync-web.cjs && node --check tests/startup-smoke.cjs && node --check web/app.js && node --check web/supabase.js",
+    "check": "node --check main.cjs && node --check preload.cjs && node --check server.cjs && node --check print-bridge.js && node --check sync-web.cjs && node --check tests/startup-smoke.cjs && node --check web/app.js && node --check web/supabase.js && node --check tests/printing-smoke.cjs",
     "test:startup": "node tests/startup-smoke.cjs",
-    "verify": "npm run sync:web && npm run check && npm run test:startup",
+    "verify": "npm run sync:web && npm run check && npm run test:startup && npm run test:printing",
     "start": "npm run sync:web && electron .",
     "build:setup": "npm run verify && electron-builder --win nsis --x64",
-    "build:portable": "npm run verify && electron-builder --win portable --x64"
+    "build:portable": "npm run verify && electron-builder --win portable --x64",
+    "test:printing": "node tests/printing-smoke.cjs"
   },
   "devDependencies": {
     "electron": "36.0.0",
@@ -50,7 +51,7 @@
       "icon": "assets/icon.ico"
     },
     "nsis": {
-      "artifactName": "SchoolResult-Setup-${version}-${arch}.${ext}",
+      "artifactName": "SchoolResult-Setup-${version}-PrintFix-${arch}.${ext}",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
@@ -59,7 +60,7 @@
       "deleteAppDataOnUninstall": false
     },
     "portable": {
-      "artifactName": "SchoolResult-Portable-${version}-${arch}.${ext}"
+      "artifactName": "SchoolResult-Portable-${version}-PrintFix-${arch}.${ext}"
     }
   }
 }

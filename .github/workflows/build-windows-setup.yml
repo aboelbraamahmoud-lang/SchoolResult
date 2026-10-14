@@ -3,6 +3,11 @@ name: Build SchoolResult Windows Desktop
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/build-windows-setup.yml'
     tags:
       - 'desktop-v*'
 
@@ -13,7 +18,7 @@ jobs:
   windows-desktop:
     name: Windows Setup and Portable
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
     env:
       CSC_IDENTITY_AUTO_DISCOVERY: 'false'
       npm_config_audit: 'false'
@@ -63,7 +68,7 @@ jobs:
         shell: pwsh
         run: npm --prefix desktop install --no-audit --no-fund
 
-      - name: Verify Desktop startup
+      - name: Verify Desktop startup and printing bridge
         shell: pwsh
         run: npm --prefix desktop run verify
 
