@@ -11,10 +11,12 @@ assert.match(print,/win\.document\.fonts\?\.ready/,'print must wait for font res
 assert.doesNotMatch(print,/<link rel="stylesheet"/,'print must not rely on a late network stylesheet');
 assert.match(ui,/renderReportPage=\(t,pageNumber,pageTotal\)/,'same React renderer must power preview and downloads');
 assert.match(ui,/D\.length\?visible\.map\(\(t,r\)=>renderReportPage/,'preview and pdf use shared renderer');
-assert.match(ui,/SR63\.groupReportPages\(D,i,n\)/,'per-teacher/per-class grouping');
+assert.match(ui,/SR63\.groupReportPages\(exportPages,i,n\)/,'per-teacher/per-class grouping');
 assert.match(ui,/تنزيل PDF كامل — ملف واحد/);
-assert.match(ui,/تنزيل تقارير مفردة — ZIP حسب/);
-assert.match(ui,/disabled:!canPrint\|\|!prepared\|\|!D\.length\|\|!!downloadState/,'exports respect export permissions');
+assert.match(ui,/const exportPages=prepared\?D:SR63\.buildReportPages/, 'download auto prepares fresh selection');
+assert.match(ui,/if\(split\)SR63\.downloadReportFile\(await SR63\.reportZipFromPdfs/, 'ZIP always, even for one report');
+assert.match(ui,/تنزيل تقارير مفردة ZIP — حسب/);
+assert.match(ui,/disabled:!canPrint\|\|!!downloadState/,'exports respect export permissions');
 assert.deepEqual(Array.from(SR.groupReportPages([
  {scope:'teacher',teacher:'أحمد',subject:'رياضيات'},
  {scope:'teacher',teacher:'أحمد',subject:'علوم'},
