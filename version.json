@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.47",
+  "version": "6.10.48",
   "released": "2026-10-14",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "توحيد ألوان معاينات التقارير مع الطباعة الرسمية وإصلاح زر تنزيل التقارير المفردة ZIP وإعداده التلقائي."
+  "notes": "إصلاح تنزيل PDF وZIP عبر React، والتحجيم التلقائي للتقارير على A4، مع تحديث نسخة Windows."
 }

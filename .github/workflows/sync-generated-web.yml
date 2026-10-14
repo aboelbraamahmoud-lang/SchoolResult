@@ -1,0 +1,38 @@
+name: Sync built web release files
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'source/**'
+      - 'package.json'
+      - 'version.json'
+      - 'vercel.json'
+      - '.github/workflows/sync-generated-web.yml'
+permissions:
+  contents: write
+concurrency:
+  group: schoolresult-generated-web
+  cancel-in-progress: false
+jobs:
+  rebuild:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Regenerate checked-in static build and checksums
+        run: |
+          node --expose-internals source/build.cjs
+          node source/release.cjs
+      - name: Commit generated files without changing source data
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add app.js style.css update-manifest.json checksums.sha256
+          if ! git diff --cached --quiet; then
+            git commit -m 'chore(build): sync verified web assets for 6.10.48'
+            git push
+          fi
