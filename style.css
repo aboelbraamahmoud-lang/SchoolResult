@@ -1501,3 +1501,21 @@
 /* 6.10.46 — distinct export controls with accessible progress feedback. */
 .sr646-export-status{display:inline-flex;align-items:center;border:1px solid #9bccd1;border-radius:10px;padding:8px 12px;background:#effafa;color:#134d60;font-size:13px;font-weight:800;line-height:1.6}
 .sr646-export-status::before{content:'↻';display:inline-block;margin-left:7px;font-size:16px}
+
+/* 6.10.47 — MATCH SCREEN PREVIEW WITH THE APPROVED PRINT PALETTE.
+   Old preview applied arbitrary alternate green/blue headers by column position,
+   while the official certificate print uses navy for subjects/evaluation and
+   gold ONLY for the behavior column. These rules must remain the same on print. */
+:root{--sr-behavior-head:#2c6074;--sr-behavior-gold:#ae8230;--sr-behavior-white:#ffffff}
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th,
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:nth-child(2),
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:nth-child(4),
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:first-child{background:var(--sr-behavior-head)!important;color:var(--sr-behavior-white)!important}
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:last-child{background:var(--sr-behavior-gold)!important;color:var(--sr-behavior-white)!important}
+.sr633-preview-wrap .sr633-results thead th,
+.sr633-preview-wrap .sr633-results thead th:nth-child(2),
+.sr633-preview-wrap .sr633-results thead th:nth-child(4),
+.sr633-preview-wrap .sr633-results thead th:last-child{background:var(--sr-behavior-head)!important;color:var(--sr-behavior-white)!important}
+.sr633-preview-wrap .sr633-results thead th:first-child{background:var(--sr-behavior-gold)!important;color:var(--sr-behavior-white)!important}
+.sr633-preview-wrap .sr633-results tbody th{background:#f8fbfd;color:#27485d!important}
+@media print{.sr632-preview-sheet thead th,.sr633-preview-wrap .sr633-results thead th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
