@@ -37,7 +37,9 @@ async function test(){
  assert.equal(drawn.filter(x=>x.text==='ممتاز').length,18,'student ratings preserved by subject and field');
  const doc=SR63.behaviorBuildWord([student],{schoolName:'مدرسة تجريبية للبنين',month:'أكتوبر 2026',academicYear:'2026/2027',principalName:'مدير تجريبي'});
  const xml=SR63.behaviorOfficialTemplate['word/document.xml'];
- assert.ok(xml.includes('<w:bidiVisual/>'),'Word table is explicitly RTL');
+ assert.ok(!xml.includes('<w:bidiVisual/>'),'Word table uses deterministic physical column order');
+ assert.ok(xml.includes('w:bidi'),'Word cell text must still be Arabic RTL');
+ assert.ok(xml.indexOf('السلوك')<xml.indexOf('المادة / المستوى'),'Word physical table starts with behavior on left');
  assert.ok(xml.includes('<w:bidi/>'),'Word Arabic paragraphs are explicitly RTL');
  const batch=SR63.behaviorBuildWord([student,{...student,name:'طالب آخر',id:'other'}],{schoolName:'مدرسة تجريبية للبنين',month:'أكتوبر 2026',academicYear:'2026/2027'});
  const output=path.join(__dirname,'output');fs.mkdirSync(output,{recursive:true});

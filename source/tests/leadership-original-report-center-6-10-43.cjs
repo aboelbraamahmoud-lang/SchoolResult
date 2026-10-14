@@ -14,8 +14,10 @@ assert.match(portalSrc,/\['reportCenter','مركز التقارير والطبا
 assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'-'\+payload\?\.revision\+'-'\+exam,workspace:active,readOnly:true,canPrint:!!perms\.export,onSchoolSummary:/);
 assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null\}\)/);
 assert.match(reportSrc,/!readOnly&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
-assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2);
-assert.match(reportSrc,/printBatch=\(\)=>\{if\(!canPrint\)return;/);
+assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,4);
+assert.match(reportSrc,/printBatch=async\(\)=>\{if\(!canPrint\)return;/);
+assert.match(reportSrc,/const exportPDF=async\(split=false\)=>/);
+assert.match(reportSrc,/SR63\.groupReportPages\(D,i,n\)/);
 
 const makeSettings=()=>({schoolName:'مدرسة الاختبار',academicYear:'2026/2027',pass:50,
  exams:['exam1','exam2','exam3','exam4'].map((key,i)=>({key,name:'الاختبار '+(i+1),total:100})),

@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict');
+const fs=require('fs');const path=require('path');const vm=require('vm');
+const root=path.resolve(__dirname,'..');let html='';let printed=false;
+const popup={document:{open(){},write(s){html=s},close(){},fonts:{ready:Promise.resolve()},querySelector(){return null}},focus(){},print(){printed=true}};
+const S={};const ctx={SR63:S,URL,document:{baseURI:'file:///schoolresult/'},window:{open(){return popup}},TextEncoder,Uint8Array,DataView,Date,Set,Map,Object,Number,Array,RegExp,setTimeout};
+vm.createContext(ctx);
+for(const f of ['behavior-template.js','behavior-reports.js'])vm.runInContext(fs.readFileSync(path.join(root,'src',f),'utf8'),ctx,{filename:f});
+const subjects=Object.fromEntries(S.behaviorReportSubjects.map(s=>[s.id,['ممتاز','فعال','دائمًا','مكتمل','ممتاز']]));
+const students=[{name:'طالب تجريبي - ١',id:'student1',className:'07/1',subjects},{name:'طالب تجريبي - ٢',id:'student2',className:'08/1',subjects}];
+S.behaviorPrint(students,{schoolName:'مدرسة تجريبية للبنين',academicYear:'2026/2027',month:'أكتوبر 2026',principalName:'مدير تجريبي'});
+assert.ok(html.startsWith('<!doctype html>'));
+for(const x of ['<table class="sr633-results" dir="ltr">','<div class="sr633-identity" dir="ltr">','<th scope="col" dir="rtl">السلوك</th>','<th scope="col" dir="rtl">المادة / المستوى</th>'])assert.ok(html.includes(x),x);
+fs.mkdirSync(path.join(__dirname,'output'),{recursive:true});
+fs.writeFileSync(path.join(__dirname,'output','behavior-physical-rtl.html'),html);
+console.log('HTML certificate markup direct physical RTL PASS, 2 students');
