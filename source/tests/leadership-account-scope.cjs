@@ -1,9 +1,9 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),crypto=require('node:crypto');
 const root=path.resolve(__dirname,'../..');
-const ts=require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescript/lib/typescript.js');
+const {transformSync}=require('esbuild');
 const src=fs.readFileSync(path.join(root,'supabase/functions/school-staff/index.ts'),'utf8');
-const js=ts.transpileModule(src,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+const js=transformSync(src,{loader:'ts',format:'cjs',target:'es2022'}).code;
 const ownerId='00000000-0000-4000-8000-000000000001';
 const staffId='00000000-0000-4000-8000-000000000002';
 const requests=[],created=[],updated=[],authCreated=[];
