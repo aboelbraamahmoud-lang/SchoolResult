@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.42",
-  "released": "2026-10-13",
+  "version": "6.10.43",
+  "released": "2026-10-14",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تحسين رسوم ومؤشرات المدرسة للمدير والنائب والقسم للمنسق، وتصحيح إحصاء الطلاب الفريدين وشرح دلالات الرسوم."
+  "notes": "إتاحة مركز التقارير والطباعة الأصلي نفسه للمدير والنائب بصلاحية العرض والطباعة، مع مطابقة إعدادات القالب وحساباته ومنع إجراء تعديلات على نتائج الطلاب."
 }

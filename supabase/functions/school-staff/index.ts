@@ -52,10 +52,20 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
 // workspace settings to staff without owner/admin privileges.
 const cleanLeadership=(ws:any)=>{
  const visible=cleanCoordinator(ws,[...new Set((ws.teacherAssignments||[]).map((r:any)=>String(r.department||r.subject||'').trim()).filter(Boolean))]);
+ // The original admin print center reads these presentation-only settings.
+ // Preserve them for school leaders so its comparisons, notes and signatory
+ // fields are identical; NEVER forward auth tokens, secrets or backup metadata.
+ const printFields=['stable','coordinatorName','schoolVision','programmerDesignerName','reportSystemName','preparedByName','reviewedByName','showGeneratedAt','statusAliases'];
+ const originalSettings=ws.settings||{};
+ for(const key of printFields)if(Object.prototype.hasOwnProperty.call(originalSettings,key))visible.workspace.settings[key]=originalSettings[key];
+ // Some legacy school workspaces predate this field, but the original report
+ // renderer assumes coordinatorName is a string.
+ if(typeof visible.workspace.settings.coordinatorName!=='string')visible.workspace.settings.coordinatorName='';
  visible.workspace.rows=Array.isArray(ws.rows)?ws.rows:[];
  visible.workspace.teachers=Array.isArray(ws.teachers)?ws.teachers:[];
  visible.workspace.teacherAssignments=Array.isArray(ws.teacherAssignments)?ws.teacherAssignments:[];
- visible.workspace.aiPlans=Array.isArray(ws.aiPlans)?ws.aiPlans:[];
+ // Read-only school leadership does not receive editable AI plans.
+ visible.workspace.aiPlans=[];
  return visible;
 };
 async function emailForUsername(username:string){const raw=new TextEncoder().encode('schoolresult-v1:'+username),hash=await crypto.subtle.digest('SHA-256',raw);return 'u-'+[...new Uint8Array(hash)].slice(0,24).map(b=>b.toString(16).padStart(2,'0')).join('')+'@staff.schoolresult.example.com';}
