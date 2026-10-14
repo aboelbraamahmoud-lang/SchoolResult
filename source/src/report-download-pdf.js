@@ -1,4 +1,4 @@
-/* SchoolResult 6.10.46 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
+/* SchoolResult 6.10.50 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
    No student data is sent to a remote PDF conversion service. */
 SR63.safeReportFilename=function(value){
  const normalized=String(value??'').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').replace(/\.+$/,'').trim();
@@ -84,14 +84,16 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  // Paint the already-laid-out ORIGINAL DOM directly to a same-origin canvas.
  // Chrome deliberately taints foreignObject-SVG screenshots; do not use them for PDFs.
  const w=landscape?1123:794,h=landscape?794:1123,margin=19;
+ // Share the same full-width, single-sheet layout as browser printing and ZIP.
+ const layout=SR63.planReportSheet(element,w-2*margin,h-2*margin);
  const base=element.getBoundingClientRect();
- const naturalW=Math.max(1,element.scrollWidth,Math.ceil(base.width)),naturalH=Math.max(1,element.scrollHeight,Math.ceil(base.height));
- const scale=Math.min(1,(w-2*margin)/naturalW,(h-2*margin)/naturalH);
- if(scale<.38)throw Error('الصفحة تحتوي بيانات أكثر مما يتسع لورقة A4. اختر نطاقًا أصغر للحفاظ على وضوح الطباعة.');
+ const naturalW=layout.width,naturalH=layout.height,scale=layout.scale;
+ const offsetX=margin+(w-2*margin-naturalW*scale)/2;
+ const offsetY=margin+(h-2*margin-naturalH*scale)/2;
  const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
  const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw Error('هذا المتصفح لا يدعم إنشاء صفحات PDF.');
  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
- ctx.save();ctx.setTransform(2*scale,0,0,2*scale,2*margin-2*scale*base.x,2*margin-2*scale*base.y);
+ ctx.save();ctx.setTransform(2*scale,0,0,2*scale,2*offsetX-2*scale*layout.left,2*offsetY-2*scale*layout.top);
  const transparent=c=>!c||c==='transparent'||c==='rgba(0, 0, 0, 0)'||c==='rgb(0 0 0 / 0)';
  const rectOf=node=>node.getBoundingClientRect();
  const fillFor=(node,style)=>{

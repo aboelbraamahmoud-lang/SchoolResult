@@ -9,10 +9,16 @@ assert.match(ui,/\[reportOverflowCount,b\]=\(0,v\.useState\)\(0\)/);
 assert.match(printer,/SR63\.fitReportPagesForPrint\(win\.document,landscape\)/);
 const sandbox={SR63:{},console,URL,Blob,TextEncoder,Uint8Array,Uint32Array,DataView,atob};
 vm.runInNewContext(printer,sandbox);
-const scaled=[],page=(width,height)=>({scrollWidth:width,scrollHeight:height,style:{setProperty:(n,v)=>scaled.push([n,String(v)])},getBoundingClientRect:()=>({width,height,left:0,right:width,top:0,bottom:height}),querySelectorAll:()=>[]});
+const scaled=[],page=(initialWidth,height)=>{
+ let width=initialWidth;
+ return {get scrollWidth(){return width},get scrollHeight(){return height},
+  style:{setProperty:(n,v)=>{scaled.push([n,String(v)]);if(n==='width')width=parseFloat(v)}},
+  getBoundingClientRect:()=>({width,height,left:0,right:width,top:0,bottom:height}),
+  querySelectorAll:()=>[]};
+};
 const result=sandbox.SR63.fitReportPagesForPrint({querySelectorAll:()=>[page(1450,760),page(1020,1800)]},true);
 assert.ok(result[0].zoom<1&&result[0].zoom>.6);
-assert.equal(result[1].singleSheet,false);
+assert.equal(result[1].singleSheet,true);
 assert.ok(scaled.some(([n])=>n==='zoom'));
 (async()=>{
  const {loadApp}=require('./harness.cjs'),{ctx}=loadApp(),ws=ctx.zj(),downloads=[],rendered=[];

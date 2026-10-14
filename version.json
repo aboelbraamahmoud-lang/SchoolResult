@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.49",
+  "version": "6.10.50",
   "released": "2026-10-14",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تصحيح اتجاه الطباعة وملفات PDF وZIP وفق طبيعة قوالب التقارير: المقارنات الرأسية بالطول وجميع المواد بالعرض."
+  "notes": "ملء عرض وارتفاع صفحة A4 للتقارير وإلزام كل صفحة تقرير بورقة مستقلة دون قص، وتوحيد تخطيط PDF وZIP."
 }
