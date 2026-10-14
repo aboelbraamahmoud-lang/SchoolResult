@@ -120,7 +120,7 @@ a95538dd78d83e977c5f3c12fc6ce52deaab51beb0dd94e94613ba1011c69a6e  source/tests/l
 a46414e36803a3fd07d8ccb423c5303c548c701247bf9ea3d8a5116ce9f96aa6  source/tests/regression.cjs
 8fabcf7f6ca1145464121543d7bab31adde9605d73f61683658bb741e8adf08a  source/tests/release.cjs
 d5cb05ced1d996bcaffa19965bf5b2ad90b690a2f92860aba6cd676bbeb68723  source/tests/report-comparison-official-6-10-44.cjs
-8c06fb485272362fb17a03da055d99664a875dec729a2e60b0edf78bf2aa9075  source/tests/report-export-live-buttons-6-10-48.cjs
+668815e3086eeb4f5a3987987bdb8e8715ad8797d898d32fa4a09da2e81f404d  source/tests/report-export-live-buttons-6-10-48.cjs
 9950462d7a217cc1c922dec2d25d8656cbda6c0d8ce0d9a2b3329f82709fd07a  source/tests/report-logic-current.cjs
 af4df46f3fe3d5b01c050f69aa2a4d89ddc11d65d8e8f0644bc868501743ff81  source/tests/report-orientation-ci-6-10-49.cjs
 f7155895e403901a7534f8221552fe8497d93e11d5194a65876146575b0fb1f2  source/tests/report-preview-colors-6-10-47.cjs
