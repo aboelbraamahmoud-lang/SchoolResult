@@ -12,7 +12,7 @@
     "test:cloud": "node --expose-internals tests/cloud.cjs",
     "test:structure": "node --expose-internals tests/structure.cjs",
     "test:reports": "node --expose-internals tests/report-logic-current.cjs",
-    "test": "npm run build && npm run test:reports && npm run test:regression && npm run test:grade-review && npm run test:ai-plans && npm run test:ai-plan-word && npm run test:teacher-performance && npm run test:department-quant && npm run test:cloud && npm run test:structure && npm run test:hardening && npm run test:security && npm run test:ui && npm run test:report-typography && npm run test:staff && npm run test:coordinator-analytics && npm run test:combined-reports && npm run test:behavior && npm run test:behavior-rtl && npm run test:behavior-physical && npm run test:performance && npm run test:staff-roles && npm run test:auth-flow && npm run test:leadership && npm run test:auth-single-flight && npm run test:staff-print && npm run test:school-official && npm run test:staff-visual && npm run test:leadership-original && npm run test:report-preview-colors && npm run test:report-export-live-buttons",
+    "test": "npm run build && npm run test:reports && npm run test:regression && npm run test:grade-review && npm run test:ai-plans && npm run test:ai-plan-word && npm run test:teacher-performance && npm run test:department-quant && npm run test:cloud && npm run test:structure && npm run test:hardening && npm run test:security && npm run test:ui && npm run test:report-typography && npm run test:staff && npm run test:coordinator-analytics && npm run test:combined-reports && npm run test:behavior && npm run test:behavior-rtl && npm run test:behavior-physical && npm run test:performance && npm run test:staff-roles && npm run test:auth-flow && npm run test:leadership && npm run test:auth-single-flight && npm run test:staff-print && npm run test:school-official && npm run test:staff-visual && npm run test:leadership-original && npm run test:report-preview-colors && npm run test:report-export-live-buttons && npm run test:report-orientation-ci",
     "release": "node release.cjs",
     "test:release": "node tests/release.cjs",
     "test:hardening": "node --expose-internals tests/hardening.cjs",
@@ -38,7 +38,8 @@
     "test:behavior-physical": "node tests/behavior-visual-6-10-45.cjs",
     "test:report-export": "node tests/report-print-export-6-10-46.cjs",
     "test:report-preview-colors": "node --expose-internals tests/report-preview-colors-6-10-47.cjs",
-    "test:report-export-live-buttons": "node --expose-internals tests/report-export-live-buttons-6-10-48.cjs"
+    "test:report-export-live-buttons": "node --expose-internals tests/report-export-live-buttons-6-10-48.cjs",
+    "test:report-orientation-ci": "node tests/report-orientation-ci-6-10-49.cjs"
   },
-  "version": "6.10.48"
+  "version": "6.10.49"
 }

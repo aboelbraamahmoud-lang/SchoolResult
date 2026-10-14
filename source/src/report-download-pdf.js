@@ -14,6 +14,15 @@ SR63.groupReportPages=function(pages,dimension,mode){
  for(const page of pages){const key=SR63.reportGroupName(page,dimension,mode);if(!out.has(key))out.set(key,[]);out.get(key).push(page);}
  return [...out].map(([name,pages])=>({name,pages}));
 };
+// The page template, not the number of compared exams, selects PDF orientation.
+SR63.reportPageIsLandscape=function(mode,page=null){
+ const explicit=page?.dataset?.orientation||page?.getAttribute?.('data-orientation')||page?.orientation;
+ if(explicit==='landscape')return true;
+ if(explicit==='portrait')return false;
+ if(page?.classList?.contains('grade-subjects-landscape')||page?.classList?.contains('report-landscape'))return true;
+ if(page?.classList?.contains('report-portrait'))return false;
+ return mode==='subjects'||mode==='departmentStats';
+};
 SR63.reportArrayBytes=function(base64){const binary=atob(base64);const out=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)out[i]=binary.charCodeAt(i);return out;};
 SR63.reportPdfFromJpegs=function(images){
  if(!images?.length)throw Error('لا توجد صفحات لتصديرها.');

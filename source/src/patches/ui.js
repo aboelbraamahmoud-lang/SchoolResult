@@ -44,7 +44,7 @@ function xde({workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolS
  {id:`teachers`,title:`تحصيل المعلمين`,text:`نفس تقارير المعلمين الأصلية`,icon:Cy},
  {id:`comparison`,title:`مقارنة الاختبارين`,text:`نتائج الاختبارين والفروق لكل شعبة`,icon:iy},
  {id:`subjects`,title:`مقارنة جميع المواد`,text:`تحليل المواد في الصفوف المختلفة`,icon:oy}]:pde,
- printBatch=async()=>{if(!canPrint)return;try{await SR63.printReportBatch('#printable-reports .school-report-page','تقرير '+(e.settings.reportDesign.reportNames[n]||n),w||n==='subjects');}catch(error){eb.error(error.message)}},O=D.reduce((e,t)=>e+t.rows.filter(e=>e.studentName.length>45).length,0),invalidate=()=>{setPrepared(!1);setPrintStart(0);b(0)},
+ printBatch=async()=>{if(!canPrint)return;try{await SR63.printReportBatch('#printable-reports .school-report-page','تقرير '+(e.settings.reportDesign.reportNames[n]||n),SR63.reportPageIsLandscape(n,document.querySelector('#printable-reports .school-report-page')));}catch(error){eb.error(error.message)}},O=D.reduce((e,t)=>e+t.rows.filter(e=>e.studentName.length>45).length,0),invalidate=()=>{setPrepared(!1);setPrintStart(0);b(0)},
 renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} × ${tj(e.settings,m).name}`:tj(e.settings,u).name,a=t.totalParts>1?` — الجزء ${t.part} من ${t.totalParts}`:``;return(0,q.jsxs)(`section`,{className:`school-report-page`,style:j9(e),children:[(0,q.jsx)(M9,{workspace:e,title:`${e.settings.reportDesign.reportNames[n]}: ${i}${a}`,subject:t.subject,assessment:i}),n===`summary`&&(0,q.jsx)(hde,{page:t,exam:u,workspace:e}),` `,n===`levels`&&(0,q.jsx)(gde,{page:t,exam:u,workspace:e}),` `,n===`struggling`&&(0,q.jsx)(vde,{page:t,exam:u,threshold:g,workspace:e}),` `,n===`teachers`&&(0,q.jsx)(yde,{page:{...t,teacher:t.teacher||t.entity},exam:u,workspace:e}),` `,n===`comparison`&&(0,q.jsx)(_de,{page:t,from:f,to:m,workspace:e}),` `,n===`subjects`&&(0,q.jsx)(bde,{page:t,exam:u,workspace:e}),(0,q.jsx)(N9,{workspace:e,teacher:x?``:t.teacher,subject:t.subject}),(0,q.jsxs)(`span`,{className:`report-page-number`,children:[`صفحة `,pageNumber,` من `,pageTotal]})]},t.key)};
 
  const exportPDF=async(split=false)=>{
@@ -59,7 +59,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   try{
    setDownloadState('جارٍ تحميل تنسيق التقارير…');
    const css=await SR63.getReportStyleText();
-   const isLandscape=w||n==='subjects';
+   const isLandscape=SR63.reportPageIsLandscape(n);
    const label=e.settings.reportDesign.reportNames[n]||'تقرير المدرسة';
    const examLabel=w?`${tj(e.settings,f).name} - ${tj(e.settings,m).name}`:tj(e.settings,u).name;
    const groups=split?SR63.groupReportPages(exportPages,i,n):[{name:label,pages:exportPages}];
@@ -73,12 +73,16 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
     const images=[];
     for(const page of group.pages){
      setDownloadState(`جارٍ إعداد صفحة ${++processed} من ${exportPages.length} للتنزيل…`);
+     const pageLandscape=SR63.reportPageIsLandscape(n,page);
+     stage.style.width=pageLandscape?'297mm':'210mm';
      root.render(renderReportPage(page,processed,D.length));
      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
      await (document.fonts?.ready||Promise.resolve());
      const node=stage.querySelector('.school-report-page');
      if(!node)throw Error('تعذر إنشاء صفحة التقرير للتصدير.');
-     images.push(await SR63.reportPageJPEG(node,css,isLandscape));
+     const renderedLandscape=SR63.reportPageIsLandscape(n,node);
+     if(renderedLandscape!==pageLandscape)throw Error('اتجاه صفحة التقرير لا يطابق القالب؛ تمت حماية الملف من التصدير بوضع غير صحيح.');
+     images.push(await SR63.reportPageJPEG(node,css,renderedLandscape));
      await new Promise(ok=>setTimeout(ok,0));
     }
     const name=SR63.safeReportFilename(`${label} - ${split?group.name:'الكل'} - ${examLabel}`);
