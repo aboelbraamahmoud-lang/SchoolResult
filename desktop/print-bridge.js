@@ -14,10 +14,10 @@
     console.error('Desktop report print failed:', reason);
     window.alert('تعذر بدء طباعة التقرير. يمكنك حفظه بصيغة PDF ثم طباعته من الجهاز.\n' + reason);
   };
-  const doPrint = promise => {
+  const doPrint = (promise, after = null) => {
     Promise.resolve(promise).then(result => {
       if (result && result.status === 'error') reportFailure(new Error(result.reason || 'تعذر طباعة التقرير'));
-    }).catch(reportFailure);
+    }).catch(reportFailure).finally(() => { if (typeof after === 'function') after(); });
   };
   const originalOpen = window.open.bind(window);
   window.open = function (url, ...args) {
@@ -28,5 +28,5 @@
     } catch (error) { reportFailure(error); }
     return popup;
   };
-  window.print = () => doPrint(bridge.printCurrent({ landscape: landscape(document) }));
+  window.print = () => doPrint(bridge.printCurrent({ landscape: landscape(document) }), () => window.dispatchEvent(new Event('afterprint')));
 })();

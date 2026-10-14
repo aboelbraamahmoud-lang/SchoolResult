@@ -15,6 +15,7 @@ assert.match(main, /silent: false, printBackground: true, color: true, pageSize:
 assert.match(main, /contents\.printToPDF\(\{/);
 assert.match(main, /ipcMain\.handle\('app:print-popup'/);
 assert.match(main, /ipcMain\.handle\('app:print-current'/);
+assert.match(js, /dispatchEvent\(new Event\('afterprint'\)\)/);
 const calls = [];
 const popup = { document: { querySelectorAll: () => [{ textContent: '@page{size:A4 landscape;margin:5mm}' }] } };
 const window = {
@@ -24,10 +25,11 @@ const window = {
     printCurrent: options => { calls.push({ kind: 'current', ...options }); return Promise.resolve({ status: 'submitted' }); }
   },
   open(url) { return url === '' ? popup : { print: () => calls.push({ kind: 'external-original' }) }; },
-  alert: message => { throw new Error('Unexpected error dialog: ' + message); }
+  alert: message => { throw new Error('Unexpected error dialog: ' + message); },
+  dispatchEvent: event => calls.push({ kind: 'afterprint', type: event.type })
 };
 const document = { querySelectorAll: () => [{ textContent: '@page{size:A4 portrait;margin:4mm}' }] };
-vm.runInNewContext(js, { window, document, console, Promise }, { timeout: 2000 });
+vm.runInNewContext(js, { window, document, console, Promise, Event: class Event { constructor(type) { this.type = type; } } }, { timeout: 2000 });
 window.open('', '_blank').print();
 window.print();
 window.open('https://example.com', '_blank').print();
@@ -36,4 +38,7 @@ assert.deepEqual(calls, [
   { kind: 'current', landscape: false },
   { kind: 'external-original' }
 ]);
-console.log('Desktop print bridge: local popup, native Windows printing, orientation and external URL separation PASS');
+setImmediate(() => {
+  assert.deepEqual(calls.at(-1), { kind: 'afterprint', type: 'afterprint' });
+  console.log('Desktop print bridge: local popup, native Windows printing, orientation and afterprint cleanup PASS');
+});
