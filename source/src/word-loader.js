@@ -1,7 +1,7 @@
 /* Heavy Office templates are private to Word exports; fetch only on explicit export.
    Avoid inflating navigation/initial render with historical OOXML templates. */
 SR63.loadWordTemplate=(function(){
- const paths={reference:['teacherReferenceTemplates','./assets/word-reference.js'],improvement:['approvedImprovementWord','./assets/word-improvement.js'],behavior:['behaviorOfficialTemplate','./assets/word-behavior.js']};
+ const paths={reference:['teacherReferenceTemplates','./assets/word-reference.js'],improvement:['approvedImprovementWord','./assets/word-improvement.js'],behavior:['behaviorOfficialTemplate','./assets/word-behavior.js?v=6.10.45']};
  const pending=new Map();
  return function(kind){
   const item=paths[kind];
