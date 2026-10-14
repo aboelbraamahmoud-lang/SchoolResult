@@ -16,7 +16,7 @@ const scaled=[],page=(initialWidth,height)=>{
   getBoundingClientRect:()=>({width,height,left:0,right:width,top:0,bottom:height}),
   querySelectorAll:()=>[]};
 };
-const result=sandbox.SR63.fitReportPagesForPrint({querySelectorAll:()=>[page(1450,760),page(1020,1800)]},true);
+const result=sandbox.SR63.fitReportPagesForPrint({querySelectorAll:()=>[page(1450,760),page(1020,1350)]},true);
 assert.ok(result[0].zoom<1&&result[0].zoom>.6);
 assert.equal(result[1].singleSheet,true);
 assert.ok(scaled.some(([n])=>n==='zoom'));
