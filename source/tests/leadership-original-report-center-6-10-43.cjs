@@ -15,7 +15,8 @@ assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'
 assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null\}\)/);
 assert.match(reportSrc,/!readOnly&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2,'only print controls require a prepared preview');
-assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,2,'PDF and ZIP download independently render current filters without preview');
+assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,3,'vector PDF, raster PDF and ZIP use the same export permission and work without preview');
+assert.match(reportSrc,/const saveVectorPDF=async\(\)=>/,'vector PDF remains available to authorized school leaders');
 assert.match(reportSrc,/printBatch=async\(\)=>\{if\(!canPrint\)return;/);
 assert.match(reportSrc,/const exportPDF=async\(split=false\)=>/);
 assert.match(reportSrc,/SR63\.groupReportPages\(exportPages,i,n\)/);
