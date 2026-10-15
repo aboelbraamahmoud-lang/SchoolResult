@@ -31,6 +31,7 @@
         '.sr-desktop-preview-toolbar button{all:unset!important;box-sizing:border-box!important;cursor:pointer!important;background:#fff!important;color:#123247!important;border-radius:7px!important;padding:9px 14px!important;font-weight:bold!important}',
         '.sr-desktop-preview-toolbar button:hover{background:#dceef3!important}',
         '.sr-desktop-preview-toolbar small{color:#e2eef3!important;font-size:12px!important}',
+        '@media screen{body{padding-top:84px!important;background:#eef3f7!important}.sr650-sheet{margin:0 auto 18px!important;box-shadow:0 8px 22px #0002!important}}',
         '@media print{.sr-desktop-preview-toolbar{display:none!important}}'
       ].join('\n');
       (doc.head || doc.documentElement).appendChild(css);

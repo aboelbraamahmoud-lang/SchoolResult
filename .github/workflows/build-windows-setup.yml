@@ -16,6 +16,7 @@ on:
       - 'source/tests/report-export-live-buttons-6-10-48.cjs'
       - 'source/tests/report-single-sheet-6-10-50.cjs'
       - 'source/tests/report-page-fit-6-10-51.cjs'
+      - 'source/tests/**'
       - '.github/workflows/build-windows-setup.yml'
     tags:
       - 'desktop-v*'
