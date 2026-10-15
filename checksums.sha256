@@ -1,4 +1,4 @@
-43797c7f270d3baa536747949a417ef5ee183ceaad80dee1cd9feae34fd5f7b9  .github/workflows/build-windows-setup.yml
+c10e6412a757097a868321f0c426c1b37fdfb4f722a83a1971281214e7be452e  .github/workflows/build-windows-setup.yml
 35d810c5021a94d37a0bc7d1a75c3a2a48e78cc33fe1e010ea18e1ff1f63387d  .github/workflows/supabase-keepalive.yml
 4334fa0a70d6cbf48bc765c06c1d4f57932b8a2d0a19bad33664dfdc1ea76da7  .github/workflows/sync-generated-web.yml
 7879fb8a91b0fc3798ec241544ea1cbabf611589e531184a667908cffe853653  .github/workflows/verify.yml
@@ -130,7 +130,7 @@ af4df46f3fe3d5b01c050f69aa2a4d89ddc11d65d8e8f0644bc868501743ff81  source/tests/r
 202ce52744bac99340d7f7c22c85d7957056750c69e3971db4ebb0adec8194df  source/tests/report-pdf-colors-6-10-52.cjs
 f7155895e403901a7534f8221552fe8497d93e11d5194a65876146575b0fb1f2  source/tests/report-preview-colors-6-10-47.cjs
 0f7b2d62759741e3b3d2b60ab6b362153164150d398b1872e8fcd3c85d61cab4  source/tests/report-print-export-6-10-46.cjs
-9dba56ef4c5b24f9571fc38cf7c6b1d0f4c423927aa2a7df0b8eff01e86281fe  source/tests/report-single-sheet-6-10-50.cjs
+2e97364bf8757bdc4c838b3bc3ebf1af0748974e9e0d560f2509302f8e576a76  source/tests/report-single-sheet-6-10-50.cjs
 674ef68e35f1b759b315ea68b80aa1d815a50910dd6d83ef2efc6afeb1a9fdfc  source/tests/report-typography.cjs
 e26f2c75c270adefca73253c446fbf9a5e68d0bdd69db5797e3ddda5e9a0d93a  source/tests/report-vector-quality-6-10-53.cjs
 7d81756a89d8f273b665996d6d332034405b1fdfc651cb476d98546208dfb649  source/tests/school-official-report-6-10-41.cjs
