@@ -128,7 +128,7 @@ c7164565dada36584a84ecc02b4997bf356f34821c7c0cb2e0e94605fd18eb61  source/tests/r
 d5cb05ced1d996bcaffa19965bf5b2ad90b690a2f92860aba6cd676bbeb68723  source/tests/report-comparison-official-6-10-44.cjs
 dcb6b3d5b76e255fc00d7dfc11278262e6dfb13f5317feb4e0b5fa53e242be27  source/tests/report-export-live-buttons-6-10-48.cjs
 9950462d7a217cc1c922dec2d25d8656cbda6c0d8ce0d9a2b3329f82709fd07a  source/tests/report-logic-current.cjs
-af4df46f3fe3d5b01c050f69aa2a4d89ddc11d65d8e8f0644bc868501743ff81  source/tests/report-orientation-ci-6-10-49.cjs
+674bd999821983e1b7062347a1d7107a29a37139657d0734f95d2fb00bb8c319  source/tests/report-orientation-ci-6-10-49.cjs
 44328bbbcee64213d7ec132e7e13a16d2c1588a691b00a96094cda097531b962  source/tests/report-page-fit-6-10-51.cjs
 202ce52744bac99340d7f7c22c85d7957056750c69e3971db4ebb0adec8194df  source/tests/report-pdf-colors-6-10-52.cjs
 f7155895e403901a7534f8221552fe8497d93e11d5194a65876146575b0fb1f2  source/tests/report-preview-colors-6-10-47.cjs
