@@ -16,9 +16,10 @@ const scaled=[],page=(initialWidth,height)=>{
   getBoundingClientRect:()=>({width,height,left:0,right:width,top:0,bottom:height}),
   querySelectorAll:()=>[]};
 };
-const result=sandbox.SR63.fitReportPagesForPrint({querySelectorAll:()=>[page(1450,760),page(1020,1350)]},true);
-assert.ok(result[0].zoom<1&&result[0].zoom>.6);
+const result=sandbox.SR63.fitReportPagesForPrint({querySelectorAll:()=>[page(1450,690),page(1020,720)]},true);
+assert.ok(result[0].zoom<1&&result[0].zoom>.79);
 assert.equal(result[1].singleSheet,true);
+assert.throws(()=>sandbox.SR63.fitReportPagesForPrint({querySelectorAll:()=>[page(1020,1350)]},true),/صفحة A4/,'Oversized report must never silently clip or shrink all student rows');
 assert.ok(scaled.some(([n])=>n==='zoom'));
 (async()=>{
  const {loadApp}=require('./harness.cjs'),{ctx}=loadApp(),ws=ctx.zj(),downloads=[],rendered=[];
