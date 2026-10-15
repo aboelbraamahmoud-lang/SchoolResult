@@ -1,4 +1,4 @@
-/* SchoolResult 6.10.51 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
+/* SchoolResult 6.10.52 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
    No student data is sent to a remote PDF conversion service. */
 SR63.safeReportFilename=function(value){
  const normalized=String(value??'').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').replace(/\.+$/,'').trim();
@@ -94,17 +94,94 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw Error('هذا المتصفح لا يدعم إنشاء صفحات PDF.');
  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
  ctx.save();ctx.setTransform(2*scale,0,0,2*scale,2*offsetX-2*scale*layout.left,2*offsetY-2*scale*layout.top);
- const transparent=c=>!c||c==='transparent'||c==='rgba(0, 0, 0, 0)'||c==='rgb(0 0 0 / 0)';
+ const transparent=c=>!c||c==='transparent'||/^rgba?\(\s*0(?:[,\s]+0){2}\s*[,/]\s*0(?:\.0+)?\s*\)$/.test(c)||c==='rgba(0, 0, 0, 0)'||c==='rgb(0 0 0 / 0)';
  const rectOf=node=>node.getBoundingClientRect();
- const fillFor=(node,style)=>{
-  const bg=style.backgroundColor;if(!transparent(bg))return bg;
-  if(style.backgroundImage&&style.backgroundImage!=='none'){
-   if(node.classList.contains('report-title')||node.classList.contains('grade-matrix-caption'))return '#125266';
-   if(node.matches('thead th'))return '#275469';
-   if(node.classList.contains('report-head')||node.classList.contains('report-meta-grid'))return '#f3f8fa';
-   return '#f3f8fa';
+ // Read the SAME computed CSS gradient/background that Chrome uses in printing.
+ // The previous exporter flattened every gradient to hard-coded teal/gray;
+ // that made PDF and individual ZIP reports lose their official color palette.
+ const splitGradientArgs=input=>{
+  const out=[];let level=0,start=0;
+  for(let i=0;i<input.length;i++){
+   if(input[i]==='(')level++;
+   else if(input[i]===')')level--;
+   else if(input[i]===','&&level===0){out.push(input.slice(start,i).trim());start=i+1;}
   }
-  return null;
+  out.push(input.slice(start).trim());return out;
+ };
+ const extractGradient=image=>{
+  const m=/(?:repeating-)?(linear|radial)-gradient\(/i.exec(image||'');
+  if(!m)return null;
+  let depth=1,pos=m.index+m[0].length,start=pos;
+  while(pos<image.length&&depth){if(image[pos]==='(')depth++;else if(image[pos]===')')depth--;pos++;}
+  if(depth)return null;
+  return {type:m[1].toLowerCase(),args:splitGradientArgs(image.slice(start,pos-1))};
+ };
+ const colorStop=part=>{
+  const match=/^(#[\da-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)|[a-z]+)\s*(.*)$/i.exec(part.trim());
+  if(!match)return null;
+  const at=/(-?\d+(?:\.\d+)?)%/.exec(match[2]||'');
+  return {color:match[1],offset:at?Math.max(0,Math.min(1,Number(at[1])/100)):null};
+ };
+ const canvasBackground=(node,style,r)=>{
+  const bg=style.backgroundColor;
+  if(!transparent(bg)){ctx.fillStyle=bg;ctx.fillRect(r.left,r.top,r.width,r.height);}
+  const gradient=extractGradient(style.backgroundImage);
+  if(!gradient)return;
+  const args=gradient.args.slice(),first=args[0]||'';
+  if(!colorStop(first))args.shift();
+  const stops=args.map(colorStop).filter(Boolean);
+  if(stops.length<2)return;
+  // Normalize missing CSS color-stop offsets, preserving explicit percentages.
+  if(stops[0].offset===null)stops[0].offset=0;
+  if(stops[stops.length-1].offset===null)stops[stops.length-1].offset=1;
+  for(let i=1;i<stops.length-1;i++)if(stops[i].offset===null){
+   let j=i+1;while(j<stops.length&&stops[j].offset===null)j++;
+   const low=stops[i-1].offset,high=stops[j].offset;
+   for(let k=i;k<j;k++)stops[k].offset=low+(high-low)*(k-i+1)/(j-i+1);
+   i=j-1;
+  }
+  let gradientPaint;
+  if(gradient.type==='radial'){
+   const rad=Math.max(1,Math.hypot(r.width,r.height)/2);
+   gradientPaint=ctx.createRadialGradient(r.left+r.width/2,r.top+r.height/2,0,r.left+r.width/2,r.top+r.height/2,rad);
+  }else{
+   // CSS 0deg points up, 90deg right; diagonal directions are normalized.
+   let angle=180;
+   if(/-?\d+(?:\.\d+)?deg/.test(first))angle=Number(/(-?\d+(?:\.\d+)?)deg/.exec(first)[1]);
+   else if(/\bto\b/i.test(first)){
+    if(/top/.test(first)&&/right/.test(first))angle=45;
+    else if(/bottom/.test(first)&&/right/.test(first))angle=135;
+    else if(/bottom/.test(first)&&/left/.test(first))angle=225;
+    else if(/top/.test(first)&&/left/.test(first))angle=315;
+    else if(/right/.test(first))angle=90;
+    else if(/left/.test(first))angle=270;
+    else if(/top/.test(first))angle=0;
+   }
+   const dx=Math.sin(angle*Math.PI/180),dy=-Math.cos(angle*Math.PI/180);
+   const length=Math.abs(r.width*dx)+Math.abs(r.height*dy);
+   const cx=r.left+r.width/2,cy=r.top+r.height/2;
+   gradientPaint=ctx.createLinearGradient(cx-dx*length/2,cy-dy*length/2,cx+dx*length/2,cy+dy*length/2);
+  }
+  try{
+   for(const s of stops)gradientPaint.addColorStop(s.offset,s.color);
+   ctx.fillStyle=gradientPaint;ctx.fillRect(r.left,r.top,r.width,r.height);
+  }catch(error){throw Error('تعذر استعادة ألوان التدرجات الأصلية لتقرير PDF: '+error.message);}
+ };
+ const paintBorders=(css,r)=>{
+  // Table rows and KPI cards may have four different border colors; the old
+  // exporter only drew border-top as a full gray rectangle.
+  for(const [edge,start,end] of [
+   ['Top',[r.left,r.top],[r.right,r.top]],
+   ['Right',[r.right,r.top],[r.right,r.bottom]],
+   ['Bottom',[r.right,r.bottom],[r.left,r.bottom]],
+   ['Left',[r.left,r.bottom],[r.left,r.top]]
+  ]){
+   const size=parseFloat(css['border'+edge+'Width'])||0;
+   const color=css['border'+edge+'Color'];
+   if(size<=.2||transparent(color))continue;
+   ctx.beginPath();ctx.strokeStyle=color;ctx.lineWidth=size;
+   ctx.moveTo(start[0],start[1]);ctx.lineTo(end[0],end[1]);ctx.stroke();
+  }
  };
  const paintText=(node)=>{
   const parent=node.parentElement;if(!parent)return;
@@ -131,9 +208,14 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
   if(css.display==='none'||css.visibility==='hidden'||parseFloat(css.opacity)===0)return;
   const r=rectOf(node);if(!r.width||!r.height)return;
   if(r.right<base.left||r.left>base.left+naturalW||r.bottom<base.top||r.top>base.top+naturalH)return;
-  const fill=fillFor(node,css);if(fill){ctx.fillStyle=fill;ctx.fillRect(r.left,r.top,r.width,r.height);}
-  const border=parseFloat(css.borderTopWidth)||0;
-  if(border>.2&&!transparent(css.borderTopColor)){ctx.strokeStyle=css.borderTopColor;ctx.lineWidth=border;ctx.strokeRect(r.left+border/2,r.top+border/2,r.width-border,r.height-border);}
+  canvasBackground(node,css,r);
+  // Preserve the report's multi-color upper stripe, a ::before pseudo-element.
+  if(node.classList.contains('school-report-page')){
+   const before=getComputedStyle(node,'::before');
+   const h=parseFloat(before.height)||0;
+   if(h>0&&h<30&&before.content!=='none')canvasBackground(node,before,{left:r.left,top:r.top,width:r.width,height:h,right:r.right,bottom:r.top+h});
+  }
+  paintBorders(css,r);
   if(tag==='img'){
    try{
     const url=node.getAttribute('src')||'';
