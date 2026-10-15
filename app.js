@@ -1445,7 +1445,8 @@ SR63.planReportSheet=function(page,targetWidth,targetHeight){
  if(table&&rows>=2){
   const spare=targetHeight-box.height;
   if(spare>20){
-   const perRow=rows<=8?36:rows<=20?28:rows<=40?19:11;
+   // Few-student classes need more of the physical sheet; never widen text to fake the fill.
+   const perRow=rows<=12?90:rows<=20?36:rows<=40?20:11;
    const extra=Math.max(0,Math.min(spare*.90-8,rows*perRow));
    if(extra>8){
     const before=table.getBoundingClientRect().height;
