@@ -6,5 +6,6 @@ contextBridge.exposeInMainWorld('schoolResultDesktop', Object.freeze({
   listPrinters: () => ipcRenderer.invoke('app:list-printers'),
   printCurrent: options => ipcRenderer.invoke('app:print-current', options),
   printPopup: options => ipcRenderer.invoke('app:print-popup', options),
+  savePopupPDF: options => ipcRenderer.invoke('app:save-popup-pdf', options),
   savePDF: options => ipcRenderer.invoke('app:save-pdf', options)
 }));

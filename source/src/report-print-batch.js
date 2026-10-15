@@ -46,7 +46,7 @@ SR63.reportPrintOverride=function(landscape=false){
 SR63.planReportSheet=function(page,targetWidth,targetHeight){
  if(!page||!page.style||!(targetWidth>0&&targetHeight>0))throw Error('صفحة التقرير أو مقاس الورق غير صالح للطباعة.');
  const style=page.style,baseline=targetWidth;
- for(const [name,value] of [['zoom','1'],['height','auto'],['min-height','0'],['max-height','none'],['overflow','visible'],['box-sizing','border-box']])style.setProperty(name,value,'important');
+ for(const [name,value] of [['zoom','1'],['height','auto'],['min-height','0'],['max-height','none'],['overflow','visible'],['box-sizing','border-box'],['margin','0'],['padding','0'],['border-radius','0'],['box-shadow','none'],['transform','none']])style.setProperty(name,value,'important');
  for(const key of ['width','min-width','max-width'])style.setProperty(key,baseline+'px','important');
  // One official emblem footprint for printing and offline PDF rendering.
  for(const img of page.querySelectorAll?.('.report-head img,.report-logo-image')||[]){
@@ -62,6 +62,10 @@ SR63.planReportSheet=function(page,targetWidth,targetHeight){
   for(const node of nodes){if(!node?.getBoundingClientRect)continue;const q=node.getBoundingClientRect();if(!q.width||!q.height)continue;left=Math.min(left,q.left);right=Math.max(right,q.right);top=Math.min(top,q.top);bottom=Math.max(bottom,q.bottom);}
   return {left,top,width:Math.max(1,page.scrollWidth||0,right-left),height:Math.max(1,page.scrollHeight||0,bottom-top)};
  }
+ const allTable=page.querySelector?.('.report-table');
+ if(allTable?.style?.setProperty)allTable.style.setProperty('width','calc(100% - 4mm)','important');
+ const pageNumber=page.querySelector?.('.report-page-number');
+ if(pageNumber?.style?.setProperty)pageNumber.style.setProperty('position','static','important');
  const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official)');
  const rowNodes=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean),rows=rowNodes.length;
  const view=page.ownerDocument?.defaultView;

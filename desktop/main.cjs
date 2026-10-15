@@ -79,7 +79,7 @@ if (!gotLock) {
     const outputPath = /\.pdf$/i.test(selected) ? selected : selected + '.pdf';
     try {
       const buffer = await contents.printToPDF({
-        pageSize: 'A4', landscape, printBackground: true, displayHeaderFooter: false
+        pageSize: 'A4', landscape, printBackground: true, displayHeaderFooter: false, preferCSSPageSize: true
       });
       if (!buffer || buffer.length < 100) throw new Error('ملف PDF الناتج فارغ.');
       await fs.promises.writeFile(outputPath, buffer);
@@ -110,7 +110,7 @@ if (!gotLock) {
       try {
         contents.print({
           silent: false, printBackground: true, color: true, pageSize: 'A4', landscape,
-          margins: { marginType: 'printableArea' }
+          margins: { marginType: 'none' }
         }, async (success, reason) => {
           if (success) return resolve({ status: 'submitted' });
           if (/cancel/i.test(String(reason || ''))) return resolve({ status: 'cancelled' });
@@ -268,6 +268,7 @@ if (!gotLock) {
     });
     ipcMain.handle('app:print-current', async (event, options) => printWithWindows(trustedPrintContents(event), printOrientation(options)));
     ipcMain.handle('app:print-popup', async (event, options) => printWithWindows(trustedPrintContents(event, true), printOrientation(options)));
+    ipcMain.handle('app:save-popup-pdf', async (event, options) => saveAsPDF(trustedPrintContents(event, true), printOrientation(options)));
     ipcMain.handle('app:save-pdf', async (event, options) => saveAsPDF(trustedPrintContents(event), printOrientation(options)));
 
     ipcMain.handle('app:get-info', () => ({

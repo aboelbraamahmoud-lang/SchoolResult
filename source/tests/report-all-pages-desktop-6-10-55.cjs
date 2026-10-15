@@ -1,0 +1,16 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const base=path.resolve(__dirname,'../src');
+const ui=fs.readFileSync(path.join(base,'patches/ui.js'),'utf8');
+const print=fs.readFileSync(path.join(base,'report-print-batch.js'),'utf8');
+const pdf=fs.readFileSync(path.join(base,'report-download-pdf.js'),'utf8');
+const fn=ui.slice(ui.indexOf(' printBatch=async()=>'),ui.indexOf('renderReportPage='));
+assert.match(fn,/renderReportHTML\(D,isLandscape/,'print must use entire prepared selection');
+assert.doesNotMatch(fn,/#printable-reports \.school-report-page/,'print must not be restricted to the visible 8 pages');
+assert.match(ui,/root\.render\(renderReportPage\(page,pIndex\+1,pages\.length\)\)/,'full selection uses original preview React page component');
+assert.match(ui,/pageHTML\.push\(node\.outerHTML\)/,'printed vector HTML is built from actual React report pages');
+assert.match(ui,/visible\.map\(\(t,r\)=>renderReportPage/,'8-page preview stays fast');
+assert.match(print,/\['padding','0'\]/,'export and printer use same page padding');
+assert.match(print,/allTable\.style\.setProperty\('width','calc\(100% - 4mm\)'/);
+assert.match(pdf,/SR63\.planReportSheet\(element,w-2\*margin,h-2\*margin\)/);
+console.log('SchoolResult 6.10.55: all selected report pages printed, consistent A4 fit with downloaded PDF/ZIP PASS');
