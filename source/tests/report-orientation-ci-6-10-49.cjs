@@ -9,7 +9,9 @@ for(const type of ['summary','levels','struggling','teachers','comparison','supp
 for(const type of ['subjects','departmentStats'])assert.equal(landscape(type),true,type);
 assert.equal(landscape('comparison',{dataset:{orientation:'landscape'}}),true);
 assert.equal(landscape('subjects',{dataset:{orientation:'portrait'}}),false);
-assert.match(ui,/printReportBatch\([^;]*SR63\.reportPageIsLandscape\(n,/);
+assert.match(ui,/const isLandscape=SR63\.reportPageIsLandscape\(n\)/,'print chooses template-defined orientation');
+assert.match(ui,/SR63\.printReportBatch\(pageHTML,[^;]*isLandscape,printWindow\)/,'full-scope printer passes template orientation');
+assert.match(ui,/SR63\.reportPageIsLandscape\(n,page\)!==isLandscape/,'reject mixed page orientations');
 assert.match(ui,/reportPageJPEG\(node,css,renderedLandscape\)/);
 assert.doesNotMatch(ui,/w\|\|n==='subjects'/);
 const jpeg='data:image/jpeg;base64,'+Buffer.from([255,216,255,217]).toString('base64');
