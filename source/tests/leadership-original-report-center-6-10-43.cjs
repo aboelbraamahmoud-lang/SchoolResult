@@ -17,7 +17,8 @@ assert.match(reportSrc,/!readOnly&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2,'only print controls require a prepared preview');
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,3,'vector PDF, raster PDF and ZIP use the same export permission and work without preview');
 assert.match(reportSrc,/const saveVectorPDF=async\(\)=>/,'vector PDF remains available to authorized school leaders');
-assert.match(reportSrc,/printBatch=async\(\)=>\{if\(!canPrint\)return;/);
+assert.match(reportSrc,/printBatch=async\(\)=>\{\s*if\(!canPrint\|\|!prepared\|\|!D.length\)return;/);
+assert.match(reportSrc,/renderReportHTML\(D,isLandscape/,'print must render every selected page for the authorized leader');
 assert.match(reportSrc,/const exportPDF=async\(split=false\)=>/);
 assert.match(reportSrc,/SR63\.groupReportPages\(exportPages,i,n\)/);
 
