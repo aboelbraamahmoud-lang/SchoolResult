@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.52",
+  "version": "6.10.53",
   "released": "2026-10-15",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "الحفاظ على ألوان CSS الأصلية وتدرجات الخلفيات والحدود الرباعية داخل تنزيل PDF المجمع وPDF التقارير الفردية في ZIP بنفس ترويسة وألوان الطباعة المباشرة."
+  "notes": "PDF متجهي عبر حفظ PDF من طباعة Chromium مع النصوص العربية الأصلية لتكبير بلا بكسلة، وتحسين PDF وZIP المباشرين إلى 300DPI بجودة JPEG عالية دون ضغط أفقي للحروف، مع الحفاظ على ألوان التقارير واتجاه A4."
 }

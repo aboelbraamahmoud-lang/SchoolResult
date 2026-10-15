@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.52', release:'2026-10-15', formDirty:false};
+var SR63 = {version:'6.10.53', release:'2026-10-15', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){

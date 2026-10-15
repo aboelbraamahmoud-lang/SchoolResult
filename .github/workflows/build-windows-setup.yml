@@ -10,6 +10,7 @@ on:
       - 'source/src/engine.js'
       - 'source/src/report-print-batch.js'
       - 'source/src/report-download-pdf.js'
+      - 'source/tests/report-vector-quality-6-10-53.cjs'
       - 'source/src/patches/ui.js'
       - 'source/tests/report-export-live-buttons-6-10-48.cjs'
       - 'source/tests/report-single-sheet-6-10-50.cjs'

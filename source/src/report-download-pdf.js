@@ -1,4 +1,4 @@
-/* SchoolResult 6.10.52 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
+/* SchoolResult 6.10.53 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
    No student data is sent to a remote PDF conversion service. */
 SR63.safeReportFilename=function(value){
  const normalized=String(value??'').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').replace(/\.+$/,'').trim();
@@ -90,10 +90,13 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  const naturalW=layout.width,naturalH=layout.height,scale=layout.scale;
  const offsetX=margin+(w-2*margin-naturalW*scale)/2;
  const offsetY=margin+(h-2*margin-naturalH*scale)/2;
- const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
+ // High-quality *raster fallback* for direct download / ZIP: 300 dpi instead
+ // of 192 dpi. True infinitely zoomable text is available via native vector PDF.
+ const density=300/96;
+ const canvas=document.createElement('canvas');canvas.width=Math.round(w*density);canvas.height=Math.round(h*density);
  const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)throw Error('هذا المتصفح لا يدعم إنشاء صفحات PDF.');
  ctx.fillStyle='#fff';ctx.fillRect(0,0,canvas.width,canvas.height);
- ctx.save();ctx.setTransform(2*scale,0,0,2*scale,2*offsetX-2*scale*layout.left,2*offsetY-2*scale*layout.top);
+ ctx.save();ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.setTransform(density*scale,0,0,density*scale,density*offsetX-density*scale*layout.left,density*offsetY-density*scale*layout.top);
  const transparent=c=>!c||c==='transparent'||/^rgba?\(\s*0(?:[,\s]+0){2}\s*[,/]\s*0(?:\.0+)?\s*\)$/.test(c)||c==='rgba(0, 0, 0, 0)'||c==='rgb(0 0 0 / 0)';
  const rectOf=node=>node.getBoundingClientRect();
  // Read the SAME computed CSS gradient/background that Chrome uses in printing.
@@ -196,11 +199,21 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
   const rects=[...range.getClientRects()].filter(r=>r.width>.2&&r.height>.2);
   if(!rects.length)return;
   if(rects.length===1){const r=rects[0],rtl=ctx.direction==='rtl';ctx.textAlign=rtl?'right':'left';
-   ctx.fillText(str.trim(),rtl?r.right:r.left,r.bottom-Math.max(1,(r.height-size)*.15),Math.max(3,r.width+4));return;}
+   const label=str.trim(),x=rtl?r.right:r.left,y=r.bottom-Math.max(1,(r.height-size)*.15);
+   // Do not compress ordinary Arabic glyphs horizontally; only constrain text
+   // if its measured width actually exceeds the browser's allocated box.
+   const measure=ctx.measureText?.(label)?.width||0;
+   if(measure>r.width+3)ctx.fillText(label,x,y,Math.max(3,r.width+3));
+   else ctx.fillText(label,x,y);
+   return;}
   // Multi-line paragraphs: paint each visual word at its measured browser position.
   const regex=/\S+/g;let m;while((m=regex.exec(str))){range.setStart(node,m.index);range.setEnd(node,m.index+m[0].length);
    const r=range.getBoundingClientRect();if(r.width<1)continue;const rtl=ctx.direction==='rtl';ctx.textAlign=rtl?'right':'left';
-   ctx.fillText(m[0],rtl?r.right:r.left,r.bottom-Math.max(1,(r.height-size)*.15),Math.max(3,r.width+3));}
+   const x=rtl?r.right:r.left,y=r.bottom-Math.max(1,(r.height-size)*.15);
+   const actual=ctx.measureText?.(m[0])?.width||0;
+   if(actual>r.width+3)ctx.fillText(m[0],x,y,Math.max(3,r.width+3));
+   else ctx.fillText(m[0],x,y);
+  }
  };
  const paint=async(node,depth=0)=>{
   if(depth>90)return;
@@ -238,7 +251,7 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
   for(const child of node.childNodes)await paint(child,depth+1);
  };
  try{await paint(element);ctx.restore();}catch(error){ctx.restore();throw error;}
- const dataUrl=canvas.toDataURL('image/jpeg',.92);
+ const dataUrl=canvas.toDataURL('image/jpeg',.985);
  if(dataUrl.length<5000)throw Error('لم يتم رسم تقرير PDF كاملًا.');
  return {dataUrl,width:canvas.width,height:canvas.height,landscape};
 };

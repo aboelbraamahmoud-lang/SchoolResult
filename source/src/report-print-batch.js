@@ -2,7 +2,7 @@
 SR63.reportStyleTextPromise=null;
 SR63.getReportStyleText=function(){
   if(!SR63.reportStyleTextPromise){
-    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.52');
+    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.53');
     SR63.reportStyleTextPromise=fetch(styleUrl.href,{cache:'force-cache'})
       .then(response=>{if(!response.ok)throw Error('تعذر تحميل تنسيق التقرير للطباعة.');return response.text();})
       .then(css=>{if(css.length<25000)throw Error('ملف تنسيق التقارير غير مكتمل.');return css;})
@@ -117,18 +117,20 @@ SR63.fitReportPagesForPrint=function(doc,landscape=false){
  }
  return results;
 };
-SR63.printReportBatch=async function(selector,title='تقرير المدرسة',landscape=false){
-  const pages=[...document.querySelectorAll(selector)];
+SR63.printReportBatch=async function(selector,title='تقرير المدرسة',landscape=false,preparedWindow=null){
+  // The same print engine supports live preview nodes and already-rendered HTML
+  // for the entire selected report scope (including pages beyond preview batch 8).
+  const pages=Array.isArray(selector)?selector:[...document.querySelectorAll(selector)];
   if(!pages.length)throw new Error('جهّز المعاينة أولًا.');
   // Open synchronously while the click's user activation is available.
-  const win=window.open('','_blank');if(!win)throw new Error('فعّل السماح بالنوافذ المنبثقة للطباعة.');
+  const win=preparedWindow||window.open('','_blank');if(!win)throw new Error('فعّل السماح بالنوافذ المنبثقة للطباعة.');
   win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تجهيز الطباعة…</title></head><body><p dir="rtl">جارٍ تجهيز التقرير والتأكد من تحميل الخطوط والصور قبل الطباعة…</p></body></html>');win.document.close();
   try{
     const css=await SR63.getReportStyleText();
     if(win.closed)return 0;
     const safe=String(title).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     // Copy the already-rendered original pages; never recalculate their data.
-    const html=pages.map(p=>'<div class="sr650-sheet">'+p.outerHTML+'</div>').join('');
+    const html=pages.map(p=>'<div class="sr650-sheet">'+(typeof p==='string'?p:p.outerHTML)+'</div>').join('');
     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+safe+'</title><base href="'+document.baseURI.replace(/"/g,'%22')+'"><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>'+SR63.reportPrintOverride(landscape)+'</style></head><body><main class="sr646-print-document" dir="rtl"><div id="printable-reports">'+html+'</div></main></body></html>';
     win.document.open();win.document.write(doc);win.document.close();
     const imageTasks=[...win.document.images].map(img=>img.complete?Promise.resolve():img.decode?.().catch(()=>{})||new Promise(ok=>{img.onload=ok;img.onerror=ok;}));
