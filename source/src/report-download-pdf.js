@@ -1,4 +1,4 @@
-/* SchoolResult 6.10.50 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
+/* SchoolResult 6.10.51 — offline, browser-side PDF/ZIP export of ORIGINAL report pages.
    No student data is sent to a remote PDF conversion service. */
 SR63.safeReportFilename=function(value){
  const normalized=String(value??'').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').replace(/\.+$/,'').trim();

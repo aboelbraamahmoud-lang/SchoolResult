@@ -17,12 +17,12 @@ function sample(height){
  const tab={style:{setProperty:(k,v)=>{if(k==='height')extra=Math.max(0,parseFloat(v)-400)}},getBoundingClientRect:()=>({width:width-8,height:400}),querySelectorAll:()=>Array(20).fill(null)};
  return {get scrollWidth(){return width},get scrollHeight(){return height+extra},style:{setProperty:(k,v)=>{if(k==='width')width=parseFloat(v)}},getBoundingClientRect:()=>({left:0,right:width,top:0,bottom:height+extra,width,height:height+extra}),querySelectorAll:()=>[],querySelector:()=>tab};
 }
-const plan=SR.planReportSheet(sample(1350),756,1085);
+const plan=SR.planReportSheet(sample(1000),756,1085);
 assert.equal(plan.singleSheet,true);
 assert.ok(plan.fill>.98);
-assert.ok(plan.scale>.44);
-assert.ok(plan.height*plan.scale<1085);
+assert.ok(plan.scale>.95);
+assert.ok(plan.height*plan.scale<=1085);
 const pages=SR.fitReportPagesForPrint({querySelectorAll:()=>[sample(1100),sample(1250)]});
 assert.equal(pages.length,2);
-assert.ok(pages.every(p=>p.singleSheet&&p.fill>.8));
-console.log('SchoolResult 6.10.50: one class per sheet, A4 fill, shared PDF/ZIP sizing PASS');
+assert.ok(pages.every(p=>p.singleSheet&&p.fill>.79));
+console.log('SchoolResult 6.10.51: one class per sheet, A4 fill, shared PDF/ZIP sizing PASS');

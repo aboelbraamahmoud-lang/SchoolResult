@@ -2,7 +2,7 @@
 SR63.reportStyleTextPromise=null;
 SR63.getReportStyleText=function(){
   if(!SR63.reportStyleTextPromise){
-    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.50');
+    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.51');
     SR63.reportStyleTextPromise=fetch(styleUrl.href,{cache:'force-cache'})
       .then(response=>{if(!response.ok)throw Error('تعذر تحميل تنسيق التقرير للطباعة.');return response.text();})
       .then(css=>{if(css.length<25000)throw Error('ملف تنسيق التقارير غير مكتمل.');return css;})
@@ -17,7 +17,7 @@ SR63.reportPrintOverride=function(landscape=false){
     body{font-family:Tahoma,Arial,sans-serif!important}
     .sr646-print-document,.sr646-print-document *{visibility:visible!important}
     .sr646-print-document{direction:rtl;width:100%;margin:0 auto}
-    .sr650-sheet{position:relative!important;box-sizing:border-box!important;width:${width}!important;
+    .sr650-sheet{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:${width}!important;
       height:${landscape?'200mm':'287mm'}!important;margin:0!important;padding:0!important;
       overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;
       break-after:page!important;page-break-after:always!important}
@@ -41,37 +41,69 @@ SR63.reportPrintOverride=function(landscape=false){
 };
 // Keep each original report on exactly one A4 sheet. Expand its logical
 // columns first, then apply a UNIFORM scale so text is not stretched.
+// A4-safe fitting shared by isolated printing and PDF/ZIP. Use actual CSS-pixel
+// paper dimensions. Never widen a logical page then shrink all of its text.
 SR63.planReportSheet=function(page,targetWidth,targetHeight){
- if(!page||!page.style)throw Error('صفحة التقرير غير صالحة للطباعة.');
- const style=page.style,baseline=Math.max(1,targetWidth);
+ if(!page||!page.style||!(targetWidth>0&&targetHeight>0))throw Error('صفحة التقرير أو مقاس الورق غير صالح للطباعة.');
+ const style=page.style,baseline=targetWidth;
  for(const [name,value] of [['zoom','1'],['height','auto'],['min-height','0'],['max-height','none'],['overflow','visible'],['box-sizing','border-box']])style.setProperty(name,value,'important');
- function setWidth(width){for(const key of ['width','min-width','max-width'])style.setProperty(key,width+'px','important');}
+ for(const key of ['width','min-width','max-width'])style.setProperty(key,baseline+'px','important');
+ // One official emblem footprint for printing and offline PDF rendering.
+ for(const img of page.querySelectorAll?.('.report-head img,.report-logo-image')||[]){
+  if(!img.style)continue;
+  img.style.setProperty('object-fit','contain','important');
+  img.style.setProperty('max-width','49mm','important');
+  img.style.setProperty('max-height',img.classList?.contains('report-ministry-emblem-official')?'11mm':'19mm','important');
+ }
  function measure(){
   const rect=page.getBoundingClientRect();
   let left=rect.left,right=rect.right,top=rect.top,bottom=rect.bottom;
   const nodes=page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-context,.report-meta-grid,.report-footer,.report-head')||[];
-  for(const node of nodes){const r=node.getBoundingClientRect();if(!r.width||!r.height)continue;left=Math.min(left,r.left);right=Math.max(right,r.right);top=Math.min(top,r.top);bottom=Math.max(bottom,r.bottom);}
+  for(const node of nodes){if(!node?.getBoundingClientRect)continue;const q=node.getBoundingClientRect();if(!q.width||!q.height)continue;left=Math.min(left,q.left);right=Math.max(right,q.right);top=Math.min(top,q.top);bottom=Math.max(bottom,q.bottom);}
   return {left,top,width:Math.max(1,page.scrollWidth||0,right-left),height:Math.max(1,page.scrollHeight||0,bottom-top)};
  }
- let width=baseline,box,scale=1;
- for(let attempt=0;attempt<6;attempt++){
-  setWidth(width);box=measure();scale=Math.min(1,targetWidth/box.width,targetHeight/box.height);
-  const next=Math.min(baseline*1.8,Math.max(baseline,targetWidth/scale));
-  if(Math.abs(next-width)<2)break;
-  width=next;
- }
- setWidth(width);box=measure();scale=Math.min(1,targetWidth/box.width,targetHeight/box.height);
  const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official)');
- const rows=table?.querySelectorAll('tbody tr')?.length||0,spare=targetHeight/scale-box.height;
- if(rows>=8&&spare>15){
-  const extra=Math.min(spare*.95,rows*12);
-  table.style.setProperty('height',(table.getBoundingClientRect().height+extra)+'px','important');
-  box=measure();
+ const rowNodes=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean),rows=rowNodes.length;
+ const view=page.ownerDocument?.defaultView;
+ const readStyle=view?.getComputedStyle?.bind(view)||(typeof getComputedStyle==='function'?getComputedStyle:null);
+ // Grow readable font sizes before filling any remaining vertical space.
+ const fontSelector='.report-title,.report-head b,.report-head strong,.report-context,.report-context b,.report-meta-grid,.report-meta-grid b,.report-kpis,.report-kpis b,.report-section-title,.report-table,.report-table th,.report-table td,.report-table td b,.report-table td small,.report-table td span,.report-footer,.report-footer b,.report-signatures b';
+ const fonts=readStyle?[...(page.querySelectorAll?.(fontSelector)||[])].filter(node=>node?.style).map(node=>[node,parseFloat(readStyle(node).fontSize)]).filter(([,size])=>size>0&&Number.isFinite(size)):[];
+ const fontScale=factor=>{for(const [node,size] of fonts)node.style.setProperty('font-size',(size*factor).toFixed(2)+'px','important');};
+ let box=measure(),growth=1;
+ if(fonts.length&&box.width<targetWidth*1.02&&box.height<targetHeight*.94){
+  let low=1,high=rows<=12?1.36:rows<=30?1.25:1.14;
+  for(let k=0;k<7;k++){
+   const mid=(low+high)/2;fontScale(mid);const trial=measure();
+   if(trial.width<=targetWidth-3&&trial.height<=targetHeight*.91){low=mid;box=trial;}else high=mid;
+  }
+  growth=low;fontScale(growth);box=measure();
  }
- scale=Math.min(1,targetWidth/box.width,targetHeight/box.height)*.995;
- const fill=box.width*scale/targetWidth;
- if(scale<.44||fill<.80)throw Error('بيانات التقرير أطول من صفحة A4 واحدة بالخط المقروء. قسّم التقرير إلى أجزاء بدل تصغيره أو قصه.');
- return {...box,scale,fill,singleSheet:true};
+ // Make the student rows use the available paper height, rather than leaving it white.
+ if(table&&rows>=2){
+  const spare=targetHeight-box.height;
+  if(spare>20){
+   const perRow=rows<=8?36:rows<=20?28:rows<=40?19:11;
+   const extra=Math.max(0,Math.min(spare*.90-8,rows*perRow));
+   if(extra>8){
+    const before=table.getBoundingClientRect().height;
+    table.style.setProperty('height',(before+extra)+'px','important');
+    const after=table.getBoundingClientRect().height;
+    // Chromium variants that ignore explicit table height get per-row allocation.
+    if(after<before+extra*.60){
+     table.style.removeProperty?.('height');
+     for(const tr of rowNodes){if(!tr.style?.setProperty)continue;const h=tr.getBoundingClientRect().height;tr.style.setProperty('height',(h+extra/rows)+'px','important');}
+    }
+    box=measure();
+   }
+  }
+ }
+ // If the full original rows cannot fit on one A4 page at a legible size,
+ // STOP instead of cropping them or silently generating a second sheet.
+ const scale=Math.min(1,(targetWidth-3)/box.width,(targetHeight-3)/box.height);
+ const fill=box.width*scale/targetWidth,verticalFill=box.height*scale/targetHeight;
+ if(!Number.isFinite(scale)||scale<.79||fill<.79||verticalFill>1.001)throw Error('بيانات التقرير تتجاوز حدود صفحة A4 واحدة بحجم مقروء. اختر نطاقًا أصغر أو قسّم التقرير إلى صفحات مستقلة دون حذف صفوف الطلاب.');
+ return {...box,scale,fill,verticalFill,growth,rows,singleSheet:true};
 };
 SR63.fitReportPagesForPrint=function(doc,landscape=false){
  const factor=96/25.4,width=(landscape?287:200)*factor,height=(landscape?200:287)*factor,results=[];

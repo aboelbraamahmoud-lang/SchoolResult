@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.50",
-  "released": "2026-10-14",
+  "version": "6.10.51",
+  "released": "2026-10-15",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "ملء عرض وارتفاع صفحة A4 للتقارير وإلزام كل صفحة تقرير بورقة مستقلة دون قص، وتوحيد تخطيط PDF وZIP."
+  "notes": "قياس A4 الفعلي دون تضخيم العرض؛ تحسين خطوط التقارير وتوزيع ارتفاع صفوف الطلاب ومنع القص، مع توحيد الطباعة وPDF وZIP."
 }
