@@ -25,6 +25,9 @@ jobs:
           node-version: '22'
       - name: Regenerate checked-in static build and checksums
         run: |
+          # Build from the current remote main, not a stale queued workflow commit.
+          git fetch origin main
+          git checkout -B main origin/main
           node --expose-internals source/build.cjs
           node source/release.cjs
       - name: Commit generated files without changing source data
