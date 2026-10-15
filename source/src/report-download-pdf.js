@@ -117,6 +117,8 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
   return {type:m[1].toLowerCase(),args:splitGradientArgs(image.slice(start,pos-1))};
  };
  const colorStop=part=>{
+  // Gradient direction/shape is not a color stop (e.g. 'to right', 'ellipse at top').
+  if(/^(?:to\s|circle\b|ellipse\b|closest-\w+\b|farthest-\w+\b|at\s)/i.test(part.trim()))return null;
   const match=/^(#[\da-f]{3,8}|(?:rgba?|hsla?)\([^)]*\)|[a-z]+)\s*(.*)$/i.exec(part.trim());
   if(!match)return null;
   const at=/(-?\d+(?:\.\d+)?)%/.exec(match[2]||'');
