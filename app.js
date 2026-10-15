@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.53', release:'2026-10-15', formDirty:false};
+var SR63 = {version:'6.10.54', release:'2026-10-15', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -1364,7 +1364,7 @@ SR63.loadWordTemplate=(function(){
 SR63.reportStyleTextPromise=null;
 SR63.getReportStyleText=function(){
   if(!SR63.reportStyleTextPromise){
-    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.53');
+    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.54');
     SR63.reportStyleTextPromise=fetch(styleUrl.href,{cache:'force-cache'})
       .then(response=>{if(!response.ok)throw Error('تعذر تحميل تنسيق التقرير للطباعة.');return response.text();})
       .then(css=>{if(css.length<25000)throw Error('ملف تنسيق التقارير غير مكتمل.');return css;})
