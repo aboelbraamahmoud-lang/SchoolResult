@@ -8,7 +8,7 @@ const main = fs.readFileSync(path.join(root, 'main.cjs'), 'utf8');
 const html = fs.readFileSync(path.join(root, 'web', 'index.html'), 'utf8');
 const js = fs.readFileSync(path.join(root, 'web', 'desktop-print-bridge.js'), 'utf8');
 assert.match(html, /<script defer src="\.\/desktop-print-bridge\.js"><\/script>/);
-assert.match(main, /url === 'about:blank' && frameName === '_blank'/);
+assert.match(main, /url === 'about:blank' && isInternalUrl\(mainWindow\.webContents\.getURL\(\)\)/);
 assert.match(main, /child\.webContents\.setWindowOpenHandler\(\(\) => \(\{ action: 'deny' \}\)\)/);
 assert.match(main, /contents\.getPrintersAsync\(\)/);
 assert.match(main, /silent: false, printBackground: true, color: true, pageSize: 'A4', landscape/);
@@ -16,6 +16,7 @@ assert.match(main, /contents\.printToPDF\(\{/);
 assert.match(main, /ipcMain\.handle\('app:print-popup'/);
 assert.match(main, /ipcMain\.handle\('app:print-current'/);
 assert.match(js, /dispatchEvent\(new Event\('afterprint'\)\)/);
+assert.match(js, /originalOpen\(url === '' \? 'about:blank' : url, \.\.\.args\)/);
 const calls = [];
 const popup = { document: { querySelectorAll: () => [{ textContent: '@page{size:A4 landscape;margin:5mm}' }] } };
 const window = {
@@ -24,7 +25,7 @@ const window = {
     printPopup: options => { calls.push({ kind: 'popup', ...options }); return Promise.resolve({ status: 'submitted' }); },
     printCurrent: options => { calls.push({ kind: 'current', ...options }); return Promise.resolve({ status: 'submitted' }); }
   },
-  open(url) { return url === '' ? popup : { print: () => calls.push({ kind: 'external-original' }) }; },
+  open(url) { return url === 'about:blank' ? popup : { print: () => calls.push({ kind: 'external-original' }) }; },
   alert: message => { throw new Error('Unexpected error dialog: ' + message); },
   dispatchEvent: event => calls.push({ kind: 'afterprint', type: event.type })
 };

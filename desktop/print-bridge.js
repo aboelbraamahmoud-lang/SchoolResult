@@ -21,7 +21,7 @@
   };
   const originalOpen = window.open.bind(window);
   window.open = function (url, ...args) {
-    const popup = originalOpen(url, ...args);
+    const popup = originalOpen(url === '' ? 'about:blank' : url, ...args);
     if (!popup || (url !== '' && url !== 'about:blank')) return popup;
     try {
       popup.print = () => doPrint(bridge.printPopup({ landscape: landscape(popup.document) }));

@@ -166,7 +166,7 @@ if (!gotLock) {
 
     mainWindow.webContents.setWindowOpenHandler(({ url, frameName }) => {
       // Report printing uses window.open('', '_blank'); allow only local blank report windows.
-      if (url === 'about:blank' && frameName === '_blank') {
+      if (url === 'about:blank' && isInternalUrl(mainWindow.webContents.getURL())) {
         return { action: 'allow', overrideBrowserWindowOptions: {
           width: 1150, height: 820, backgroundColor: '#ffffff', autoHideMenuBar: true,
           webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true, partition: SESSION_PARTITION }

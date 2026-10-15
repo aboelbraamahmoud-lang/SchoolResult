@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.53",
+  "version": "6.10.54",
   "released": "2026-10-15",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "PDF متجهي عبر حفظ PDF من طباعة Chromium مع النصوص العربية الأصلية لتكبير بلا بكسلة، وتحسين PDF وZIP المباشرين إلى 300DPI بجودة JPEG عالية دون ضغط أفقي للحروف، مع الحفاظ على ألوان التقارير واتجاه A4."
+  "notes": "إصلاح السماح بنافذة طباعة التقارير في Electron؛ توحيد العنوان about:blank وإزالة الاعتماد على اسم إطار النافذة مع تقييد السماح إلى المصدر الداخلي الموثوق."
 }

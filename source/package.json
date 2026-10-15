@@ -45,5 +45,5 @@
     "test:report-page-fit": "node tests/report-page-fit-6-10-51.cjs",
     "test:report-single-sheet": "node tests/report-single-sheet-6-10-50.cjs"
   },
-  "version": "6.10.53"
+  "version": "6.10.54"
 }
