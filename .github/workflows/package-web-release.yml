@@ -1,0 +1,113 @@
+name: Package SchoolResult web upload
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/package-web-release.yml'
+      - 'version.json'
+      - 'app.js'
+      - 'style.css'
+      - 'index.html'
+      - 'assets/**'
+
+permissions:
+  contents: read
+
+jobs:
+  package-web:
+    name: Verified web ZIP bundles
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout verified repository
+        uses: actions/checkout@v4
+      - name: Use Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install web build dependencies
+        run: npm --prefix source install --no-audit --no-fund
+      - name: Build, test and validate release
+        run: npm run verify
+      - name: Prepare static deploy files
+        run: node source/scripts/vercel-static.cjs
+      - name: Package complete web and GitHub upload ZIPs
+        id: package
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, subprocess, pathlib, zipfile
+          root=pathlib.Path.cwd()
+          public=root/'public'
+          version=json.loads((root/'version.json').read_text(encoding='utf-8'))['version']
+          manifest=json.loads((root/'update-manifest.json').read_text(encoding='utf-8'))
+          assert manifest['version']==version, 'Manifest version mismatch'
+          assert (root/'source/src/engine.js').is_file(), 'Full source missing'
+          for item in manifest['files']:
+              name=item['name']
+              actual=hashlib.sha256((public/name).read_bytes()).hexdigest()
+              assert actual==item['sha256'], 'SHA256 mismatch for '+name
+          static_config=json.loads((root/'vercel.json').read_text(encoding='utf-8'))
+          static_config.pop('buildCommand',None)
+          static_config['outputDirectory']='.'
+          static_files={x.relative_to(public).as_posix():x.read_bytes()
+                        for x in public.rglob('*') if x.is_file()}
+          static_files['vercel.json']=(json.dumps(static_config,ensure_ascii=False,indent=2)+'\n').encode('utf-8')
+          static_files['UPLOAD_INSTRUCTIONS.txt']=(
+              'SchoolResult '+version+' | Ready-to-upload static website\n'
+              'Extract this ZIP and upload its CONTENTS to the hosting web root.\n'
+              'Vercel: use a static project, no build command, output directory dot (.).\n'
+              'For an existing Vercel GitHub-source project use the other GitHub-source ZIP instead.\n'
+              'Never overwrite or delete Supabase student data when updating this frontend.\n'
+          ).encode('utf-8')
+          excluded=('desktop/web/','desktop/dist/','desktop/node_modules/','source/node_modules/',
+                    'source/tests/output/','public/','.git/','qa_')
+          paths=subprocess.check_output(['git','ls-files','-z']).decode().split('\0')
+          source_files={}
+          for name in paths:
+              if not name or name.startswith(excluded) or '/node_modules/' in name:continue
+              path=root/name
+              if path.is_file():source_files[name]=path.read_bytes()
+          # Always package exactly the successfully rebuilt and verified release assets.
+          for name in manifest['files']:
+              source_files[name['name']]=(root/name['name']).read_bytes()
+          source_files['update-manifest.json']=(root/'update-manifest.json').read_bytes()
+          source_files['checksums.sha256']=(root/'checksums.sha256').read_bytes()
+          source_files['UPLOAD_INSTRUCTIONS.txt']=(
+              'SchoolResult '+version+' | GitHub source upload\n'
+              'Extract this ZIP and upload the CONTENTS to the repository root.\n'
+              'Keep hidden .github/ workflows and source/ directory unchanged.\n'
+              'Existing Vercel project will rebuild via source/ and original vercel.json.\n'
+              'No student records, Supabase service keys, or developer dependencies included.\n'
+          ).encode('utf-8')
+          out=root/'dist-upload'
+          out.mkdir(exist_ok=True)
+          def package(label,files):
+              file=out/('SchoolResult-'+label+'-'+version+'.zip')
+              with zipfile.ZipFile(file,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=7) as z:
+                  for name,data in sorted(files.items()):
+                      assert not name.startswith('/') and '..' not in pathlib.PurePosixPath(name).parts
+                      z.writestr(name,data)
+              with zipfile.ZipFile(file) as z:
+                  assert not z.testzip(), 'Corrupted archive'
+                  assert 'index.html' in z.namelist()
+                  assert 'assets/word-reference.js' in z.namelist()
+              print(file.name, file.stat().st_size, 'bytes',len(files),'files')
+              return file
+          web=package('Web-Static-Upload',static_files)
+          source=package('GitHub-Full-Upload',source_files)
+          with (out/'SHA256SUMS.txt').open('w',encoding='utf-8') as f:
+              for file in (web,source):
+                  f.write(hashlib.sha256(file.read_bytes()).hexdigest()+'  '+file.name+'\n')
+          with (root/'upload-version.txt').open('w') as f:f.write(version)
+          PY
+          echo "release_version=$(cat upload-version.txt)" >> "$GITHUB_OUTPUT"
+      - name: Upload verified ZIP packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: SchoolResult-Web-Upload-${{ steps.package.outputs.release_version }}
+          path: dist-upload/*
+          if-no-files-found: error
+          retention-days: 30
