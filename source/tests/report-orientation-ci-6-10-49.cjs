@@ -12,7 +12,7 @@ assert.equal(landscape('subjects',{dataset:{orientation:'portrait'}}),false);
 assert.match(ui,/const isLandscape=SR63\.reportPageIsLandscape\(n\)/,'print chooses template-defined orientation');
 assert.match(ui,/SR63\.printReportBatch\(pageHTML,[^;]*isLandscape,printWindow\)/,'full-scope printer passes template orientation');
 assert.match(ui,/SR63\.reportPageIsLandscape\(n,page\)!==isLandscape/,'reject mixed page orientations');
-assert.match(ui,/reportPageJPEG\(node,css,renderedLandscape\)/);
+assert.match(ui,/return SR63\.reportPageJPEG\(node,css,shown\)/,'PDF and ZIP use the same orientation-validated page capture');
 assert.doesNotMatch(ui,/w\|\|n==='subjects'/);
 const jpeg='data:image/jpeg;base64,'+Buffer.from([255,216,255,217]).toString('base64');
 const pages=[false,true,false].map(wide=>({dataUrl:jpeg,width:2,height:2,landscape:wide}));
