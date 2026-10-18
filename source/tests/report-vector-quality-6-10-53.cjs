@@ -13,7 +13,7 @@ assert.doesNotMatch(pdf,/canvas\.width=w\*2;canvas\.height=h\*2/);
 assert.match(pdf,/ctx\.measureText\?\.\(label\)/,'avoid unnecessary Arabic text squeezing');
 assert.match(ui,/const saveVectorPDF=async\(\)=>/);
 assert.match(ui,/const printWindow=window\.open\('','_blank'\)/,'reserve native dialog synchronously in click handler');
-assert.match(ui,/const exportPages=prepared\?D:SR63\.buildReportPages/,'vector path must render full selected scope, not 8-preview only');
+assert.match(ui,/const exportPages=prepared\?D:\(departmentMode&&!departmentSubjects\.length\?\[\]:SR63\.buildReportPages\(reportRows/,'vector path must render only authorized selected subject, not 8-preview only');
 assert.match(ui,/pageHTML\.push\(capture\?await capture\(node,page,pIndex\):node\.outerHTML\)/,'original DOM and selectable text in vector print');
 assert.match(ui,/SR63\.printReportBatch\(pageHTML,.*isLandscape,printWindow\)/,'vector print must share tested A4 engine');
 assert.match(ui,/حفظ PDF متجهي — بدون بكسلة عند التكبير/);

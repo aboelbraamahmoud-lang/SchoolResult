@@ -13,7 +13,7 @@ assert.match(ui,/renderReportPage=\(t,pageNumber,pageTotal\)/,'same React render
 assert.match(ui,/D\.length\?visible\.map\(\(t,r\)=>renderReportPage/,'preview and pdf use shared renderer');
 assert.match(ui,/SR63\.groupReportPages\(exportPages,i,n\)/,'per-teacher/per-class grouping');
 assert.match(ui,/تنزيل PDF كامل — ملف واحد/);
-assert.match(ui,/const exportPages=prepared\?D:SR63\.buildReportPages/, 'download auto prepares fresh selection');
+assert.match(ui,/const exportPages=prepared\?D:\(departmentMode&&!departmentSubjects\.length\?\[\]:SR63\.buildReportPages\(reportRows/, 'download auto prepares the authorized selection');
 assert.match(ui,/if\(split\)SR63\.downloadReportFile\(await SR63\.reportZipFromPdfs/, 'ZIP always, even for one report');
 assert.match(ui,/تنزيل تقارير مفردة ZIP — حسب/);
 assert.match(ui,/disabled:!canPrint\|\|!!downloadState/,'exports respect export permissions');
