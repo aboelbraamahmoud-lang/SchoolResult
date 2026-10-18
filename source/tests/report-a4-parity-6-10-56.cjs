@@ -1,0 +1,43 @@
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
+const root=path.resolve(__dirname,'../src');
+const pr=fs.readFileSync(path.join(root,'report-print-batch.js'),'utf8'),pdf=fs.readFileSync(path.join(root,'report-download-pdf.js'),'utf8');
+const ui=fs.readFileSync(path.join(root,'patches/ui.js'),'utf8');
+const scope={SR63:{},URL,console,atob,Blob,TextEncoder,Uint8Array,Uint32Array,DataView};
+vm.runInNewContext(pr+'\n'+pdf,scope,{timeout:4000});
+const SR=scope.SR63;
+assert.equal(SR.reportScreenCSS('h1{color:blue}@media print{@page{margin:5mm}h1{display:none}}p{color:green}'),'h1{color:blue}p{color:green}');
+const css=fs.readFileSync(path.resolve(root,'../../style.css'),'utf8');
+const screen=SR.reportScreenCSS(css);
+assert.doesNotMatch(screen,/@media\s+print\b/i,'Legacy print rules must not move logo or header');
+assert.match(screen,/\.report-ministry-emblem-official/,'Original ministry logo CSS stays available');
+const portrait=SR.reportPrintOverride(false),wide=SR.reportPrintOverride(true);
+for(const [label,style,w,h] of [['portrait',portrait,210,297],['landscape',wide,297,210]]){
+ assert.match(style,new RegExp('width:'+w+'mm!important;height:'+h+'mm!important'),label+' fills full physical A4');
+ assert.match(style,/padding:9mm 9mm 8mm!important/,'retain original report inner padding');
+ assert.match(style,/display:flex!important;flex-direction:column!important/,'retain screen flex layout');
+ assert.match(style,/flex-shrink:0!important/,'never collapse logo and report headings');
+ assert.match(style,/margin-top:auto!important/,'retain page signature/footer position');
+}
+assert.match(pr,/SR63\.planReportSheet\(page,width,height\)/);
+assert.match(pdf,/SR63\.planReportSheet\(element,w,h\)/,'PDF/ZIP use same full paper layout as printer');
+assert.match(pdf,/const offsetX=0,offsetY=0/,'no additional raster centering margins');
+assert.match(pdf,/css\.objectPosition/,'preserve exact logo object positioning');
+assert.match(ui,/data-orientation/);
+assert.match(ui,/grade-subjects-landscape report-landscape/,'landscape preview matches landscape PDF');
+assert.match(ui,/renderReportHTML\(D,isLandscape/,'all selected pages are printed');
+assert.match(ui,/renderReportPage\(page,processed,exportPages\.length\)/,'PDF page totals match selection before preview');
+const image='data:image/jpeg;base64,'+fs.readFileSync(path.join(__dirname,'fixtures/report-sample.jpg')).toString('base64');
+(async()=>{
+ const pages=[false,true,false].map(landscape=>({dataUrl:image,landscape,width:5,height:4}));
+ const combined=SR.reportPdfFromJpegs(pages),buffer=Buffer.from(await combined.arrayBuffer());
+ assert.ok(buffer.includes(Buffer.from('/Count 3')),'all 3 report sheets exist');
+ const landscapeBoxes=[...buffer.toString('latin1').matchAll(/\/MediaBox\[0 0 ([\d.]+) ([\d.]+)\]/g)].map(x=>Number(x[1])>Number(x[2]));
+ assert.deepEqual(landscapeBoxes,[false,true,false]);
+ const zipped=await SR.reportZipFromPdfs([{name:'تقرير الطالب.pdf',blob:combined},{name:'تقرير المعلم.pdf',blob:combined}]);
+ const zip=Buffer.from(await zipped.arrayBuffer());
+ assert.equal(zip.readUInt32LE(0),0x04034b50);
+ assert.equal(zip.readUInt32LE(zip.length-22),0x06054b50);
+ assert.ok(zip.includes(Buffer.from('تقرير الطالب.pdf','utf8')));
+ console.log('PASS 6.10.56 A4 screen/print/PDF/ZIP layout parity, logo lock, portrait/landscape and multi-file exports');
+})().catch(error=>{console.error(error);process.exitCode=1});

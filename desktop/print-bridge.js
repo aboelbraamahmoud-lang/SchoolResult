@@ -5,8 +5,17 @@
   if (!bridge || !bridge.isDesktop) return;
   const landscape = doc => {
     try {
+      const oriented = doc.querySelector?.('[data-orientation="landscape"], [data-orientation="portrait"]');
+      const explicit = oriented?.dataset?.orientation || oriented?.getAttribute?.('data-orientation');
+      if (explicit === 'landscape') return true;
+      if (explicit === 'portrait') return false;
+      if (doc.querySelector?.('.grade-subjects-landscape, .report-landscape, .sr633-certificate')) return true;
+      if (doc.querySelector?.('.report-portrait, .student-result-page')) return false;
       const css = [...doc.querySelectorAll('style')].map(tag => tag.textContent || '').join('\n');
-      return /@page\s*[^{}]*\{[^}]*\bsize\s*:\s*(?:A\d\s+)?landscape\b/i.test(css);
+      let selected = null;
+      for (const rule of css.matchAll(/@page\s*[^{}]*\{[^}]*\bsize\s*:\s*(?:A\d+\s+)?(landscape|portrait)\b/gi))
+        selected = rule[1].toLowerCase();
+      return selected === 'landscape';
     } catch { return false; }
   };
   const reportFailure = error => {

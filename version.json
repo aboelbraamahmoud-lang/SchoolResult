@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.55",
-  "released": "2026-10-15",
+  "version": "6.10.56",
+  "released": "2026-10-18",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "توحيد قياسات تقرير A4 للطباعة وPDF وZIP؛ طباعة كامل النطاق بدل الاكتفاء بثماني صفحات المعاينة؛ معاينة فعلية قبل الطباعة وحفظ PDF متجهي في نسخة Windows."
+  "notes": "إخراج تقارير A4 بملء الورقة وحفظ الترويسة والشعار والتذييل دون تغيير؛ توحيد مسار الطباعة وPDF وZIP واتجاه الطولي والعرضي وفحوصات منع التراجع."
 }

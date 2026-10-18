@@ -83,13 +83,13 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  if(!element)throw Error('صفحة التقرير غير موجودة.');
  // Paint the already-laid-out ORIGINAL DOM directly to a same-origin canvas.
  // Chrome deliberately taints foreignObject-SVG screenshots; do not use them for PDFs.
- const w=landscape?1123:794,h=landscape?794:1123,margin=19;
+ const w=landscape?1123:794,h=landscape?794:1123,margin=0;
  // Share the same full-width, single-sheet layout as browser printing and ZIP.
- const layout=SR63.planReportSheet(element,w-2*margin,h-2*margin);
+ const layout=SR63.planReportSheet(element,w,h);
  const base=element.getBoundingClientRect();
  const naturalW=layout.width,naturalH=layout.height,scale=layout.scale;
- const offsetX=margin+(w-2*margin-naturalW*scale)/2;
- const offsetY=margin+(h-2*margin-naturalH*scale)/2;
+ // The page already includes its original interior padding; do not center a mini-report.
+ const offsetX=0,offsetY=0;
  // High-quality *raster fallback* for direct download / ZIP: 300 dpi instead
  // of 192 dpi. True infinitely zoomable text is available via native vector PDF.
  const density=300/96;
@@ -237,8 +237,13 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
     const image=new Image();image.crossOrigin='anonymous';
     image.src=url.startsWith('data:')?url:new URL(url,document.baseURI).href;
     await image.decode();
-    const ratio=Math.min(r.width/image.naturalWidth,r.height/image.naturalHeight);
-    ctx.drawImage(image,r.left+(r.width-image.naturalWidth*ratio)/2,r.top+(r.height-image.naturalHeight*ratio)/2,image.naturalWidth*ratio,image.naturalHeight*ratio);
+    const objectFit=css.objectFit||'fill';
+    const ratio=objectFit==='cover'?Math.max(r.width/image.naturalWidth,r.height/image.naturalHeight):Math.min(r.width/image.naturalWidth,r.height/image.naturalHeight);
+    const iw=image.naturalWidth*ratio,ih=image.naturalHeight*ratio;
+    const position=String(css.objectPosition||'50% 50%').trim().toLowerCase().split(/\s+/);
+    const fraction=value=>value==='right'||value==='bottom'?1:value==='left'||value==='top'?0:value==='center'?0.5:/^-?\d+(?:\.\d+)?%$/.test(value)?parseFloat(value)/100:0.5;
+    const px=fraction(position[0]||'50%'),py=fraction(position[1]||'50%');
+    ctx.drawImage(image,r.left+(r.width-iw)*px,r.top+(r.height-ih)*py,iw,ih);
    }catch(err){throw Error('تعذر تضمين شعار التقرير داخل ملف PDF؛ تحقق من صورة الشعار.');}
    return;
   }

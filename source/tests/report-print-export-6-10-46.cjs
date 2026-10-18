@@ -6,7 +6,7 @@ const ui=fs.readFileSync(path.join(root,'source/src/patches/ui.js'),'utf8');
 const sandbox={SR63:{},atob,TextEncoder,Blob,Uint8Array,Uint32Array,DataView,URL,console};
 vm.runInNewContext(print+'\n'+download,sandbox,{filename:'report-download.js'});
 const SR=sandbox.SR63;
-assert.match(print,/const css=await SR63\.getReportStyleText\(\)/,'print must wait for the complete CSS');
+assert.match(print,/const css=SR63\.reportScreenCSS\(await SR63\.getReportStyleText\(\)\)/,'print must wait for the complete CSS');
 assert.match(print,/win\.document\.fonts\?\.ready/,'print must wait for font resources');
 assert.doesNotMatch(print,/<link rel="stylesheet"/,'print must not rely on a late network stylesheet');
 assert.match(ui,/renderReportPage=\(t,pageNumber,pageTotal\)/,'same React renderer must power preview and downloads');

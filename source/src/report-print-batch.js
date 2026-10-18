@@ -2,7 +2,7 @@
 SR63.reportStyleTextPromise=null;
 SR63.getReportStyleText=function(){
   if(!SR63.reportStyleTextPromise){
-    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.54');
+    const styleUrl=new URL('./style.css',document.baseURI);styleUrl.searchParams.set('v',SR63.version||'6.10.56');
     SR63.reportStyleTextPromise=fetch(styleUrl.href,{cache:'force-cache'})
       .then(response=>{if(!response.ok)throw Error('تعذر تحميل تنسيق التقرير للطباعة.');return response.text();})
       .then(css=>{if(css.length<25000)throw Error('ملف تنسيق التقارير غير مكتمل.');return css;})
@@ -10,114 +10,124 @@ SR63.getReportStyleText=function(){
   }
   return SR63.reportStyleTextPromise;
 };
-SR63.reportPrintOverride=function(landscape=false){
-  const width=landscape?'287mm':'200mm';
-  return `@page{size:A4 ${landscape?'landscape':'portrait'};margin:5mm!important}
-    html,body{margin:0!important;padding:0!important;background:white!important;color:#17364b!important;direction:rtl!important}
-    body{font-family:Tahoma,Arial,sans-serif!important}
-    .sr646-print-document,.sr646-print-document *{visibility:visible!important}
-    .sr646-print-document{direction:rtl;width:100%;margin:0 auto}
-    .sr650-sheet{position:relative!important;display:flex!important;align-items:center!important;justify-content:center!important;box-sizing:border-box!important;width:${width}!important;
-      height:${landscape?'200mm':'287mm'}!important;margin:0!important;padding:0!important;
-      overflow:hidden!important;break-inside:avoid!important;page-break-inside:avoid!important;
-      break-after:page!important;page-break-after:always!important}
-    .sr650-sheet:last-child{break-after:auto!important;page-break-after:auto!important}
-    .sr650-sheet>.school-report-page{display:block!important;box-sizing:border-box!important;
-      min-height:0!important;height:auto!important;max-height:none!important;overflow:visible!important;
-      padding:0!important;margin:0!important;border-radius:0!important;box-shadow:none!important;
-      transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
-      break-after:auto!important;page-break-after:auto!important}
-    .school-report-page img,.report-head img,.report-logo-image{object-fit:contain!important;max-width:49mm!important;max-height:19mm!important}
-    .report-head img.report-ministry-emblem-official{max-height:11mm!important}
-    .report-table{break-inside:auto!important;width:calc(100% - 4mm)!important}
-    .report-table thead{display:table-header-group!important}
-    .report-table tr{break-inside:avoid!important}
-    .report-head,.report-title,.report-context,.report-footer{break-inside:avoid!important}
-    .report-page-number{position:static!important}
-    @media print{*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-      body{width:auto!important}.school-report-page{box-shadow:none!important}
-      .report-screen-only,.sr-cloud-account,header:not(.report-head){display:none!important}}
-  `;
+// v6.10.56: isolate screen CSS to preserve official logo and title positions.
+SR63.reportScreenCSS=function reportScreenCSS(css){
+ let output='',cursor=0;
+ const pattern=/@media\s+print\b[^{}]*\{/gi;
+ let match;
+ while((match=pattern.exec(css))){
+  output+=css.slice(cursor,match.index);
+  let pos=pattern.lastIndex,depth=1,quote=null,comment=false;
+  for(;pos<css.length&&depth;pos++){
+   const c=css[pos],next=css[pos+1];
+   if(comment){if(c==='*'&&next==='/'){comment=false;pos++;}continue;}
+   if(quote){if(c==='\\'){pos++;continue;}if(c===quote)quote=null;continue;}
+   if(c==='/'&&next==='*'){comment=true;pos++;continue;}
+   if(c==='"'||c==="'"){quote=c;continue;}
+   if(c==='{')depth++;else if(c==='}')depth--;
+  }
+  if(depth)throw Error('تنسيق CSS للطباعة غير مكتمل؛ أُوقفت الطباعة لمنع الإخراج المشوه.');
+  cursor=pos;pattern.lastIndex=pos;
+ }
+ return output+css.slice(cursor);
 };
-// Keep each original report on exactly one A4 sheet. Expand its logical
-// columns first, then apply a UNIFORM scale so text is not stretched.
-// A4-safe fitting shared by isolated printing and PDF/ZIP. Use actual CSS-pixel
-// paper dimensions. Never widen a logical page then shrink all of its text.
-SR63.planReportSheet=function(page,targetWidth,targetHeight){
+// Render one physical A4 sheet from the exact original screen report page.
+SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
+ const w=landscape?'297mm':'210mm',h=landscape?'210mm':'297mm';
+ return `@page{size:A4 ${landscape?'landscape':'portrait'};margin:0}
+  html,body{margin:0!important;padding:0!important;background:#fff!important;direction:rtl!important}
+  body{width:${w}!important;min-width:${w}!important}
+  .sr646-print-document,.sr646-print-document *{visibility:visible!important}
+  .sr646-print-document,#printable-reports{display:block!important;width:${w}!important;margin:0!important;padding:0!important}
+  .sr650-sheet{position:relative!important;box-sizing:border-box!important;display:block!important;
+    width:${w}!important;height:${h}!important;min-height:${h}!important;max-height:${h}!important;
+    margin:0!important;padding:0!important;overflow:hidden!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;
+    break-after:page!important;page-break-after:always!important}
+  .sr650-sheet:last-child{break-after:auto!important;page-break-after:auto!important}
+  .sr646-print-document .sr650-sheet>.school-report-page{
+    box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
+    width:${w}!important;min-width:${w}!important;max-width:${w}!important;
+    height:${h}!important;min-height:${h}!important;max-height:${h}!important;
+    padding:9mm 9mm 8mm!important;margin:0!important;
+    overflow:hidden!important;border-radius:0!important;box-shadow:none!important;
+    transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
+    break-after:auto!important;page-break-after:auto!important}
+  .sr646-print-document .sr650-sheet>.school-report-page>*{flex-shrink:0!important}
+  .sr646-print-document .school-report-page .report-footer{margin-top:auto!important}
+  .sr646-print-document .school-report-page .report-table{width:100%!important}
+  .sr646-print-document .school-report-page .report-page-number{position:static!important}
+  @media print{
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+    .report-screen-only,.sr-cloud-account{display:none!important}
+    .sr646-print-document .sr650-sheet>.school-report-page:after{content:none!important;display:none!important}}
+ `;
+};
+SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
  if(!page||!page.style||!(targetWidth>0&&targetHeight>0))throw Error('صفحة التقرير أو مقاس الورق غير صالح للطباعة.');
- const style=page.style,baseline=targetWidth;
- for(const [name,value] of [['zoom','1'],['height','auto'],['min-height','0'],['max-height','none'],['overflow','visible'],['box-sizing','border-box'],['margin','0'],['padding','0'],['border-radius','0'],['box-shadow','none'],['transform','none']])style.setProperty(name,value,'important');
- for(const key of ['width','min-width','max-width'])style.setProperty(key,baseline+'px','important');
- // One official emblem footprint for printing and offline PDF rendering.
- for(const img of page.querySelectorAll?.('.report-head img,.report-logo-image')||[]){
-  if(!img.style)continue;
-  img.style.setProperty('object-fit','contain','important');
-  img.style.setProperty('max-width','49mm','important');
-  img.style.setProperty('max-height',img.classList?.contains('report-ministry-emblem-official')?'11mm':'19mm','important');
- }
- function measure(){
-  const rect=page.getBoundingClientRect();
-  let left=rect.left,right=rect.right,top=rect.top,bottom=rect.bottom;
-  const nodes=page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-context,.report-meta-grid,.report-footer,.report-head')||[];
-  for(const node of nodes){if(!node?.getBoundingClientRect)continue;const q=node.getBoundingClientRect();if(!q.width||!q.height)continue;left=Math.min(left,q.left);right=Math.max(right,q.right);top=Math.min(top,q.top);bottom=Math.max(bottom,q.bottom);}
-  return {left,top,width:Math.max(1,page.scrollWidth||0,right-left),height:Math.max(1,page.scrollHeight||0,bottom-top)};
- }
- const allTable=page.querySelector?.('.report-table');
- if(allTable?.style?.setProperty)allTable.style.setProperty('width','calc(100% - 4mm)','important');
- const pageNumber=page.querySelector?.('.report-page-number');
- if(pageNumber?.style?.setProperty)pageNumber.style.setProperty('position','static','important');
- const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official)');
- const rowNodes=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean),rows=rowNodes.length;
+ const style=page.style;
+ for(const [name,value] of [
+   ['zoom','1'],['transform','none'],['box-sizing','border-box'],
+   ['display','flex'],['flex-direction','column'],['width',targetWidth+'px'],
+   ['min-width',targetWidth+'px'],['max-width',targetWidth+'px'],
+   ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
+   ['overflow','visible'],['margin','0']
+ ])style.setProperty(name,value,'important');
  const view=page.ownerDocument?.defaultView;
- const readStyle=view?.getComputedStyle?.bind(view)||(typeof getComputedStyle==='function'?getComputedStyle:null);
- // Grow readable font sizes before filling any remaining vertical space.
- const fontSelector='.report-title,.report-head b,.report-head strong,.report-context,.report-context b,.report-meta-grid,.report-meta-grid b,.report-kpis,.report-kpis b,.report-section-title,.report-table,.report-table th,.report-table td,.report-table td b,.report-table td small,.report-table td span,.report-footer,.report-footer b,.report-signatures b';
- const fonts=readStyle?[...(page.querySelectorAll?.(fontSelector)||[])].filter(node=>node?.style).map(node=>[node,parseFloat(readStyle(node).fontSize)]).filter(([,size])=>size>0&&Number.isFinite(size)):[];
- const fontScale=factor=>{for(const [node,size] of fonts)node.style.setProperty('font-size',(size*factor).toFixed(2)+'px','important');};
- let box=measure(),growth=1;
- if(fonts.length&&box.width<targetWidth*1.02&&box.height<targetHeight*.94){
-  let low=1,high=rows<=12?1.36:rows<=30?1.25:1.14;
-  for(let k=0;k<7;k++){
-   const mid=(low+high)/2;fontScale(mid);const trial=measure();
-   if(trial.width<=targetWidth-3&&trial.height<=targetHeight*.91){low=mid;box=trial;}else high=mid;
-  }
-  growth=low;fontScale(growth);box=measure();
- }
- // Make the student rows use the available paper height, rather than leaving it white.
- if(table&&rows>=2){
-  const spare=targetHeight-box.height;
-  if(spare>20){
-   // Few-student classes need more of the physical sheet; never widen text to fake the fill.
-   const perRow=rows<=12?90:rows<=20?36:rows<=40?20:11;
-   const extra=Math.max(0,Math.min(spare*.90-8,rows*perRow));
-   if(extra>8){
-    const before=table.getBoundingClientRect().height;
-    table.style.setProperty('height',(before+extra)+'px','important');
-    const after=table.getBoundingClientRect().height;
-    // Chromium variants that ignore explicit table height get per-row allocation.
-    if(after<before+extra*.60){
-     table.style.removeProperty?.('height');
-     for(const tr of rowNodes){if(!tr.style?.setProperty)continue;const h=tr.getBoundingClientRect().height;tr.style.setProperty('height',(h+extra/rows)+'px','important');}
-    }
-    box=measure();
+ const getStyle=view?.getComputedStyle?.bind(view)||(typeof getComputedStyle==='function'?getComputedStyle:null);
+ const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official)');
+ const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
+ const footer=page.querySelector?.('.report-footer');
+ const measure=()=>{
+   const r=page.getBoundingClientRect();let width=Math.max(page.scrollWidth||0,r.width),height=Math.max(page.scrollHeight||0,r.height);
+   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number')||[]){
+     const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
+     width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
    }
-  }
+   return {left:r.left,top:r.top,width,height};
+ };
+ let box=measure();
+ if(table&&rows.length>=2){
+   const t=table.getBoundingClientRect(),f=footer?.getBoundingClientRect?.();
+   const free=f&&f.top>t.bottom?f.top-t.bottom-14:Math.max(0,targetHeight-box.height-16);
+   if(free>18){
+     const extra=Math.max(0,Math.min(free*.88,rows.length*(rows.length<=12?95:rows.length<=30?50:24)));
+     if(extra>8){
+       const before=t.height;
+       table.style?.setProperty?.('height',(before+extra)+'px','important');
+       const after=table.getBoundingClientRect().height;
+       if(after<before+extra*.55){
+         table.style?.removeProperty?.('height');
+         for(const tr of rows){const h=tr.getBoundingClientRect().height;tr.style?.setProperty?.('height',(h+extra/rows.length)+'px','important');}
+       }
+       box=measure();
+     }
+   }
  }
- // If the full original rows cannot fit on one A4 page at a legible size,
- // STOP instead of cropping them or silently generating a second sheet.
- const scale=Math.min(1,(targetWidth-3)/box.width,(targetHeight-3)/box.height);
- const fill=box.width*scale/targetWidth,verticalFill=box.height*scale/targetHeight;
- if(!Number.isFinite(scale)||scale<.79||fill<.79||verticalFill>1.001)throw Error('بيانات التقرير تتجاوز حدود صفحة A4 واحدة بحجم مقروء. اختر نطاقًا أصغر أو قسّم التقرير إلى صفحات مستقلة دون حذف صفوف الطلاب.');
- return {...box,scale,fill,verticalFill,growth,rows,singleSheet:true};
+ if((box.height>targetHeight+2||box.width>targetWidth+2)&&table&&getStyle){
+   const cellNodes=[...(table.querySelectorAll?.('th,td')||[])].filter(el=>el.style);
+   const baseline=cellNodes.map(el=>({el,font:parseFloat(getStyle(el).fontSize)||9,
+     top:parseFloat(getStyle(el).paddingTop)||0,bottom:parseFloat(getStyle(el).paddingBottom)||0}));
+   for(const factor of [.94,.88,.82,.76]){
+     for(const {el,font,top,bottom} of baseline){
+       el.style.setProperty('font-size',(font*factor).toFixed(2)+'px','important');
+       el.style.setProperty('padding-top',(top*factor).toFixed(2)+'px','important');
+       el.style.setProperty('padding-bottom',(bottom*factor).toFixed(2)+'px','important');
+     }
+     box=measure();if(box.height<=targetHeight+2&&box.width<=targetWidth+2)break;
+   }
+ }
+ if(box.width>targetWidth+2||box.height>targetHeight+2)throw Error('بيانات التقرير تتجاوز حدود صفحة A4 واحدة بحجم مقروء. اختر نطاقًا أصغر أو قسّم التقرير إلى صفحات مستقلة دون حذف صفوف الطلاب.');
+ return {...box,scale:1,zoom:1,fill:Math.min(1,box.width/targetWidth),
+   verticalFill:Math.min(1,box.height/targetHeight),rows:rows.length,singleSheet:true};
 };
-SR63.fitReportPagesForPrint=function(doc,landscape=false){
- const factor=96/25.4,width=(landscape?287:200)*factor,height=(landscape?200:287)*factor,results=[];
+SR63.fitReportPagesForPrint=function fitReportPagesForPrint(doc,landscape=false){
+ const factor=96/25.4,width=(landscape?297:210)*factor,height=(landscape?210:297)*factor,results=[];
  for(const page of doc.querySelectorAll('.school-report-page')){
   const plan=SR63.planReportSheet(page,width,height);
-  page.style.setProperty('zoom',String(plan.scale),'important');
   page.style.setProperty('break-inside','avoid','important');
   page.style.setProperty('page-break-inside','avoid','important');
-  results.push({...plan,zoom:plan.scale});
+  results.push(plan);
  }
  return results;
 };
@@ -130,7 +140,7 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
   const win=preparedWindow||window.open('','_blank');if(!win)throw new Error('فعّل السماح بالنوافذ المنبثقة للطباعة.');
   win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تجهيز الطباعة…</title></head><body><p dir="rtl">جارٍ تجهيز التقرير والتأكد من تحميل الخطوط والصور قبل الطباعة…</p></body></html>');win.document.close();
   try{
-    const css=await SR63.getReportStyleText();
+    const css=SR63.reportScreenCSS(await SR63.getReportStyleText());
     if(win.closed)return 0;
     const safe=String(title).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     // Copy the already-rendered original pages; never recalculate their data.

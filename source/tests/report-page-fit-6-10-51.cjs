@@ -23,9 +23,10 @@ for(const [name,content,students] of [['few',460,7],['medium',730,19],['large',1
 }
 assert.throws(()=>plan(sheet(2000,65).root,756,1085),/صفحة A4/,'must reject unreadable layout, not clip student data');
 const portrait=scope.SR63.reportPrintOverride(false),landscape=scope.SR63.reportPrintOverride(true);
-assert.match(portrait,/@page\{size:A4 portrait;margin:5mm/);
-assert.match(landscape,/@page\{size:A4 landscape;margin:5mm/);
-assert.match(portrait,/display:flex!important;align-items:center!important/);
-assert.match(src,/fontScale\(growth\)/);
+assert.match(portrait,/@page\{size:A4 portrait;margin:0/);
+assert.match(landscape,/@page\{size:A4 landscape;margin:0/);
+assert.match(portrait,/display:flex!important;flex-direction:column!important/);
+assert.match(src,/\.report-head|\.report-footer/);
+assert.doesNotMatch(src, /\['padding','0'\]/, 'Do not discard original report page padding');
 assert.doesNotMatch(src,/baseline\*1\.8/);
 console.log('SchoolResult 6.10.51: short, medium and long class A4 fitting PASS');

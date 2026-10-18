@@ -10,7 +10,7 @@ assert.doesNotMatch(fn,/#printable-reports \.school-report-page/,'print must not
 assert.match(ui,/root\.render\(renderReportPage\(page,pIndex\+1,pages\.length\)\)/,'full selection uses original preview React page component');
 assert.match(ui,/pageHTML\.push\(node\.outerHTML\)/,'printed vector HTML is built from actual React report pages');
 assert.match(ui,/visible\.map\(\(t,r\)=>renderReportPage/,'8-page preview stays fast');
-assert.match(print,/\['padding','0'\]/,'export and printer use same page padding');
-assert.match(print,/allTable\.style\.setProperty\('width','calc\(100% - 4mm\)'/);
-assert.match(pdf,/SR63\.planReportSheet\(element,w-2\*margin,h-2\*margin\)/);
+assert.match(print,/padding:9mm 9mm 8mm!important/,'retain original screen report padding');
+assert.doesNotMatch(print,/calc\(100% - 4mm\)/,'do not reflow the original table margins');
+assert.match(pdf,/SR63\.planReportSheet\(element,w,h\)/);
 console.log('SchoolResult 6.10.55: all selected report pages printed, consistent A4 fit with downloaded PDF/ZIP PASS');
