@@ -48,5 +48,5 @@
     "test:report-a4-parity": "node tests/report-a4-parity-6-10-56.cjs",
     "test:student-print-parity": "node tests/student-print-parity-6-10-57.cjs"
   },
-  "version": "6.10.57"
+  "version": "6.10.58"
 }

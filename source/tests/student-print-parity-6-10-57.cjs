@@ -43,5 +43,28 @@ vm.runInNewContext(fn,context);
  context.window.open=()=>null;
  await context.SR63.printStudentResults();
  assert.match(errors.at(-1),/النوافذ المنبثقة/);
+ // Realistic geometry mock: the summary/note follow the student score table.
+ // Previous code treated them as empty space and pushed the signatures off A4.
+ const layoutSandbox={SR63:{},URL,console};
+ vm.runInNewContext(printer,layoutSandbox);
+ let extra=0;
+ const rect=(top,bottom,width=700)=>({left:20,top,right:20+width,bottom,width,height:bottom-top});
+ const lastNote={getBoundingClientRect:()=>rect(620+extra,648+extra)};
+ const footer={previousElementSibling:lastNote,getBoundingClientRect:()=>{
+  const pushed=Math.max(0,extra-310);
+  return rect(959+pushed,1084+pushed);
+ }};
+ const table={style:{setProperty:(name,value)=>{if(name==='height')extra=Math.max(0,parseFloat(value)-304)},removeProperty:()=>{extra=0}},
+  getBoundingClientRect:()=>rect(236,540+extra),
+  querySelectorAll:sel=>sel==='tbody tr'?Array.from({length:9},()=>({style:{setProperty(){}}})):[]};
+ const page={style:{setProperty(){}},scrollWidth:794,
+  get scrollHeight(){return Math.max(1123,footer.getBoundingClientRect().bottom)},
+  getBoundingClientRect:()=>rect(0,1123,794),
+  querySelector:selector=>selector.includes('student-result-table')?table:selector.includes('student-result-footer')?footer:null,
+  querySelectorAll:()=>[footer,table,lastNote]};
+ const plan=layoutSandbox.SR63.planReportSheet(page,794,1123);
+ assert.equal(plan.singleSheet,true,'nine subjects and their report footer fit exactly one A4');
+ assert.ok(extra>60&&extra<300,'only actual available space may be distributed to score rows');
+ assert.ok(footer.getBoundingClientRect().bottom<=1123,'student summary and signatures never leave paper');
  console.log('PASS 6.10.57 student results preview/print parity, no clipped main-window report, safe popup closing');
 })().catch(err=>{console.error(err);process.exitCode=1});

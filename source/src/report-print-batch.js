@@ -95,7 +95,12 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
  let box=measure();
  if(table&&rows.length>=2){
    const t=table.getBoundingClientRect(),f=footer?.getBoundingClientRect?.();
-   const free=f&&f.top>t.bottom?f.top-t.bottom-14:Math.max(0,targetHeight-box.height-16);
+   // Stretch only the gap AFTER the last actual content before the footer.
+   // Student statements have score summaries and methodology notes AFTER the table.
+   // Counting those as empty space pushes signatures outside the A4 sheet.
+   const trailing=footer?.previousElementSibling?.getBoundingClientRect?.();
+   const occupiedBottom=Math.max(t.bottom,trailing?.height>0?trailing.bottom:t.bottom);
+   const free=f&&f.top>occupiedBottom?f.top-occupiedBottom-14:Math.max(0,targetHeight-box.height-16);
    if(free>18){
      const extra=Math.max(0,Math.min(free*.88,rows.length*(rows.length<=12?95:rows.length<=30?50:24)));
      if(extra>8){

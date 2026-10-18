@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.57",
+  "version": "6.10.58",
   "released": "2026-10-18",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح إغلاق معاينة الطباعة في Electron دون ظهور Object has been destroyed؛ توحيد طباعة نتائج الطلاب مع المعاينة الأصلية A4 وحماية النوافذ المغلقة في جميع مسارات التقارير؛ اختبارات إغلاق أثناء الطباعة."
+  "notes": "معالجة نهائية لتحجيم تقارير الطلاب والتقارير المدرسية حسب الفراغ الحقيقي بعد عناصر الملخص، مع منع دفع التوقيعات خارج صفحة A4؛ مع استمرار حماية نافذة الطباعة في Electron."
 }
