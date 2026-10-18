@@ -39,7 +39,7 @@ const remapped=ctx.SR63.remapCustomExamColumns(customConfig.columns,'exam1','exa
 assert.ok(remapped.some(c=>c.key==='score:exam2')&&remapped.some(c=>c.key==='percent:exam2')&&remapped.some(c=>c.key==='band:exam2'),'custom exam columns did not follow exam change');checks++;
 assert.ok(!remapped.some(c=>/^(score|percent|band):exam1$/.test(c.key)),'old custom exam-bound columns remained after exam change');checks++;
 
-const app=require('fs').readFileSync(APP_PATH,'utf8');assert.ok(app.includes('SR63.buildReportPages(e.rows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');assert.ok(app.includes('H9=e=>SR63.customReportDefault(e)'),'custom report runtime still hard-codes its default exam');checks++;
+const app=require('fs').readFileSync(APP_PATH,'utf8');assert.ok(app.includes('SR63.buildReportPages(reportRows'),'runtime does not use reviewed report builder');assert.ok(app.includes('SR63.reportDisplaySubject'),'runtime does not resolve displayed subject');assert.ok(app.includes('H9=e=>SR63.customReportDefault(e)'),'custom report runtime still hard-codes its default exam');checks++;
 assert.ok(app.includes('(0,v.useState)(()=>H9(e))'),'custom report state does not receive workspace active exam');checks++;
 assert.ok(app.includes('SR63.remapCustomExamColumns(n.columns,n.exam,t)'),'custom report columns do not follow exam changes');checks++;
 assert.ok(!app.includes('النتائج المقيمة فقط')&&!app.includes('غير المقيمة فقط'),'legacy evaluated terminology remains in custom report builder');checks++;
