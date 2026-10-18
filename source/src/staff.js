@@ -271,7 +271,7 @@ SR63.CoordinatorPortal=function({profile}){
    page==='reportCenter'&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
     h('header',{className:'srstaff-panel'},[
      h('h2',{},isLeadership?'مركز التقارير والطباعة الأصلي — جميع صفوف المدرسة':'مركز التقارير والطباعة — أقسامي المصرح بها فقط'),
-     h('p',{},isLeadership?'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.':'نفس تقارير المدير والنائب بنفس القوالب والمعاينة والطباعة وPDF وZIP، لكن البيانات محدودة من الخادم بأقسامك المصرح بها ('+(profile.departments||[]).join('، ')+') فقط، دون عرض نتائج الأقسام الأخرى أو تعديلها.'),
+     h('p',{},isLeadership?'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.':'نفس تقارير المدير والنائب بنفس القوالب والمعاينة والطباعة وPDF وZIP، ومربع المادة ثابت على مادة قسمك، ولا يمكن اختيار «كل المواد» أو التبديل بينها. البيانات محدودة من الخادم بأقسامك المصرح بها ('+(profile.departments||[]).join('، ')+') فقط، دون عرض نتائج الأقسام الأخرى أو تعديلها.'),
      !perms.export?h('p',{className:'srstaff-alert',role:'alert'},'العرض متاح، لكن الطباعة غير مفعلة لهذا الحساب. اطلب من مسؤول النظام تفعيل صلاحية «تصدير Word والتقارير».'):null
     ]),
     h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage(isLeadership?'overview':'dashboard'),reportScope:isLeadership?'school':'department'})
