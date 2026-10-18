@@ -10,7 +10,7 @@ const edge=fs.readFileSync(path.join(__dirname,'../../supabase/functions/school-
 assert.match(staff,/SR63\.staffReportWorkspace=function/);
 assert.match(staff,/coordinatorName:typeof settings\.coordinatorName==='string'\?settings\.coordinatorName:''/);
 assert.match(staff,/SR63\.ReportCenterSafeBoundary=class extends v\.Component/);
-assert.match(staff,/h\(SR63\.ReportCenterSafeBoundary,/,'React error boundary must wrap actual report center');
+assert.match(staff,/h\(SR63\.getReportCenterSafeBoundary\(\),/,'React error boundary must wrap actual report center');
 assert.match(edge,/reportDesign','coordinatorName','stable'/,'server source safely projects report fields for future deploys');
 const workspace=ctx.zj();
 workspace.settings={...workspace.settings,coordinatorName:undefined,stable:undefined};
@@ -56,7 +56,10 @@ for(const page of pages){
  assert.ok(subjects.includes('الرياضيات'),'official report header/footer reflect selected coordinator subject');
  assert.ok(!subjects.includes('اللغة العربية'),'no all-subject or unauthorized material in preview');
 }
-const B=SR.ReportCenterSafeBoundary;
+const savedReact=ctx.v;
+ctx.v={...ctx.v,Component:class Component{constructor(props){this.props=props;this.state={}}}};
+const B=SR.getReportCenterSafeBoundary();
+ctx.v=savedReact;
 assert.equal(typeof B,'function');
 const boundary=new B({children:'original preview',onReset:()=>{}});
 assert.equal(boundary.render(),'original preview');
