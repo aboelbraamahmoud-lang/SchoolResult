@@ -181,10 +181,11 @@
   const logoSrc=new URL('./moehe.png',document.baseURI).href;
   const html=students.map(stu=>certificateHtml(stu,{...options,logoSrc})).join('');
   win.document.open();win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقارير الأكاديمية والسلوكية</title><style>${certificatePrintStyle}</style></head><body>${html}</body></html>`);win.document.close();
-  let printed=false;const print=()=>{if(printed)return;printed=true;win.focus();win.print();};
+  let printed=false;const print=()=>{if(printed||win.closed)return;printed=true;win.focus();win.print();};
   Promise.race([win.document.fonts?.ready||Promise.resolve(),new Promise(resolve=>setTimeout(resolve,1500))]).then(()=>{
+   if(win.closed)return;
    const image=win.document.querySelector('img');if(!image||image.complete)print();else{image.addEventListener('load',print,{once:true});image.addEventListener('error',print,{once:true});setTimeout(print,2000);}
-  });
+  }).catch(error=>{if(!win.closed)console.error('Behavioral report printing:',error);});
  };
  SR63.BehaviorAcademicReports=function({workspace,setWorkspace}){
   const existing=workspace.behaviorReports||null;

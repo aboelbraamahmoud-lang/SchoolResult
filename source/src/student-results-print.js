@@ -24,8 +24,21 @@ SR63.studentResultPages=function(workspace,exam,filters={}){
   }
   return pages.sort((a,b)=>SR63.gradeOrder(a.grade)-SR63.gradeOrder(b.grade)||lj(a.className).localeCompare(lj(b.className),'en',{numeric:true})||String(a.studentName).localeCompare(String(b.studentName),'ar',{numeric:true}));
 };
+// The printed student statement is the same React DOM as the on-screen preview.
 SR63.printStudentResults=async function(){
-  const report=document.getElementById('printable-reports');if(!report||!report.children.length)return eb.error('لا توجد نتيجة جاهزة للطباعة.');if(document.fonts?.ready)await document.fonts.ready;document.getElementById('sr63-print-root')?.remove();const root=document.createElement('div');root.id='sr63-print-root';root.appendChild(report.cloneNode(true));document.body.appendChild(root);const cleanup=()=>root.remove();window.addEventListener('afterprint',cleanup,{once:true});try{window.print();}catch{cleanup();eb.error('تعذر فتح نافذة الطباعة.');}
+  const report=document.getElementById('printable-reports');
+  const pages=[...(report?.querySelectorAll?.('.student-result-page')||[])];
+  if(!pages.length){eb.error('لا توجد نتيجة جاهزة للطباعة.');return;}
+  // Reserve the popup synchronously in the user's click, not after fonts loading.
+  const win=window.open('','_blank');
+  if(!win){eb.error('تعذر فتح معاينة النتيجة؛ اسمح بالنوافذ المنبثقة.');return;}
+  try{
+    await SR63.printReportBatch(pages,'بيان نتائج الطلاب',false,win);
+  }catch(error){
+    if(win.closed)return;
+    try{win.close();}catch{}
+    eb.error('تعذر تجهيز طباعة النتيجة: '+String(error?.message||error));
+  }
 };
 SR63.StudentResultsPrint=function({workspace}){
   const [exam,setExam]=(0,v.useState)(workspace.activeExam),[grade,setGrade]=(0,v.useState)('الكل'),[className,setClassName]=(0,v.useState)('الكل'),[studentId,setStudentId]=(0,v.useState)('الكل'),[prepared,setPrepared]=(0,v.useState)(false);

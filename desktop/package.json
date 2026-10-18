@@ -1,7 +1,7 @@
 {
   "name": "schoolresult-desktop",
   "productName": "SchoolResult - مرصد النتائج المدرسية",
-  "version": "6.10.56",
+  "version": "6.10.57",
   "description": "نسخة Windows Desktop من مرصد النتائج المدرسية مبنية من مستودع GitHub",
   "main": "main.cjs",
   "author": "SchoolResult",
@@ -12,13 +12,13 @@
   },
   "scripts": {
     "sync:web": "node sync-web.cjs",
-    "check": "node --check main.cjs && node --check preload.cjs && node --check server.cjs && node --check print-bridge.js && node --check sync-web.cjs && node --check tests/startup-smoke.cjs && node --check web/app.js && node --check web/supabase.js && node --check tests/printing-smoke.cjs",
+    "check": "node --check main.cjs && node --check preload.cjs && node --check server.cjs && node --check print-bridge.js && node --check sync-web.cjs && node --check tests/startup-smoke.cjs && node --check web/app.js && node --check web/supabase.js && node --check tests/printing-smoke.cjs && node --check tests/print-window-lifecycle.cjs",
     "test:startup": "node tests/startup-smoke.cjs",
     "verify": "npm run sync:web && npm run check && npm run test:startup && npm run test:printing",
     "start": "npm run sync:web && electron .",
     "build:setup": "npm run verify && electron-builder --win nsis --x64",
     "build:portable": "npm run verify && electron-builder --win portable --x64",
-    "test:printing": "node tests/printing-smoke.cjs"
+    "test:printing": "node tests/printing-smoke.cjs && node tests/print-window-lifecycle.cjs"
   },
   "devDependencies": {
     "electron": "36.0.0",

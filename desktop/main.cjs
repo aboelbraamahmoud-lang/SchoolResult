@@ -68,64 +68,121 @@ if (!gotLock) {
     return input && typeof input === 'object' && input.landscape === true;
   }
 
+  // Electron popup windows can disappear while the native printer dialog is open.
+  function livePrintContents(contents) {
+    try { return !!contents && !contents.isDestroyed(); } catch { return false; }
+  }
+  function livePrintWindow(win) {
+    try { return !!win && !win.isDestroyed(); } catch { return false; }
+  }
+  function cancelledByDestroyedWindow(error) {
+    return /Object has been destroyed|webContents.*destroyed|window.*destroyed|Render frame was disposed/i.test(String(error?.message || error || ''));
+  }
+  function printParent(contents) {
+    if (!livePrintContents(contents)) return null;
+    try {
+      const attached = BrowserWindow.fromWebContents(contents);
+      return livePrintWindow(attached) ? attached : (livePrintWindow(mainWindow) ? mainWindow : null);
+    } catch { return null; }
+  }
+  function printChoice(contents, options) {
+    const parent = printParent(contents);
+    if (!parent) return null;
+    try { return dialog.showMessageBoxSync(parent, options); }
+    catch (error) {
+      if (!livePrintContents(contents) || !livePrintWindow(parent) || cancelledByDestroyedWindow(error)) return null;
+      writeLog('Print choice dialog failed', error);
+      return null;
+    }
+  }
   async function saveAsPDF(contents, landscape) {
-    const parent = BrowserWindow.fromWebContents(contents) || mainWindow;
-    const selected = dialog.showSaveDialogSync(parent, {
-      title: 'حفظ التقرير بصيغة PDF',
-      defaultPath: path.join(app.getPath('documents'), 'تقرير-مرصد-النتائج.pdf'),
-      filters: [{ name: 'PDF', extensions: ['pdf'] }]
-    });
-    if (!selected) return { status: 'cancelled' };
+    if (!livePrintContents(contents)) return { status: 'cancelled' };
+    const parent = printParent(contents);
+    if (!parent) return { status: 'cancelled' };
+    let selected;
+    try {
+      selected = dialog.showSaveDialogSync(parent, {
+        title: 'حفظ التقرير بصيغة PDF',
+        defaultPath: path.join(app.getPath('documents'), 'تقرير-مرصد-النتائج.pdf'),
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      });
+    } catch (error) {
+      if (!livePrintContents(contents) || cancelledByDestroyedWindow(error)) return { status: 'cancelled' };
+      writeLog('PDF save dialog failed', error);
+      return { status: 'error', reason: 'تعذر عرض نافذة حفظ PDF.' };
+    }
+    if (!selected || !livePrintContents(contents)) return { status: 'cancelled' };
     const outputPath = /\.pdf$/i.test(selected) ? selected : selected + '.pdf';
     try {
       const buffer = await contents.printToPDF({
         pageSize: 'A4', landscape, printBackground: true, displayHeaderFooter: false, preferCSSPageSize: true
       });
+      if (!livePrintContents(contents)) return { status: 'cancelled' };
       if (!buffer || buffer.length < 100) throw new Error('ملف PDF الناتج فارغ.');
       await fs.promises.writeFile(outputPath, buffer);
       writeLog('Report saved as PDF (' + buffer.length + ' bytes)');
       return { status: 'pdf-saved', path: outputPath };
     } catch (error) {
+      if (!livePrintContents(contents) || cancelledByDestroyedWindow(error)) return { status: 'cancelled' };
       writeLog('Failed to create PDF', error);
-      dialog.showErrorBox('تعذر حفظ PDF', error.message || String(error));
-      return { status: 'error', reason: 'تعذر حفظ التقرير بصيغة PDF.' };
+      return { status: 'error', reason: 'تعذر حفظ التقرير بصيغة PDF: ' + (error.message || String(error)) };
     }
   }
-
   async function printWithWindows(contents, landscape) {
-    const parent = BrowserWindow.fromWebContents(contents) || mainWindow;
+    if (!livePrintContents(contents)) return { status: 'cancelled' };
     let printers = [];
     try { printers = await contents.getPrintersAsync(); }
-    catch (error) { writeLog('Could not read installed printers', error); }
+    catch (error) {
+      if (!livePrintContents(contents) || cancelledByDestroyedWindow(error)) return { status: 'cancelled' };
+      writeLog('Could not read installed printers', error);
+    }
+    // Closing the preview during async printer enumeration is a normal cancellation.
+    if (!livePrintContents(contents)) return { status: 'cancelled' };
     if (!Array.isArray(printers) || !printers.length) {
-      const choice = dialog.showMessageBoxSync(parent, {
+      const choice = printChoice(contents, {
         type: 'warning', buttons: ['حفظ التقرير PDF', 'إلغاء'], defaultId: 0, cancelId: 1,
         title: 'لا توجد طابعة متاحة',
         message: 'لم يعثر Windows على طابعة متاحة لهذا الحساب.',
         detail: 'تحقق من تثبيت الطابعة وتشغيل خدمة Print Spooler. يمكنك حفظ التقرير PDF وطباعته من جهازك.'
       });
+      if (choice === null) return { status: 'cancelled' };
       return choice === 0 ? saveAsPDF(contents, landscape) : { status: 'cancelled' };
     }
     return new Promise(resolve => {
+      let finished = false;
+      const cancelled = { status: 'cancelled' };
+      const onDestroyed = () => finish(cancelled);
+      function finish(result) {
+        if (finished) return;
+        finished = true;
+        try { contents.removeListener('destroyed', onDestroyed); } catch {}
+        resolve(result);
+      }
       try {
+        contents.once('destroyed', onDestroyed);
+        if (!livePrintContents(contents)) return finish(cancelled);
         contents.print({
           silent: false, printBackground: true, color: true, pageSize: 'A4', landscape,
           margins: { marginType: 'none' }
-        }, async (success, reason) => {
-          if (success) return resolve({ status: 'submitted' });
-          if (/cancel/i.test(String(reason || ''))) return resolve({ status: 'cancelled' });
+        }, (success, reason) => {
+          if (finished || !livePrintContents(contents)) return finish(cancelled);
+          if (success) return finish({ status: 'submitted' });
+          if (/cancel/i.test(String(reason || ''))) return finish(cancelled);
           writeLog('Printer rejected report: ' + String(reason || 'unknown reason'));
-          const choice = dialog.showMessageBoxSync(parent, {
+          const choice = printChoice(contents, {
             type: 'warning', buttons: ['حفظ التقرير PDF', 'إلغاء'], defaultId: 0, cancelId: 1,
             title: 'لم تكتمل الطباعة', message: 'لم يستقبل Windows مهمة الطباعة.',
             detail: String(reason || 'تحقق من اتصال الطابعة، أو احفظ الملف PDF واطبعه يدويًا.')
           });
-          resolve(choice === 0 ? await saveAsPDF(contents, landscape) : { status: 'cancelled' });
+          if (choice !== 0) return finish(cancelled);
+          void Promise.resolve(saveAsPDF(contents, landscape)).then(finish, error =>
+            finish(!livePrintContents(contents) || cancelledByDestroyedWindow(error) ? cancelled :
+              { status: 'error', reason: error.message || String(error) }));
         });
       } catch (error) {
+        if (!livePrintContents(contents) || cancelledByDestroyedWindow(error)) return finish(cancelled);
         writeLog('Native Windows print failed', error);
-        dialog.showErrorBox('خطأ في الطباعة', error.message || String(error));
-        resolve({ status: 'error', reason: error.message || 'خطأ في الطباعة' });
+        finish({ status: 'error', reason: error.message || 'خطأ في الطباعة' });
       }
     });
   }

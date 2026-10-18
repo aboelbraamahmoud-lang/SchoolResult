@@ -20,6 +20,8 @@
   };
   const reportFailure = error => {
     const reason = error && error.message ? error.message : String(error || 'خطأ غير معروف');
+    // Closing a preview during the native dialog is cancellation, not a fatal error.
+    if (/Object has been destroyed|webContents.*destroyed|window.*destroyed/i.test(reason)) return;
     console.error('Desktop report print failed:', reason);
     window.alert('تعذر تنفيذ الأمر. يمكنك حفظ التقرير PDF ثم طباعته من جهازك.\n' + reason);
   };
@@ -59,8 +61,8 @@
         button.addEventListener('click', callback);
         toolbar.appendChild(button);
       };
-      action('طباعة التقرير', () => doPrint(bridge.printPopup({ landscape: landscape(doc) })));
-      action('حفظ PDF مطابق للمعاينة', () => doPrint(bridge.savePopupPDF({ landscape: landscape(doc) })));
+      action('طباعة التقرير', () => { if (!popup.closed) doPrint(bridge.printPopup({ landscape: landscape(doc) })); });
+      action('حفظ PDF مطابق للمعاينة', () => { if (!popup.closed) doPrint(bridge.savePopupPDF({ landscape: landscape(doc) })); });
       action('إغلاق المعاينة', () => popup.close());
       const note = doc.createElement('small');
       note.textContent = 'نافذة ويندوز قد لا تعرض معاينة إضافية؛ هذه الصفحة هي المعاينة الفعلية للتقرير.';

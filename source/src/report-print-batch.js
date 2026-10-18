@@ -57,10 +57,16 @@ SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
   .sr646-print-document .school-report-page .report-footer{margin-top:auto!important}
   .sr646-print-document .school-report-page .report-table{width:100%!important}
   .sr646-print-document .school-report-page .report-page-number{position:static!important}
+   /* Preserve the original student-statement padding and signature/identity geometry. */
+   .sr646-print-document .sr650-sheet>.student-result-page{
+     padding:12mm 12mm 10mm!important;direction:rtl!important;
+     font-family:Arial,Helvetica,sans-serif!important;border-radius:0!important}
+   .sr646-print-document .student-result-table{width:100%!important;table-layout:fixed!important}
+   .sr646-print-document .student-result-footer{margin-top:auto!important}
   @media print{
     *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
     .report-screen-only,.sr-cloud-account{display:none!important}
-    .sr646-print-document .sr650-sheet>.school-report-page:after{content:none!important;display:none!important}}
+    /* Preserve the same visible page outline in preview and print. */}
  `;
 };
 SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
@@ -75,12 +81,12 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
  ])style.setProperty(name,value,'important');
  const view=page.ownerDocument?.defaultView;
  const getStyle=view?.getComputedStyle?.bind(view)||(typeof getComputedStyle==='function'?getComputedStyle:null);
- const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official)');
+ const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official),.student-result-table');
  const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
- const footer=page.querySelector?.('.report-footer');
+ const footer=page.querySelector?.('.report-footer,.student-result-footer');
  const measure=()=>{
    const r=page.getBoundingClientRect();let width=Math.max(page.scrollWidth||0,r.width),height=Math.max(page.scrollHeight||0,r.height);
-   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number')||[]){
+   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer')||[]){
      const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
      width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
    }
@@ -151,14 +157,15 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     await Promise.race([Promise.all([win.document.fonts?.ready||Promise.resolve(),...imageTasks]),new Promise(ok=>setTimeout(ok,15000))]);
     if(win.closed)return 0;
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
-    const logo=win.document.querySelector('.report-logo-image');
+    const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');
     const fit=SR63.fitReportPagesForPrint(win.document,landscape);
     if(fit.some(page=>page.zoom<.35))throw Error('عرض التقرير يتجاوز مساحة A4 بشكل كبير؛ اختر صفًا أو معلمًا أو عددًا أقل من الأعمدة.');
     win.focus();win.print();
     return pages.length;
   }catch(error){
-    if(!win.closed){win.document.body.innerHTML='<div dir="rtl" style="font:16px Tahoma;padding:24px;color:#ad2639">تعذر تجهيز التقرير بتنسيقه الصحيح. أغلق هذه النافذة وأعد المحاولة.</div>';}
+    if(win.closed)return 0;
+     try{win.document.body.innerHTML='<div dir="rtl" style="font:16px Tahoma;padding:24px;color:#ad2639">تعذر تجهيز التقرير بتنسيقه الصحيح. أغلق هذه النافذة وأعد المحاولة.</div>';}catch{}
     throw error;
   }
 };
