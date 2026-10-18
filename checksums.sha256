@@ -143,12 +143,12 @@ a7bda0ec1dcd05939108d973f01200e847716eed861cb9ea194a8fef974528c4  source/tests/r
 044558545d2b83c4a394b1ba291e80b69c7cbc191191cf6eb5160080cdce0f57  source/tests/report-orientation-ci-6-10-49.cjs
 da2101f7a948dbcf32fe55c0568a2cda535732676b18934d861ba45c8adb44a3  source/tests/report-page-fit-6-10-51.cjs
 596de5cb801d4e29f9186fee85830c35d13329420b999ed39f08867903ec325e  source/tests/report-pdf-colors-6-10-52.cjs
-f7155895e403901a7534f8221552fe8497d93e11d5194a65876146575b0fb1f2  source/tests/report-preview-colors-6-10-47.cjs
-bdc1fa9aa880421e0b96f2b746068836ddb531cad23e1b1bb17e0ddfbb0d945d  source/tests/report-print-export-6-10-46.cjs
+fb2f61c0aaecc08b00ddfc580bef967c46219f2b57d5d8ade8a779b6f817747f  source/tests/report-preview-colors-6-10-47.cjs
+ce59401939c1bfae910de22cb8a093cefb3f1ba34e8dbc8efee576ba32624245  source/tests/report-print-export-6-10-46.cjs
 09ebcbf553fcad136ad015de4e4143916432fc926b979f1d5e79a0ac5b24b7fe  source/tests/report-single-sheet-6-10-50.cjs
 674ef68e35f1b759b315ea68b80aa1d815a50910dd6d83ef2efc6afeb1a9fdfc  source/tests/report-typography.cjs
 0eda6ae34f74c05cc894ac7083211287f000e0011724c46574ef84cb7f57bd9d  source/tests/report-unified-role-exports-6-10-59.cjs
-832812523c01ba9fb8e8a88273b5064a669934dd707f423b4d6270b811759ad7  source/tests/report-vector-quality-6-10-53.cjs
+61ff466d43954d506badb7b14f52951089193a9165485a037402c76393e2c442  source/tests/report-vector-quality-6-10-53.cjs
 7d81756a89d8f273b665996d6d332034405b1fdfc651cb476d98546208dfb649  source/tests/school-official-report-6-10-41.cjs
 b4166a1c8cf4e811f66f683a9719444d87d284e8dfa51f49731ea80cef6967b9  source/tests/security.cjs
 19202e997ce6b0182bd7700fe873faad12365f0ac791f4239f817bf97eaba22c  source/tests/staff-access.cjs
