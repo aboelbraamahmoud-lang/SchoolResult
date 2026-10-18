@@ -224,12 +224,12 @@ SR63.CoordinatorPortal=function({profile}){
   loading?h('p',{className:'srstaff-panel'},isLeadership?'جارٍ تحميل بيانات المدرسة من الخادم…':'جارٍ تحميل بيانات القسم المصرح بها من الخادم…'):null,
   workspace&&!loading&&data?[
    h('div',{className:'srcoord-exam-summary'},[h('strong',{},examName),h('span',{},'تُحسب المؤشرات من النتائج المتاحة لهذا الحساب حسب صلاحياته على الخادم، ولا يمكن تعديل الدرجات من هذه اللوحة.')]),
-   (page==='dashboard'||page==='overview')?h('section',{className:'srcoord-charts-section'},[h('div',{className:'srcoord-section-title'},[h('h2',{},'مؤشرات الأداء والتحليل البياني '+(isLeadership?'للمدرسة بالكامل':'لقسم المنسق')),h('span',{},'نسب مئوية موثقة بحجم العينة وتُحدّث حسب الاختبار المختار')]),sectionCharts()]):null,
+   page==='dashboard'?h('section',{className:'srcoord-charts-section'},[h('div',{className:'srcoord-section-title'},[h('h2',{},'مؤشرات الأداء والتحليل البياني '+(isLeadership?'للمدرسة بالكامل':'لقسم المنسق')),h('span',{},'نسب مئوية موثقة بحجم العينة وتُحدّث حسب الاختبار المختار')]),sectionCharts()]):null,
    page==='dashboard'?h('section',{className:'srstaff-panel'},[h('h2',{},'مؤشرات '+scopeLabel+' — '+examName),h('div',{className:'srstaff-kpis srcoord-kpis'},cards.map(([title,value,note])=>h('article',{key:title},[h('span',{},title),h('strong',{},value),h('small',{},note)]))),h('h3',{},'تفاصيل التحصيل والنجاح لكل شعبة — '+examName),h('div',{className:'srcoord-class-grid'},data.classes.map(t=>h('div',{className:'srcoord-mini',key:t.name},[h('strong',{},t.name),h('span',{},`${t.results} نتيجة مرصودة`),chart('التحصيل',t.achievement),chart('النجاح',t.successRate,'#c58c2c')]))) ]):null,
    page==='overview'&&isLeadership&&perms.reports?h('section',{className:'srstaff-panel'},[
     h('h2',{},'الملخص التنفيذي لأداء المدرسة — '+examName),
     h('p',{},'مؤشرات جميع الأقسام (التعليم العام وحده لمؤشري النجاح والتحصيل)؛ يظهر الدعم الإضافي منفصلًا في التقارير التفصيلية.'),
-    h('div',{className:'srstaff-kpis srcoord-kpis'},cards.map(([title,value,note])=>h('article',{key:title},[h('span',{},title),h('strong',{},value),h('small',{},note)]))),
+    h('p',{},'مؤشرات المدرسة ورسومها البيانية متاحة في لوحة المدرسة؛ يقتصر هذا الملخص على جدول الصفوف دون تكرارها.'),
     h('h3',{},'ملخص النتائج حسب الصف الدراسي'),
     h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الصف','عدد النتائج المرصودة','نسبة النجاح','نسبة التحصيل'].map(x=>h('th',{key:x},x)))),
     h('tbody',{},data.gradeSummary.map(x=>h('tr',{key:x.grade},[x.name,x.results,fmt(x.successRate),fmt(x.achievement)].map((c,i)=>h('td',{key:i},c)))))])),

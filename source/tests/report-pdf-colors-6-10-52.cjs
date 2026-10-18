@@ -16,7 +16,7 @@ for(const edge of ['Top','Right','Bottom','Left'])assert.match(src,new RegExp("'
 assert.doesNotMatch(src,/if\(node\.classList\.contains\('report-title'\)\|\|node\.classList\.contains\('grade-matrix-caption'\)\)return '#125266'/,'remove guessed title fill');
 assert.match(src,/ctx\.direction=css\.direction\|\|'rtl'/,'retain native RTL text');
 assert.match(src,/SR63\.planReportSheet\(element,w,h\)/,'keep original physical A4 fitting');
-assert.match(ui,/images\.push\(await SR63\.reportPageJPEG\(node,css,renderedLandscape\)\)/,'single PDF and ZIP share corrected renderer');
+assert.match(ui,/return SR63\.reportPageJPEG\(node,css,shown\)/,'single PDF and ZIP share corrected renderer');
 assert.match(print,/-webkit-print-color-adjust:exact/);
 // Execute the exact helper code from the real PDF renderer, with a Canvas2D
 // spy. These tests catch direction/color confusion that regex-only CI misses.

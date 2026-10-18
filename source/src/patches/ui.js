@@ -38,8 +38,7 @@ async function Ze(exam='all'){
 
 /* PATCH xde */
 function xde({workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null}){let[n,r]=(0,v.useState)(`summary`),[i,a]=(0,v.useState)(`className`),[o,s]=(0,v.useState)(`الكل`),[c,l]=(0,v.useState)(`الكل`),[u,d]=(0,v.useState)(e.activeExam),[f,p]=(0,v.useState)(`exam1`),[m,h]=(0,v.useState)(e.activeExam),[g,_]=(0,v.useState)(e.settings.pass),[reportOverflowCount,b]=(0,v.useState)(0),[printStart,setPrintStart]=(0,v.useState)(0),[prepared,setPrepared]=(0,v.useState)(!1),[downloadState,setDownloadState]=(0,v.useState)(``),x=n===`subjects`,S=x?`الكل`:c,C=S===`الكل`?e.rows:e.rows.filter(e=>e.subject===S),w=n===`comparison`,T=w?m:u,E=Cj(C,i,T),D=(0,v.useMemo)(()=>prepared?mde(e.rows,i,o,S,n,T,g,e.settings):[],[prepared,e.rows,e.settings,i,o,S,n,T,g]),visible=D.slice(printStart,printStart+8),leaderMode=readOnly&&typeof onSchoolSummary===`function`,
- leaderCards=leaderMode?[{id:`school-overview`,title:`ملخص المدرسة`,text:`ملخص شامل للمؤشرات والأعداد والنسب`,icon:xy},
- {id:`levels`,title:`مستويات الطلاب`,text:`قوائم ومستويات الأداء والنتائج المرصودة`,icon:Ay},
+ leaderCards=leaderMode?[{id:`levels`,title:`مستويات الطلاب`,text:`قوائم ومستويات الأداء والنتائج المرصودة`,icon:Ay},
  {id:`summary`,title:`تحصيل الصفوف والشعب`,text:`التقرير الأصلي لكل صف أو شعبة`,icon:xy},
  {id:`teachers`,title:`تحصيل المعلمين`,text:`نفس تقارير المعلمين الأصلية`,icon:Cy},
  {id:`comparison`,title:`مقارنة الاختبارين`,text:`نتائج الاختبارين والفروق لكل شعبة`,icon:iy},
@@ -61,7 +60,7 @@ function xde({workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolS
 renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} × ${tj(e.settings,m).name}`:tj(e.settings,u).name,a=t.totalParts>1?` — الجزء ${t.part} من ${t.totalParts}`:``;return(0,q.jsxs)(`section`,{className:`school-report-page ${SR63.reportPageIsLandscape(n,t)?'grade-subjects-landscape report-landscape':'report-portrait'}`,'data-orientation':SR63.reportPageIsLandscape(n,t)?'landscape':'portrait',style:j9(e),children:[(0,q.jsx)(M9,{workspace:e,title:`${e.settings.reportDesign.reportNames[n]}: ${i}${a}`,subject:t.subject,assessment:i}),n===`summary`&&(0,q.jsx)(hde,{page:t,exam:u,workspace:e}),` `,n===`levels`&&(0,q.jsx)(gde,{page:t,exam:u,workspace:e}),` `,n===`struggling`&&(0,q.jsx)(vde,{page:t,exam:u,threshold:g,workspace:e}),` `,n===`teachers`&&(0,q.jsx)(yde,{page:{...t,teacher:t.teacher||t.entity},exam:u,workspace:e}),` `,n===`comparison`&&(0,q.jsx)(_de,{page:t,from:f,to:m,workspace:e}),` `,n===`subjects`&&(0,q.jsx)(bde,{page:t,exam:u,workspace:e}),(0,q.jsx)(N9,{workspace:e,teacher:x?``:t.teacher,subject:t.subject}),(0,q.jsxs)(`span`,{className:`report-page-number`,children:[`صفحة `,pageNumber,` من `,pageTotal]})]},t.key)};
  // The report preview deliberately shows eight pages at a time. Print, unlike
  // preview, must render EVERY page from the same selected scope and React template.
- const renderReportHTML=async(pages,isLandscape,progress,isClosed=()=>false)=>{
+ const renderReportHTML=async(pages,isLandscape,progress,isClosed=()=>false,capture=null,pageOffset=0,pageTotal=pages.length)=>{
   let stage=null,root=null;
   const pageHTML=[];
   try{
@@ -73,13 +72,13 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
     if(isClosed())throw Error('تم إغلاق نافذة معاينة الطباعة.');
     const page=pages[pIndex];
     if(SR63.reportPageIsLandscape(n,page)!==isLandscape)throw Error('الصفحات المختارة لها اتجاهات طباعة مختلفة.');
-    progress?.(pIndex+1);
-    root.render(renderReportPage(page,pIndex+1,pages.length));
+    progress?.(pageOffset+pIndex+1);
+    root.render(renderReportPage(page,pageOffset+pIndex+1,pageTotal));
     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
     await (document.fonts?.ready||Promise.resolve());
     const node=stage.querySelector('.school-report-page');
     if(!node)throw Error('تعذر تجهيز إحدى صفحات التقرير للطباعة.');
-    pageHTML.push(node.outerHTML);
+    pageHTML.push(capture?await capture(node,page,pIndex):node.outerHTML);
    }
    return pageHTML;
   }finally{
@@ -103,28 +102,17 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   printWindow.document.close();
   let stage=null,root=null;
   try{
-   const isLandscape=SR63.reportPageIsLandscape(n),pageHTML=[];
-   stage=document.createElement('div');stage.id='sr653-vector-stage';
-   stage.style.cssText='position:fixed;left:-20000px;top:0;z-index:-1;pointer-events:none;width:'+(isLandscape?'297mm':'210mm')+';background:#fff;';
-   document.body.appendChild(stage);
-   root=(0,y.createRoot)(stage);
-   for(let pIndex=0;pIndex<exportPages.length;pIndex++){
-    if(printWindow.closed)throw Error('تم إغلاق نافذة حفظ PDF المتجهي.');
-    const page=exportPages[pIndex];
-    if(SR63.reportPageIsLandscape(n,page)!==isLandscape)throw Error('لا يمكن مزج الاتجاه الطولي والعرضي في عملية الطباعة الواحدة.');
-    setDownloadState('جارٍ تجهيز PDF المتجهي: صفحة '+(pIndex+1)+' من '+exportPages.length);
-    root.render(renderReportPage(page,pIndex+1,exportPages.length));
-    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-    await (document.fonts?.ready||Promise.resolve());
-    const node=stage.querySelector('.school-report-page');
-    if(!node)throw Error('تعذّر تجهيز إحدى صفحات التقرير المتجهي.');
-    pageHTML.push(node.outerHTML);
-   }
+   const isLandscape=SR63.reportPageIsLandscape(n);
+   const pageHTML=await renderReportHTML(exportPages,isLandscape,
+    index=>setDownloadState('جارٍ تجهيز PDF المتجهي: صفحة '+index+' من '+exportPages.length),
+    ()=>printWindow.closed);
+   if(printWindow.closed)return;
    setDownloadState('جارٍ فتح حفظ PDF المتجهي…');
-   await SR63.printReportBatch(pageHTML,'تقرير '+(e.settings.reportDesign.reportNames[n]||n),isLandscape,printWindow);
-   eb.success('اختر «حفظ بتنسيق PDF» من وجهة الطباعة؛ ستبقى الكتابة متجهية وحادة عند التكبير.');
+   const generated=await SR63.printReportBatch(pageHTML,'تقرير '+(e.settings.reportDesign.reportNames[n]||n),isLandscape,printWindow);
+   if(generated===exportPages.length)eb.success('اختر «حفظ بتنسيق PDF» من وجهة الطباعة؛ ستبقى الكتابة متجهية وحادة عند التكبير.');
   }catch(error){
-   if(!printWindow.closed)printWindow.close();
+   if(printWindow.closed)return;
+   printWindow.close();
    eb.error('تعذّر تجهيز PDF المتجهي: '+String(error?.message||error));
   }finally{
    if(root)root.unmount();
@@ -151,29 +139,21 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
    const groups=split?SR63.groupReportPages(exportPages,i,n):[{name:label,pages:exportPages}];
    if(groups.length>200)throw Error('عدد الملفات كبير؛ اختر نطاقًا أصغر.');
    const outputs=[],usedNames=new Map();let processed=0;
-   stage=document.createElement('div');stage.id='sr646-pdf-render-stage';
-   stage.style.cssText=`position:fixed;left:-20000px;top:0;width:${isLandscape?'297mm':'210mm'};height:auto;visibility:visible;pointer-events:none;z-index:-1;background:#fff;`;
-   document.body.appendChild(stage);
-   root=(0,y.createRoot)(stage);
    for(const group of groups){
-    const images=[];
-    for(const page of group.pages){
-     setDownloadState(`جارٍ إعداد صفحة ${++processed} من ${exportPages.length} للتنزيل…`);
-     const pageLandscape=SR63.reportPageIsLandscape(n,page);
-     stage.style.width=pageLandscape?'297mm':'210mm';
-     root.render(renderReportPage(page,processed,exportPages.length));
-     await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
-     await (document.fonts?.ready||Promise.resolve());
-     const node=stage.querySelector('.school-report-page');
-     if(!node)throw Error('تعذر إنشاء صفحة التقرير للتصدير.');
-     const renderedLandscape=SR63.reportPageIsLandscape(n,node);
-     if(renderedLandscape!==pageLandscape)throw Error('اتجاه صفحة التقرير لا يطابق القالب؛ تمت حماية الملف من التصدير بوضع غير صحيح.');
-     images.push(await SR63.reportPageJPEG(node,css,renderedLandscape));
-     await new Promise(ok=>setTimeout(ok,0));
-    }
+    const images=await renderReportHTML(group.pages,isLandscape,
+     index=>setDownloadState('جارٍ إعداد صفحة '+index+' من '+exportPages.length+' للتنزيل…'),
+     ()=>false,
+     async (node,page)=>{
+      const intended=SR63.reportPageIsLandscape(n,page),shown=SR63.reportPageIsLandscape(n,node);
+      if(shown!==intended)throw Error('اتجاه صفحة التقرير لا يطابق القالب؛ تمت حماية الملف من التصدير بوضع غير صحيح.');
+      return SR63.reportPageJPEG(node,css,shown);
+     },processed,exportPages.length);
+    processed+=group.pages.length;
+    if(images.length!==group.pages.length)throw Error('عدد صفحات PDF لا يطابق المعاينة.');
     const name=SR63.safeReportFilename(`${label} - ${split?group.name:'الكل'} - ${examLabel}`);
     const seen=usedNames.get(name)||0;usedNames.set(name,seen+1);outputs.push({name:`${name}${seen?` (${seen+1})`:``}.pdf`,blob:SR63.reportPdfFromJpegs(images)});
    }
+   if(processed!==exportPages.length||outputs.length!==groups.length)throw Error('ملفات PDF وZIP لا تشمل جميع الصفحات المحددة.');
    setDownloadState('جارٍ تجهيز ملف التحميل…');
    if(split)SR63.downloadReportFile(await SR63.reportZipFromPdfs(outputs),`${SR63.safeReportFilename(label+' - تقارير مفردة - '+examLabel)}.zip`);
    else SR63.downloadReportFile(outputs[0].blob,outputs[0].name);
@@ -182,7 +162,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   }catch(error){eb.error('تعذر تنزيل PDF: '+String(error?.message||error));}
   finally{if(root)root.unmount();if(stage)stage.remove();setDownloadState('');}
  };
- return(0,v.useEffect)(()=>{if(!prepared){b(0);return}let e=requestAnimationFrame(()=>{b([...document.querySelectorAll(`#printable-reports .school-report-page`)].filter(e=>e.scrollHeight>e.clientHeight+2||e.scrollWidth>e.clientWidth+2).length)});return()=>cancelAnimationFrame(e)},[prepared,D,n,u,f,m]),(0,q.jsxs)(`div`,{className:`space-y-6 ${leaderMode?`sr644-leadership-center`:``}`,children:[(0,q.jsxs)(`div`,{className:`report-screen-only space-y-6`,children:[(0,q.jsx)(p9,{kicker:`مركز التقارير والطباعة`,title:leaderMode?`التقارير المدرسية المعتمدة`: `مخرجات جاهزة لكل اختبار أو مقارنة`,desc:leaderMode?`اختر التقرير من البطاقات الواضحة أدناه، ثم حدد الاختبار والشعبة أو المعلم. الطباعة والتنزيل يستخدمان قالب التقارير الأصلي نفسه.`:`اختر شكل التقرير، ثم المعلم أو الصف، والاختبار أو الاختبارين. خيار «الكل» ينشئ جميع الصفحات، وتُعرض المعاينة في دفعات من 8، بينما تشمل الطباعة كل الصفحات المحددة. يمكنك تنزيل PDF شامل أو ZIP بملف مستقل لكل معلم أو صف.`,action:(0,q.jsxs)(q.Fragment,{children:[!readOnly&&(0,q.jsxs)(dA,{variant:`outline`,onClick:t,children:[(0,q.jsx)(vy,{}),`Excel شامل`]}),(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m,className:`bg-[#8f3f12]`,children:[(0,q.jsx)(Fy,{}),`طباعة / حفظ PDF`]})]})}),(0,q.jsx)(`div`,{className:leaderMode?`sr644-leader-report-cards`:`grid gap-3 md:grid-cols-2 xl:grid-cols-6`,children:leaderCards.map(t=>(0,q.jsxs)(`button`,{type:`button`,onClick:()=>{if(t.id===`school-overview`){onSchoolSummary();return}r(t.id),t.id===`teachers`&&a(`teacher`),t.id===`summary`&&a(`className`),t.id===`subjects`&&(a(`className`),l(`الكل`),s(`الكل`)),invalidate()},className:leaderMode?`sr644-report-card ${n===t.id?`active`:``}`:`rounded-2xl border p-4 text-right transition ${n===t.id?`border-[#8f3f12] bg-[#fff7ed] shadow-[0_10px_30px_rgba(143,63,18,.12)]`:`bg-white hover:border-slate-300`}`,children:[leaderMode?(0,q.jsxs)(`div`,{className:`sr644-report-thumb sr644-thumb-${t.id}`,'aria-hidden':true,children:[(0,q.jsx)(`span`,{className:`sr644-thumb-head`}),(0,q.jsx)(`span`,{className:`sr644-thumb-heading`}),(0,q.jsx)(`span`,{className:`sr644-thumb-metrics`}),(0,q.jsx)(`span`,{className:`sr644-thumb-graphic`}),(0,q.jsx)(`span`,{className:`sr644-thumb-lines`})]}):(0,q.jsx)(t.icon,{className:`size-6 ${n===t.id?`text-[#8f3f12]`:`text-slate-500`}`}),(0,q.jsx)(`b`,{className:leaderMode?`sr644-report-card-title`:`mt-3 block`,children:leaderMode?t.title:e.settings.reportDesign.reportNames[t.id]}),(0,q.jsx)(`small`,{className:leaderMode?`sr644-report-card-desc`:`mt-1 block leading-5 text-slate-500`,children:leaderMode?t.text:t.text})]},t.id))}),(0,q.jsxs)(m9,{title:`إعداد التقرير`,desc:`حدد النطاق أولًا، ثم اضغط «تجهيز المعاينة». لا تُنشأ صفحات الطباعة الثقيلة عند فتح المركز.`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-5`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المخرج حسب`}),x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`صف / شعبة`}):(0,q.jsx)(g9,{className:`mt-2 w-full`,value:i,onChange:e=>{a(e);s(`الكل`);invalidate()},items:n===`teachers`?[{value:`teacher`,label:`معلم`}]:[{value:`className`,label:`صف / شعبة`},{value:`teacher`,label:`معلم`}]})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:i===`teacher`?`المعلم`:`الصف / الشعبة`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:E.includes(o)?o:`الكل`,onChange:value=>{s(value);invalidate()},items:[{value:`الكل`,label:i===`teacher`?`كل المعلمين — صفحة لكل معلم`:`كل الصفوف — صفحة لكل صف`},...E.map(e=>({value:e,label:e}))]})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المادة`}),x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`كل المواد للمقارنة`}):(0,q.jsx)(g9,{className:`mt-2 w-full`,value:c,onChange:e=>{l(e);s(`الكل`);invalidate()},items:[{value:`الكل`,label:`كل المواد`},...Cj(e.rows,`subject`).map(e=>({value:e,label:e}))]})]}),w?(0,q.jsxs)(q.Fragment,{children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الاختبار الأول`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:f,onChange:e=>{p(e);invalidate()},items:e.settings.exams.map(e=>({value:e.key,label:e.name}))})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الاختبار الثاني`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:m,onChange:e=>{h(e);invalidate()},items:e.settings.exams.map(e=>({value:e.key,label:e.name}))})]})]}):(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الاختبار`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:u,onChange:e=>{d(e);invalidate()},items:e.settings.exams.map(e=>({value:e.key,label:e.name}))})]}),n===`struggling`&&(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`أقل من (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`0`,max:`100`,value:g,onChange:e=>{_(Number(e.target.value));invalidate()}})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 flex flex-wrap items-center gap-2`,children:[prepared?(0,q.jsx)(uA,{className:reportOverflowCount?`bg-rose-50 text-rose-700`:`bg-emerald-50 text-emerald-700`,children:reportOverflowCount?`فحص الطباعة: ${reportOverflowCount.toLocaleString(`ar-EG`)} صفحة تحتاج مراجعة`:`فحص الطباعة: جاهز`}):(0,q.jsx)(uA,{className:`bg-sky-50 text-sky-800`,children:`المعاينة لم تُجهز بعد`}),(0,q.jsxs)(uA,{className:`bg-slate-100 text-slate-700`,children:[prepared?D.length.toLocaleString(`ar-EG`):`0`,` صفحة`]}),O>0&&(0,q.jsxs)(uA,{className:`bg-amber-50 text-amber-800`,children:[O.toLocaleString(`ar-EG`),` اسم طويل — راجع المعاينة`]}),w&&f===m&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-700`,children:`اختر اختبارين مختلفين`}),(0,q.jsxs)(dA,{onClick:()=>setPrepared(!0),disabled:w&&f===m,className:`mr-auto bg-teal-700`,children:[`تجهيز المعاينة`]}),(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m,className:`bg-[#123247]`,children:[(0,q.jsx)(Fy,{}),`طباعة التقرير الحالي`]}),
+ return(0,v.useEffect)(()=>{if(!prepared){b(0);return}let e=requestAnimationFrame(()=>{b([...document.querySelectorAll(`#printable-reports .school-report-page`)].filter(e=>e.scrollHeight>e.clientHeight+2||e.scrollWidth>e.clientWidth+2).length)});return()=>cancelAnimationFrame(e)},[prepared,D,n,u,f,m]),(0,q.jsxs)(`div`,{className:`space-y-6 ${leaderMode?`sr644-leadership-center`:``}`,children:[(0,q.jsxs)(`div`,{className:`report-screen-only space-y-6`,children:[(0,q.jsx)(p9,{kicker:`مركز التقارير والطباعة`,title:leaderMode?`التقارير المدرسية المعتمدة`: `مخرجات جاهزة لكل اختبار أو مقارنة`,desc:leaderMode?`اختر التقرير من البطاقات الواضحة أدناه، ثم حدد الاختبار والشعبة أو المعلم. الطباعة والتنزيل يستخدمان قالب التقارير الأصلي نفسه.`:`اختر شكل التقرير، ثم المعلم أو الصف، والاختبار أو الاختبارين. خيار «الكل» ينشئ جميع الصفحات، وتُعرض المعاينة في دفعات من 8، بينما تشمل الطباعة كل الصفحات المحددة. يمكنك تنزيل PDF شامل أو ZIP بملف مستقل لكل معلم أو صف.`,action:(0,q.jsxs)(q.Fragment,{children:[!readOnly&&(0,q.jsxs)(dA,{variant:`outline`,onClick:t,children:[(0,q.jsx)(vy,{}),`Excel شامل`]}),(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m,className:`bg-[#8f3f12]`,children:[(0,q.jsx)(Fy,{}),`طباعة / حفظ PDF`]})]})}),(0,q.jsx)(`div`,{className:leaderMode?`sr644-leader-report-cards`:`grid gap-3 md:grid-cols-2 xl:grid-cols-6`,children:leaderCards.map(t=>(0,q.jsxs)(`button`,{type:`button`,onClick:()=>{r(t.id),t.id===`teachers`&&a(`teacher`),t.id===`summary`&&a(`className`),t.id===`subjects`&&(a(`className`),l(`الكل`),s(`الكل`)),invalidate()},className:leaderMode?`sr644-report-card ${n===t.id?`active`:``}`:`rounded-2xl border p-4 text-right transition ${n===t.id?`border-[#8f3f12] bg-[#fff7ed] shadow-[0_10px_30px_rgba(143,63,18,.12)]`:`bg-white hover:border-slate-300`}`,children:[leaderMode?(0,q.jsxs)(`div`,{className:`sr644-report-thumb sr644-thumb-${t.id}`,'aria-hidden':true,children:[(0,q.jsx)(`span`,{className:`sr644-thumb-head`}),(0,q.jsx)(`span`,{className:`sr644-thumb-heading`}),(0,q.jsx)(`span`,{className:`sr644-thumb-metrics`}),(0,q.jsx)(`span`,{className:`sr644-thumb-graphic`}),(0,q.jsx)(`span`,{className:`sr644-thumb-lines`})]}):(0,q.jsx)(t.icon,{className:`size-6 ${n===t.id?`text-[#8f3f12]`:`text-slate-500`}`}),(0,q.jsx)(`b`,{className:leaderMode?`sr644-report-card-title`:`mt-3 block`,children:leaderMode?t.title:e.settings.reportDesign.reportNames[t.id]}),(0,q.jsx)(`small`,{className:leaderMode?`sr644-report-card-desc`:`mt-1 block leading-5 text-slate-500`,children:leaderMode?t.text:t.text})]},t.id))}),(0,q.jsxs)(m9,{title:`إعداد التقرير`,desc:`حدد النطاق أولًا، ثم اضغط «تجهيز المعاينة». لا تُنشأ صفحات الطباعة الثقيلة عند فتح المركز.`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-5`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المخرج حسب`}),x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`صف / شعبة`}):(0,q.jsx)(g9,{className:`mt-2 w-full`,value:i,onChange:e=>{a(e);s(`الكل`);invalidate()},items:n===`teachers`?[{value:`teacher`,label:`معلم`}]:[{value:`className`,label:`صف / شعبة`},{value:`teacher`,label:`معلم`}]})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:i===`teacher`?`المعلم`:`الصف / الشعبة`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:E.includes(o)?o:`الكل`,onChange:value=>{s(value);invalidate()},items:[{value:`الكل`,label:i===`teacher`?`كل المعلمين — صفحة لكل معلم`:`كل الصفوف — صفحة لكل صف`},...E.map(e=>({value:e,label:e}))]})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المادة`}),x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`كل المواد للمقارنة`}):(0,q.jsx)(g9,{className:`mt-2 w-full`,value:c,onChange:e=>{l(e);s(`الكل`);invalidate()},items:[{value:`الكل`,label:`كل المواد`},...Cj(e.rows,`subject`).map(e=>({value:e,label:e}))]})]}),w?(0,q.jsxs)(q.Fragment,{children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الاختبار الأول`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:f,onChange:e=>{p(e);invalidate()},items:e.settings.exams.map(e=>({value:e.key,label:e.name}))})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الاختبار الثاني`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:m,onChange:e=>{h(e);invalidate()},items:e.settings.exams.map(e=>({value:e.key,label:e.name}))})]})]}):(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الاختبار`}),(0,q.jsx)(g9,{className:`mt-2 w-full`,value:u,onChange:e=>{d(e);invalidate()},items:e.settings.exams.map(e=>({value:e.key,label:e.name}))})]}),n===`struggling`&&(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`أقل من (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`0`,max:`100`,value:g,onChange:e=>{_(Number(e.target.value));invalidate()}})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 flex flex-wrap items-center gap-2`,children:[prepared?(0,q.jsx)(uA,{className:reportOverflowCount?`bg-rose-50 text-rose-700`:`bg-emerald-50 text-emerald-700`,children:reportOverflowCount?`فحص الطباعة: ${reportOverflowCount.toLocaleString(`ar-EG`)} صفحة تحتاج مراجعة`:`فحص الطباعة: جاهز`}):(0,q.jsx)(uA,{className:`bg-sky-50 text-sky-800`,children:`المعاينة لم تُجهز بعد`}),(0,q.jsxs)(uA,{className:`bg-slate-100 text-slate-700`,children:[prepared?D.length.toLocaleString(`ar-EG`):`0`,` صفحة`]}),O>0&&(0,q.jsxs)(uA,{className:`bg-amber-50 text-amber-800`,children:[O.toLocaleString(`ar-EG`),` اسم طويل — راجع المعاينة`]}),w&&f===m&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-700`,children:`اختر اختبارين مختلفين`}),(0,q.jsxs)(dA,{onClick:()=>setPrepared(!0),disabled:w&&f===m,className:`mr-auto bg-teal-700`,children:[`تجهيز المعاينة`]}),(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m,className:`bg-[#123247]`,children:[(0,q.jsx)(Fy,{}),`طباعة التقرير الحالي`]}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(false),disabled:!canPrint||!!downloadState||w&&f===m,className:`bg-teal-700`,children:`تنزيل PDF كامل — ملف واحد`}),
   (0,q.jsx)(dA,{onClick:()=>void saveVectorPDF(),disabled:!canPrint||!!downloadState||w&&f===m,variant:`outline`,children:`حفظ PDF متجهي — بدون بكسلة عند التكبير`}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(true),disabled:!canPrint||!!downloadState||w&&f===m,variant:`outline`,children:`تنزيل تقارير مفردة ZIP — حسب ${i===`teacher`?'المعلم':'الصف'}`}),

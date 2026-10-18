@@ -14,10 +14,10 @@ assert.match(pdf,/ctx\.measureText\?\.\(label\)/,'avoid unnecessary Arabic text 
 assert.match(ui,/const saveVectorPDF=async\(\)=>/);
 assert.match(ui,/const printWindow=window\.open\('','_blank'\)/,'reserve native dialog synchronously in click handler');
 assert.match(ui,/const exportPages=prepared\?D:SR63\.buildReportPages/,'vector path must render full selected scope, not 8-preview only');
-assert.match(ui,/pageHTML\.push\(node\.outerHTML\)/,'original DOM and selectable text in vector print');
+assert.match(ui,/pageHTML\.push\(capture\?await capture\(node,page,pIndex\):node\.outerHTML\)/,'original DOM and selectable text in vector print');
 assert.match(ui,/SR63\.printReportBatch\(pageHTML,.*isLandscape,printWindow\)/,'vector print must share tested A4 engine');
 assert.match(ui,/حفظ PDF متجهي — بدون بكسلة عند التكبير/);
-assert.match(ui,/images\.push\(await SR63\.reportPageJPEG\(node,css,renderedLandscape\)\)/,'preserve shared automatic PDF/ZIP renderer');
+assert.match(ui,/return SR63\.reportPageJPEG\(node,css,shown\)/,'preserve shared automatic PDF/ZIP renderer');
 assert.match(printer,/Array\.isArray\(selector\)\?selector:\[\.\.\.document\.querySelectorAll\(selector\)\]/);
 assert.match(printer,/const win=preparedWindow\|\|window\.open/);
 assert.match(printer,/typeof p==='string'\?p:p\.outerHTML/);

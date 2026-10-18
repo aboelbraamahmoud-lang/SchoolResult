@@ -26,7 +26,7 @@ assert.match(pdf,/css\.objectPosition/,'preserve exact logo object positioning')
 assert.match(ui,/data-orientation/);
 assert.match(ui,/grade-subjects-landscape report-landscape/,'landscape preview matches landscape PDF');
 assert.match(ui,/renderReportHTML\(D,isLandscape/,'all selected pages are printed');
-assert.match(ui,/renderReportPage\(page,processed,exportPages\.length\)/,'PDF page totals match selection before preview');
+assert.match(ui,/renderReportPage\(page,pageOffset\+pIndex\+1,pageTotal\)/,'PDF and ZIP preserve all-page numbering in the common React preview renderer');
 const image='data:image/jpeg;base64,'+fs.readFileSync(path.join(__dirname,'fixtures/report-sample.jpg')).toString('base64');
 (async()=>{
  const pages=[false,true,false].map(landscape=>({dataUrl:image,landscape,width:5,height:4}));

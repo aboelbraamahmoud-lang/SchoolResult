@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.58",
+  "version": "6.10.59",
   "released": "2026-10-18",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "معالجة نهائية لتحجيم تقارير الطلاب والتقارير المدرسية حسب الفراغ الحقيقي بعد عناصر الملخص، مع منع دفع التوقيعات خارج صفحة A4؛ مع استمرار حماية نافذة الطباعة في Electron."
+  "notes": "مراجعة قوائم التقارير للأدمن والمنسق والمدير والنائب مع إزالة التكرار المؤكد في روابط وعروض القيادة؛ توحيد تجهيز صفحة التقرير بين الطباعة وPDF المتجهي وPDF الكامل وZIP وحفظ الاتجاه والترقيم والألوان والشعار؛ اختبارات عدم فقد الصفحات والصلاحيات."
 }

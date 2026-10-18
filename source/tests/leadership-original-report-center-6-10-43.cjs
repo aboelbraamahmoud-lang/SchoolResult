@@ -59,8 +59,9 @@ const renderCenter=readOnly=>{
 const labels=['ملخص النتائج','تحليل المستويات','الطلاب المتعثرون','متوسطات المعلمين','مقارنة اختبارين','مقارنة المواد'];
 const admin=renderCenter(false),leader=renderCenter(true);
 for(const label of labels)assert.ok(read(admin,n=>n.props?.children===label).length>0,'admin official model '+label);
-for(const label of ['ملخص المدرسة','مستويات الطلاب','تحصيل الصفوف والشعب','تحصيل المعلمين','مقارنة الاختبارين','مقارنة جميع المواد'])assert.ok(read(leader,n=>n.props?.children===label).length>0,'leader focused report '+label);
+for(const label of ['مستويات الطلاب','تحصيل الصفوف والشعب','تحصيل المعلمين','مقارنة الاختبارين','مقارنة جميع المواد'])assert.ok(read(leader,n=>n.props?.children===label).length>0,'leader focused report '+label);
+assert.equal(read(leader,n=>n.props?.children==='ملخص المدرسة').length,0,'dashboard/overview have their own dedicated navigation, no duplicate report-card link');
 assert.equal(read(leader,n=>n.props?.children==='الطلاب المتعثرون').length,0,'hidden from leader report-card hub; still available in original dedicated tab');
 
 assert.equal(read(leader,n=>n.props?.children==='Excel شامل').length,0,'global admin Excel action hidden from read-only portal');
-console.log('PASS 6.10.43: original xde component reused by director and vice, six report templates unchanged, access gates, no admin Excel/export privileges.');
+console.log('PASS 6.10.43: original xde component reused by director and vice, six report templates unchanged, redundant leadership link hidden, access gates, no admin Excel/export privileges.');

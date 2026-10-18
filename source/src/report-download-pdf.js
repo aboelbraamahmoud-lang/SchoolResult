@@ -239,11 +239,13 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
     await image.decode();
     const objectFit=css.objectFit||'fill';
     const ratio=objectFit==='cover'?Math.max(r.width/image.naturalWidth,r.height/image.naturalHeight):Math.min(r.width/image.naturalWidth,r.height/image.naturalHeight);
-    const iw=image.naturalWidth*ratio,ih=image.naturalHeight*ratio;
+    const iw=objectFit==='fill'?r.width:objectFit==='none'?image.naturalWidth:image.naturalWidth*ratio;
+    const ih=objectFit==='fill'?r.height:objectFit==='none'?image.naturalHeight:image.naturalHeight*ratio;
     const position=String(css.objectPosition||'50% 50%').trim().toLowerCase().split(/\s+/);
     const fraction=value=>value==='right'||value==='bottom'?1:value==='left'||value==='top'?0:value==='center'?0.5:/^-?\d+(?:\.\d+)?%$/.test(value)?parseFloat(value)/100:0.5;
     const px=fraction(position[0]||'50%'),py=fraction(position[1]||'50%');
-    ctx.drawImage(image,r.left+(r.width-iw)*px,r.top+(r.height-ih)*py,iw,ih);
+    ctx.save();ctx.beginPath();ctx.rect(r.left,r.top,r.width,r.height);ctx.clip();
+    ctx.drawImage(image,r.left+(r.width-iw)*px,r.top+(r.height-ih)*py,iw,ih);ctx.restore();
    }catch(err){throw Error('تعذر تضمين شعار التقرير داخل ملف PDF؛ تحقق من صورة الشعار.');}
    return;
   }
