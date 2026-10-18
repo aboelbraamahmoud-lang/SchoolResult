@@ -10,7 +10,7 @@ assert.match(css,/\.sr632-preview-sheet:not\(\.sr633-preview-wrap\) thead th:nth
 assert.match(css,/\.sr633-preview-wrap \.sr633-results thead th:first-child\{background:var\(--sr-behavior-gold\)/);
 assert(behavior.includes('.sr633-results thead th:first-child{background:#ae8230}'));
 assert(behavior.includes('.sr633-results thead th{background:#2c6074'));
-assert(ui.includes('const exportPages=prepared?D:(departmentMode&&!departmentSubjects.length?[]:SR63.buildReportPages(reportRows'),'export is scoped to the coordinator subject');
+assert(ui.includes('const exportPages=prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows'),'export is scoped to the coordinator subject');
 assert(!ui.includes('if(downloadState||!canPrint||!prepared||!D.length)return;'));
 assert(ui.includes('if(split)SR63.downloadReportFile(await SR63.reportZipFromPdfs'));
 console.log('PASS 6.10.47: same approved behavior header colors on screen and print, ZIP single/multiple always and automatic preview calculation');
