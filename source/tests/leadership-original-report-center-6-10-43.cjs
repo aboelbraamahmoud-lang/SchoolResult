@@ -10,9 +10,9 @@ const portalSrc=fs.readFileSync(path.join(__dirname,'../src/staff.js'),'utf8');
 const reportSrc=fs.readFileSync(path.join(__dirname,'../src/patches/ui.js'),'utf8');
 
 assert.ok(portalSrc.includes('SR63.currentWorkspace=reportWorkspace'),'official report audit must use authenticated leader scope');
-assert.match(portalSrc,/\['reportCenter','مركز التقارير والطباعة',isLeadership&&!!perms\.reports\]/);
+assert.match(portalSrc,/\['reportCenter','مركز التقارير والطباعة',!!perms\.reports\]/);
 assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'-'\+payload\?\.revision\+'-'\+exam,workspace:active,readOnly:true,canPrint:!!perms\.export,onSchoolSummary:/);
-assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null\}\)/);
+assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null,reportScope='school'\}\)/);
 assert.match(reportSrc,/!readOnly&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2,'only print controls require a prepared preview');
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,3,'vector PDF, raster PDF and ZIP use the same export permission and work without preview');
@@ -47,7 +47,14 @@ for(const role of ['vice_principal','principal']){
  assert.equal(props.canPrint,true);
  assert.equal(read(el,node=>node.props?.children==='مركز التقارير والطباعة').length,1);
 }
-assert.equal(read(runPortal('coordinator',permissions),node=>node.type===ctx.xde).length,0,'coordinator never receives all-school report center');
+const coordinator=read(runPortal('coordinator',permissions),node=>node.type===ctx.xde);
+assert.equal(coordinator.length,1,'coordinator receives identical original report center');
+assert.equal(coordinator[0].props.workspace.rows,workspace.rows,'center consumes only the authenticated server-scoped workspace');
+assert.equal(coordinator[0].props.readOnly,true);
+assert.equal(coordinator[0].props.reportScope,'department');
+assert.equal(coordinator[0].props.canPrint,true);
+assert.equal(read(runPortal('coordinator',{...permissions,reports:false}),node=>node.type===ctx.xde).length,0,'coordinator report center requires reports permission');
+assert.equal(read(runPortal('coordinator',{...permissions,export:false}),node=>node.type===ctx.xde)[0].props.canPrint,false,'coordinator preview stays available without export authorization');
 assert.equal(read(runPortal('vice_principal',{...permissions,reports:false}),node=>node.type===ctx.xde).length,0,'requires reports permission');
 assert.equal(read(runPortal('principal',{...permissions,export:false}),node=>node.type===ctx.xde)[0].props.canPrint,false,'export permission controls print');
 
@@ -64,4 +71,4 @@ assert.equal(read(leader,n=>n.props?.children==='ملخص المدرسة').lengt
 assert.equal(read(leader,n=>n.props?.children==='الطلاب المتعثرون').length,0,'hidden from leader report-card hub; still available in original dedicated tab');
 
 assert.equal(read(leader,n=>n.props?.children==='Excel شامل').length,0,'global admin Excel action hidden from read-only portal');
-console.log('PASS 6.10.43: original xde component reused by director and vice, six report templates unchanged, redundant leadership link hidden, access gates, no admin Excel/export privileges.');
+console.log('PASS: one original xde report center shared by admin, coordinator, principal and vice; coordinator receives scoped rows, no edit privileges and role-aware export gate.');
