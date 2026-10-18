@@ -11,6 +11,12 @@ on:
       - 'style.css'
       - 'index.html'
       - 'assets/**'
+      - 'source/src/**'
+      - 'source/tests/**'
+      - 'source/package.json'
+      - 'desktop/main.cjs'
+      - 'desktop/print-bridge.js'
+      - 'desktop/tests/**'
 
 permissions:
   contents: read
