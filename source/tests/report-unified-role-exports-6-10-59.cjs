@@ -21,7 +21,8 @@ assert.match(roles,/page==='overview'&&isLeadership&&perms\.reports/,'unique gra
 assert.match(roles,/page==='dashboard'\?h\('section',\{className:'srcoord-charts-section'/,'dashboard still shows graphs');
 assert.doesNotMatch(roles,/\(page==='dashboard'\|\|page==='overview'\)\?h\('section'/,'charts are no longer duplicated in overview');
 assert.match(roles,/page==='reports'&&perms\.reports/,'official quantitative/qualitative report retained');
-assert.match(roles,/page==='reportCenter'&&isLeadership&&perms\.reports/,'leader original report center retained');
+assert.match(roles,/page==='reportCenter'&&perms\.reports/,'principal, vice and coordinator share original report center when authorized');
 assert.match(roles,/readOnly:true,canPrint:!!perms\.export/,'report permissions remain enforced');
+assert.match(roles,/reportScope:isLeadership\?'school':'department'/,'role-dependent school versus department title');
 assert.match(roles,/page==='reports'&&perms\.reports\?\(isLeadership\?h\(SR63\.SchoolQuantitativePage/,'Word and PDF formats remain separate, never delete independent reports');
 console.log('PASS 6.10.59 unified DOM/report scope for HTML print, vector PDF, raster PDF, ZIP and role-aware duplicate suppression');

@@ -203,7 +203,7 @@ SR63.CoordinatorPortal=function({profile}){
   rankedPanel('أي الشعب تحتاج إلى متابعة أكبر؟',data.classes,{note:'الشعب مرتبة من الأقل تحصيلًا. المقارنة حسب نتائج التعليم العام المرصودة في الاختبار المختار.',success:true,wide:true,lowFirst:true,limit:20})
  ]);
  const cards=[['الطلاب ذوو نتائج',data?.students??0,'طالب فريد يشمل الدعم الإضافي'],['النتائج المرصودة',data?.evaluated??0,'يشمل الدعم الإضافي'],['نسبة نجاح النتائج',fmt(data?.success),'من نتائج التعليم العام المرصودة'],['التحصيل الأكاديمي',fmt(data?.achievement),'متوسط نسبة النتائج المرصودة'],['معلمو '+scopeLabel,data?.teachers?.length??0,'من لديهم نتائج مرصودة'],['الطلاب المتعثرون',new Set((data?.failed||[]).map(x=>(x.studentId||x.name)+'|'+x.className)).size,'عدد الطلاب المختلفين تحت حد النجاح في مادة واحدة أو أكثر']];
- const views=[['dashboard','لوحة '+scopeLabel,true],['overview','ملخص أداء المدرسة',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison',isLeadership?'مقارنة نتائج المدرسة بين اختبارين':'مقارنة اختبارين للقسم والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['reportCenter','مركز التقارير والطباعة',isLeadership&&!!perms.reports],['plans','الخطط العلاجية الذكية',!isLeadership&&!!perms.plans]];
+ const views=[['dashboard','لوحة '+scopeLabel,true],['overview','ملخص أداء المدرسة',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison',isLeadership?'مقارنة نتائج المدرسة بين اختبارين':'مقارنة اختبارين للقسم والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['reportCenter','مركز التقارير والطباعة',!!perms.reports],['plans','الخطط العلاجية الذكية',!isLeadership&&!!perms.plans]];
  const saveWorkspace=async change=>{if(profile.role!=='coordinator'||!perms.savePlans)throw Error('ليس لديك صلاحية حفظ الخطط.');
   if(!workspace)throw Error('لم تكتمل البيانات.');const next=change(workspace),before=new Map((workspace.aiPlans||[]).map(p=>[p.id,JSON.stringify(p)])),updated=(next.aiPlans||[]).filter(p=>before.get(p.id)!==JSON.stringify(p));
   if(updated.length!==1)throw Error('يجب تعديل خطة واحدة في كل عملية.');const result=await SR63.cloud.rpc('school_staff_coordinator_plan_save',{p_plan:updated[0],p_expected:payload.revision});
@@ -268,13 +268,13 @@ SR63.CoordinatorPortal=function({profile}){
     !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null
    ]):null,
    page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})):null,
-   page==='reportCenter'&&isLeadership&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
+   page==='reportCenter'&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
     h('header',{className:'srstaff-panel'},[
-     h('h2',{},'مركز التقارير والطباعة الأصلي — جميع صفوف المدرسة'),
-     h('p',{},'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.'),
+     h('h2',{},isLeadership?'مركز التقارير والطباعة الأصلي — جميع صفوف المدرسة':'مركز التقارير والطباعة — أقسامي المصرح بها فقط'),
+     h('p',{},isLeadership?'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.':'نفس تقارير المدير والنائب بنفس القوالب والمعاينة والطباعة وPDF وZIP، لكن البيانات محدودة من الخادم بأقسامك المصرح بها ('+(profile.departments||[]).join('، ')+') فقط، دون عرض نتائج الأقسام الأخرى أو تعديلها.'),
      !perms.export?h('p',{className:'srstaff-alert',role:'alert'},'العرض متاح، لكن الطباعة غير مفعلة لهذا الحساب. اطلب من مسؤول النظام تفعيل صلاحية «تصدير Word والتقارير».'):null
     ]),
-    h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage('overview')})
+    h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage(isLeadership?'overview':'dashboard'),reportScope:isLeadership?'school':'department'})
    ]):null,
    
    
