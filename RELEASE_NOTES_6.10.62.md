@@ -7,3 +7,7 @@
 - Include safe display fields `coordinatorName` and `stable` in the *source* Edge Function whitelist for a future backend deployment; the live frontend does not require the Edge Function to be redeployed to correct this crash.
 - Add an executable regression test that first reproduces the actual original report-footer TypeError and then checks the original report rendering with coordinator-safe settings and an active, single-subject preview.
 - No Supabase table, RLS policy, login permission, student grade, or other stored data modifications.
+
+## React bootstrap compatibility
+
+The local report-center error boundary is initialized lazily on first portal render, rather than at module load, because the legacy bundle initializes its React namespace later. This keeps both the UI bootstrap and the recovery screen operational.
