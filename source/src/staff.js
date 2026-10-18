@@ -113,6 +113,29 @@ SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
  const gradeSummary=[...grades.values()].sort((a,b)=>Number(a.grade)-Number(b.grade)).map(x=>({name:'الصف '+({'7':'السابع','8':'الثامن','9':'التاسع'}[x.grade]||x.grade),grade:x.grade,results:x.results,achievement:x.sum/x.results,successRate:100*x.passed/x.results}));
  return {students:persons.length,evaluated:evaluated.length,regular:nonSupport.length,success:nonSupport.length?100*success/nonSupport.length:null,achievement,levels,studentLevels,gradeSummary,failed,teachers:stats(teachers),classes:stats(classes),trend,benchmarks};
 };
+// Keep the coordinator's server-enforced row scope and normalize optional report fields.
+SR63.staffReportWorkspace=function(workspace,exam){
+ const settings=workspace?.settings||{};
+ return {...workspace,activeExam:exam,settings:{
+  ...settings,
+  coordinatorName:typeof settings.coordinatorName==='string'?settings.coordinatorName:'',
+  stable:Number.isFinite(Number(settings.stable))?Number(settings.stable):3
+ }};
+};
+// A single invalid preview must not destroy the entire authenticated portal.
+SR63.ReportCenterSafeBoundary=class extends v.Component{
+ constructor(props){super(props);this.state={failed:false};}
+ static getDerivedStateFromError(){return {failed:true};}
+ componentDidCatch(error){console.error('SchoolResult report preview failure:',String(error?.message||error||'Unexpected preview error').slice(0,300));}
+ render(){
+  if(!this.state.failed)return this.props.children;
+  return (0,q.jsxs)('section',{className:'srstaff-panel',dir:'rtl',role:'alert',children:[
+   (0,q.jsx)('h2',{children:'تعذر تجهيز معاينة التقرير'}),
+   (0,q.jsx)('p',{children:'حدث خطأ في أحد نماذج التقارير. لم تتغير بيانات الطلاب أو صلاحياتك. عد إلى لوحة القسم ثم افتح التقرير مرة أخرى.'}),
+   (0,q.jsx)('button',{type:'button',onClick:()=>this.props.onReset?.(),children:'العودة إلى لوحة القسم'})
+  ]});
+ }
+};
 SR63.CoordinatorPortal=function({profile}){
  const [payload,setPayload]=(0,v.useState)(null),[error,setError]=(0,v.useState)(''),[loading,setLoading]=(0,v.useState)(true),
  [page,setPage]=(0,v.useState)('dashboard'),[chosenExam,setChosenExam]=(0,v.useState)(''),[showLegend,setShowLegend]=(0,v.useState)(true),[levelClass,setLevelClass]=(0,v.useState)('الكل'),[levelSubject,setLevelSubject]=(0,v.useState)('الكل'),[previousExam,setPreviousExam]=(0,v.useState)('');
@@ -120,7 +143,7 @@ SR63.CoordinatorPortal=function({profile}){
  (0,v.useEffect)(()=>{void reload();},[profile.ownerId,profile.username]);
  const workspace=payload?.workspace||null,perms=profile.permissions||{},settings=workspace?.settings||{},exams=settings.exams||[],
  exam=exams.some(x=>x.key===chosenExam)?chosenExam:(workspace?.activeExam||exams[0]?.key||'exam1');
- const currentExam=exams.find(x=>x.key===exam),examName=currentExam?.name||'التقييم المحدد',active={...workspace,activeExam:exam};
+ const currentExam=exams.find(x=>x.key===exam),examName=currentExam?.name||'التقييم المحدد',active=SR63.staffReportWorkspace(workspace,exam);
  const benchmarks=(payload?.comparisonExam===exam||!payload?.comparisonExam&&exam===workspace?.activeExam)?(payload?.benchmarks||[]):[];
  const data=(0,v.useMemo)(()=>workspace?SR63.coordinatorDashboardData(workspace,exam,benchmarks):null,[workspace,exam,payload]);
  // Original admin reports consult SR63.currentWorkspace for report-scope auditing
@@ -274,7 +297,7 @@ SR63.CoordinatorPortal=function({profile}){
      h('p',{},isLeadership?'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.':'نفس تقارير المدير والنائب بنفس القوالب والمعاينة والطباعة وPDF وZIP، ومربع المادة ثابت على مادة قسمك، ولا يمكن اختيار «كل المواد» أو التبديل بينها. البيانات محدودة من الخادم بأقسامك المصرح بها ('+(profile.departments||[]).join('، ')+') فقط، دون عرض نتائج الأقسام الأخرى أو تعديلها.'),
      !perms.export?h('p',{className:'srstaff-alert',role:'alert'},'العرض متاح، لكن الطباعة غير مفعلة لهذا الحساب. اطلب من مسؤول النظام تفعيل صلاحية «تصدير Word والتقارير».'):null
     ]),
-    h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage(isLeadership?'overview':'dashboard'),reportScope:isLeadership?'school':'department'})
+    h(SR63.ReportCenterSafeBoundary,{key:'report-safe-'+profile.role+'-'+payload?.revision+'-'+exam,onReset:()=>setPage('dashboard')},h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage(isLeadership?'overview':'dashboard'),reportScope:isLeadership?'school':'department'}))
    ]):null,
    
    

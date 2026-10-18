@@ -42,8 +42,10 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  const teachers=(ws.teachers||[]).filter((t:any)=>depts.has(dept(t.department))||subjects.has(dept(t.subject)));
  const settings=ws.settings||{};
  // Whitelist settings. Never send whole workspace or backups, imports, other-subject records, auth metadata.
- const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','academicViceName','principalName','signatures','footerText','reportTitle'];
+ const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','academicViceName','principalName','signatures','footerText','reportTitle'];
  const publicSettings=Object.fromEntries(fields.filter(k=>Object.prototype.hasOwnProperty.call(settings,k)).map(k=>[k,settings[k]]));
+ if(typeof publicSettings.coordinatorName!=='string')publicSettings.coordinatorName='';
+ if(!Number.isFinite(Number(publicSettings.stable)))publicSettings.stable=3;
  const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(dept(p.subject)));
  return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,grades:[],classes:[],subjects:[],students:[],imports:[],auditLog:[],customReports:[]}};
 };
