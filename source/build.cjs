@@ -85,14 +85,14 @@ replace('var pde=[{id:`summary`,title:`ملخص النتائج`,text:`حضور �
 replace('if(i===`subjects`){let t=e;return(n===`الكل`?P9(t.map(e=>hj(e,a))):[n]).forEach(e=>{let n=t.filter(t=>hj(t,a)===e),r=P9(n.map(e=>`${e.subject}\\u0000${mj(e,a)}`)),i=r.length?Array.from({length:Math.ceil(r.length/18)},(e,t)=>r.slice(t*18,(t+1)*18)):[[]];i.forEach((t,r)=>f.push({key:`subjects-${e}-${r}`,title:e,entity:e,scope:`className`,className:e,teacher:``,subject:`كل المواد`,rows:n.filter(e=>t.includes(`${e.subject}\\u0000${mj(e,a)}`)),allRows:n,rowOffset:r*18,part:r+1,totalParts:i.length}))}),f}','if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);');
 replace('if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);','if(i===`departmentStats`)return SR63.departmentStatsPages(e,a,r);if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);');
 // 6.9.14: all ordinary reports are built as single-subject pages; teacher reports are ordered subject -> teacher.
-replace('mde(e.rows,i,o,S,n,T,g,e.settings)','SR63.buildReportPages(e.rows,i,o,S,n,T,g,e.settings)');
+replace('mde(reportRows,i,o,S,n,T,g,e.settings)','SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings)');
 // Print calls are guarded by data quality. Native pagination is allowed to flow.
 const reportStart=code.indexOf('function xde('),reportEnd=code.indexOf('function ',reportStart+10);
 let reportCode=code.slice(reportStart,reportEnd);
 // 6.9.14: defensive re-scope before rendering and always resolve the displayed subject from the page data.
 reportCode=reportCode.split('page:t,').join('page:SR63.normalizeReportPage(t,n,n===`comparison`?m:u,e),');
 reportCode=reportCode.split('subject:t.subject,assessment:i').join('subject:(n===`subjects`||n===`departmentStats`||n===`support`)?`كل المواد`:SR63.reportDisplaySubject(SR63.normalizeReportPage(t,n,n===`comparison`?m:u,e),n===`comparison`?m:u),assessment:i');
-reportCode=reportCode.split('t.id===`subjects`&&(a(`className`),l(`الكل`),s(`الكل`))').join('(t.id===`subjects`||t.id===`departmentStats`||t.id===`support`)&&(a(`grade`),l(`الكل`),s(`الكل`))');
+reportCode=reportCode.split('t.id===`subjects`&&(a(`className`),!departmentMode&&(l(`الكل`),s(`الكل`)))').join('(t.id===`subjects`||t.id===`departmentStats`||t.id===`support`)&&(a(`grade`),!departmentMode&&(l(`الكل`),s(`الكل`)))');
 reportCode=reportCode.split('x=n===`subjects`').join('x=n===`subjects`||n===`departmentStats`||n===`support`');
 reportCode=reportCode.split('className:`grid gap-3 md:grid-cols-2 xl:grid-cols-6`').join('className:`grid gap-3 md:grid-cols-2 xl:grid-cols-4`');
 reportCode=reportCode.split('x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`صف / شعبة`})').join('x?(0,q.jsx)(`div`,{className:`mt-2 rounded-md border bg-slate-50 px-3 py-2 text-sm font-bold`,children:`صف دراسي`})');
