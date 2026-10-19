@@ -61,12 +61,12 @@ assert.doesNotMatch(mismatchReport.pages[0],/طالب عربي تجريبي/,'su
 globals.v={createElement:(type,props,...children)=>({type,props,children}),
  useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]};
 const renderSpace={...workspace,skillsAssessments:[assessment]};
-const ownerTree=SR63.SkillCenter({workspace:renderSpace,setWorkspace:()=>{},readOnly:false,canPrint:true});
+const ownerTree=SR63.SkillCenter({workspace:renderSpace,setWorkspace:()=>{},readOnly:false,canPrint:true,allowedSubjects:['اللغة الإنجليزية']});
 const visible=JSON.stringify(ownerTree);
 assert.match(visible,/مركز تحليل مهارات/);
 assert.match(visible,/رصد درجات الطلاب وتعديلها/);
 assert.match(visible,/حفظ درجات المهارات/);
-const leadershipTree=SR63.SkillCenter({workspace:renderSpace,readOnly:true,canPrint:true});
+const leadershipTree=SR63.SkillCenter({workspace:renderSpace,readOnly:true,canPrint:true,allowedSubjects:['اللغة الإنجليزية']});
 const leadershipText=JSON.stringify(leadershipTree);
 assert.doesNotMatch(leadershipText,/حفظ درجات المهارات/,'leadership remains read-only');
 assert.match(leadershipText,/مركز تقارير تحليل المهارات/);
