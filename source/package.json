@@ -54,5 +54,5 @@
     "test:staff-ai-plan-visibility": "node --expose-internals tests/staff-ai-plan-visibility-6-10-63.cjs",
     "test:skills": "node --expose-internals tests/skills-6-10-64.cjs"
   },
-  "version": "6.10.64"
+  "version": "6.10.65"
 }

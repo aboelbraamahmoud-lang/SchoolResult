@@ -44,6 +44,10 @@ assert.equal(boxes[0].props.children,'الرياضيات','the coordinator has o
 assert.equal(boxes[0].props['aria-readonly'],true);
 const pages=nodes.filter(n=>n.type==='section'&&String(n.props?.className||'').includes('school-report-page'));
 assert.ok(pages.length>0,'a prepared coordinator preview renders at least one real report page');
+assert.match(ui,/studentName:typeof row\.studentName==='string'\?row\.studentName:String\(row\.studentName\?\?''\)/,'coordinator names normalize only missing values safely');
+assert.match(ui,/String\(row\?\.studentName\?\?''\)\.length>45/,'report preview never dereferences a missing student name');
+assert.match(ui,/SchoolResult report preparation:/,'page builder failure must become a recoverable report error, not a blank portal');
+assert.match(ui,/تعذر تجهيز المعاينة:.*previewError/,'display preview generation error in the original report page');
 assert.ok(pages.length<=8,'only 8 page DOM elements are mounted in preview at once');
 for(const page of pages){
  assert.equal(page.props?.['data-orientation'],'portrait');
