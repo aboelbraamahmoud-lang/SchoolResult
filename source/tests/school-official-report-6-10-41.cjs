@@ -38,7 +38,8 @@ assert.ok(!firstXml.includes('القيمة المضافة في التحصيل ا
 assert.ok(!firstXml.includes('نسبة التحصيل الأكاديمي في الاختبار الحالي'),'First exam may not invent predecessor');
 const staff=fs.readFileSync(path.join(root,'source/src/staff.js'),'utf8');
 assert.ok(staff.includes("isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية'"),'Only leadership should receive simplified tab');
-assert.ok(staff.includes("page==='plans'&&!isLeadership"),'AI plans must remain hidden for school leaders');
+assert.ok(!staff.includes("page==='plans'"),'AI plans removed from coordinator, principal and vice-principal navigation');
+assert.ok(!staff.includes('SR63.AIPlans'),'the former staff AI-plan editor is not mounted');
 assert.ok(staff.includes('SR63.SchoolQuantitativePage')&&staff.includes('SR63.TeacherPerformanceCenter'),'Coordinator department form must remain untouched');
 const school=fs.readFileSync(path.join(root,'source/src/school-quantitative.js'),'utf8');
 assert.ok(school.includes("await SR63.loadWordTemplate('reference')"),'Real lazy Word template must load on export');
