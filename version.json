@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.62",
-  "released": "2026-10-18",
+  "version": "6.10.63",
+  "released": "2026-10-19",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح الصفحة البيضاء عند تجهيز المعاينة للمنسق: تهيئة القيم الاختيارية في تذييل التقرير، قفل مادة واحدة وعدم التحويل إلى كل المواد، شاشة تعافٍ بدلاً من تعطيل الموقع، واختبار فعلي للمعاينة ومخرجات التقرير."
+  "notes": "إزالة الخطط العلاجية الذكية وإعدادها من حسابات المنسق والمدير والنائب وإدارة صلاحياتهم دون حذف الخطط المحفوظة، مع الحفاظ على وحدة الأدمن وتقارير الأداء وقفل مادة المنسق وإصلاح معاينته."
 }
