@@ -14,7 +14,8 @@ assert.ok(!staff.includes("['department','التقرير الكمي والوصف
 assert.ok(!staff.includes("page==='department'&&perms.reports"),'Coordinator duplicate page branch remains');
 assert.ok(staff.includes("page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage"),'Leadership must see whole-school report');
 assert.ok(staff.includes("h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})"),'Coordinator must retain the approved teacher/department report center');
-assert.ok(staff.includes("!isLeadership&&!!perms.plans"),'Leadership AI plans must be hidden');
+assert.ok(!staff.includes('SR63.AIPlans'),'Smart plans must be absent for coordinator, principal and vice principal');
+assert.ok(!staff.includes("['plans','الخطط العلاجية الذكية'"),'No coordinator plan tab remains');
 assert.match(app,/id:`teacherPerformance`,label:`خطط تحسين الأداء والتقارير الكمية والوصفية`/);
 assert.ok(!app.includes('id:`departmentQuant`,label:`التقرير الكمي والوصفي للقسم`'));
 assert.match(app,/SR63\.departmentQuantWordBuild/);
