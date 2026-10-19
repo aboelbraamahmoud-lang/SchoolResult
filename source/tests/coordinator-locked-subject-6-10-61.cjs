@@ -8,7 +8,7 @@ assert.match(ui,/departmentMode=reportScope==='department'/);
 assert.match(ui,/fixedSubject=departmentSubjects\[0\]\|\|''/);
 assert.match(ui,/S=departmentMode\?\(fixedSubject\|\|\x60__UNASSIGNED_SUBJECT__\x60\)/);
 assert.match(ui,/mde\(reportRows,i,o,S,n,T,g,e\.settings\)/);
-assert.match(ui,/\.filter\(row=>String\(row\.subject\|\|''\)\.trim\(\)===fixedSubject\)/,'report pages filter to one subject');
+assert.match(ui,/\.filter\(row=>row&&String\(row\.subject\|\|''\)\.trim\(\)===fixedSubject\)/,'report pages filter to one subject without evaluating null rows');
 assert.doesNotMatch(ui,/fixedSubject\|\|\x60الكل\x60/,'no all-subject fallback for coordinator');
 assert.equal((ui.match(/SR63\.buildReportPages\(reportRows,i,o,S,n,T,g,e\.settings\)/g)||[]).length,2,'PDF and ZIP always use coordinator-scoped rows');
 assert.match(ui,/'aria-readonly':true/);
