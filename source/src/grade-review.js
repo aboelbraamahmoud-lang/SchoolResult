@@ -25,11 +25,46 @@ SR63.gradeReviewExceptions=function(pages,filters={}){
   }
   return result;
 };
+/* 6.10.64 — auditable per-assessment skill scoring. Existing whole-exam grades
+   remain unchanged until an authorized admin explicitly uses the skill editor. */
+SR63.gradeSkillNormalize=function(skills,total){
+  if(!Number.isFinite(total)||total<=0||!Array.isArray(skills)||skills.length<1||skills.length>20)
+    SR63.fail('يجب تحديد مهارة واحدة إلى عشرين مهارة بدرجات عظمى صحيحة.');
+  const seen=new Set();
+  const cents=(input,label,positive)=>{
+    if(input===null||input===undefined||String(input).trim()==='')SR63.fail('أدخل '+label+' لكل مهارة.');
+    const x=Number(input);
+    if(!Number.isFinite(x)||x<0||positive&&x===0||Math.abs(x*100-Math.round(x*100))>.000001)
+      SR63.fail(label+' غير صالحة؛ استخدم عددًا غير سالب حتى منزلتين عشريتين.');
+    return Math.round(x*100);
+  };
+  const normalized=skills.map((item,i)=>{
+    const name=String(item?.name??'').trim();
+    if(!name||name.length>80||seen.has(ij(name)))SR63.fail('اسم المهارة مفقود أو مكرر أو طويل جدًا.');
+    seen.add(ij(name));
+    const maxCents=cents(item.max,'الدرجة العظمى',true);
+    const scoreCents=cents(item.score,'درجة الطالب',false);
+    if(scoreCents>maxCents)SR63.fail('درجة «'+name+'» تتجاوز درجتها العظمى.');
+    return {name,max:maxCents/100,score:scoreCents/100};
+  });
+  const maxSum=normalized.reduce((sum,item)=>sum+Math.round(item.max*100),0);
+  const ceiling=Math.round(total*100);
+  if(maxSum!==ceiling)SR63.fail('يجب أن يساوي مجموع الدرجات العظمى للمهارات الدرجة العظمى للاختبار ('+total+').');
+  const earned=normalized.reduce((sum,item)=>sum+Math.round(item.score*100),0);
+  if(earned>ceiling)SR63.fail('مجموع المهارات يتجاوز الدرجة العظمى للاختبار.');
+  return {skills:normalized,score:earned/100,total:maxSum/100};
+};
+SR63.gradeSkillDefaults=function(total,score){
+  const half=Math.round(total*100/2)/100,rest=Math.round(total*100)/100-half;
+  const actual=Math.max(0,Math.min(Number(score)||0,total));
+  const first=Math.min(actual,half);
+  return [{name:'المهارة الأولى',max:half,score:first},{name:'المهارة الثانية',max:rest,score:Math.round((actual-first)*100)/100}];
+};
 SR63.gradeReviewApply=function(workspace,exam,request){
   if(!XA.includes(exam))SR63.fail('التقييم المحدد غير صالح.');
   const status=String(request.status??''),allowed=['present','absent','excused','unexcused','deprived','not_enrolled','unentered'];
   if(!allowed.includes(status))SR63.fail('حالة النتيجة غير صالحة.');
-  const score=status==='present'?SR63.number(request.score):null;
+  let score=status==='present'?SR63.number(request.score):null;
   const subject=String(request.subject??'').trim(),className=lj(request.className),studentId=String(request.studentId??'').trim(),studentName=String(request.studentName??'').trim();
   if(!subject||!studentId||!studentName||!D9(className))SR63.fail('تعذّر تحديد الطالب أو المادة أو الشعبة.');
   const seed=workspace.rows.find(row=>ij(row.studentId)===ij(studentId)&&lj(hj(row,exam)||row.className)===className);
@@ -42,9 +77,19 @@ SR63.gradeReviewApply=function(workspace,exam,request){
   if(existing&&lj(hj(existing,exam)||existing.className)!==className)SR63.fail('شعبة النتيجة الحالية تختلف عن شعبة الطالب. صححها أولًا.');
   const total=existing?pj(existing,exam,workspace.settings):tj(workspace.settings,exam)?.total;
   if(!Number.isFinite(total)||total<=0)SR63.fail('الدرجة الكلية غير صالحة.');
+  const oldSkills=existing?.skillScores?.[exam]??null,usesSkills=status==='present'&&Array.isArray(request.skillScores);
+  if(usesSkills){
+    if(!['owner','admin'].includes(SR63.cloud?.role||'owner'))SR63.fail('تعديل درجات المهارات متاح للإدارة المخولة فقط.');
+    const calculated=SR63.gradeSkillNormalize(request.skillScores,total);
+    score=calculated.score;
+  }else if(oldSkills&&status==='present'){
+    // A grade derived from skill entries must never be overwritten manually.
+    if(score!==existing.scores?.[exam])SR63.fail('هذه الدرجة محسوبة من المهارات؛ عدّل درجات المهارات بدلًا منها.');
+  }
   if(status==='present'&&(score===null||score<0||score>total))SR63.fail(`أدخل درجة من 0 إلى ${total}، ولا تترك الدرجة فارغة عند اختيار حاضر.`);
   if(!existing&&status==='unentered')return workspace;
-  if(existing&&existing.statuses?.[exam]===status&&(status!=='present'||existing.scores?.[exam]===score))return workspace;
+  if(existing&&existing.statuses?.[exam]===status&&(status!=='present'||existing.scores?.[exam]===score)&&
+    (!usesSkills||SR63.equal(oldSkills,SR63.gradeSkillNormalize(request.skillScores,total).skills)))return workspace;
   let newRow=existing;
   if(!newRow){
     const catalog=SR63.ensureCatalog(workspace),defined=catalog.subjects.find(s=>s.active!==false&&SR63.subjectEquivalent(s.name,subject));
@@ -57,10 +102,25 @@ SR63.gradeReviewApply=function(workspace,exam,request){
     newRow={id:`row-${crypto.randomUUID()}`,studentId,studentName,className,grade:uj(className),subject:defined.name,department:support?SR63.SUPPORT_DEPARTMENT:defined.department||defined.name,teacher,
       scores:Object.fromEntries(XA.map(key=>[key,null])),statuses:Object.fromEntries(XA.map(key=>[key,'unentered'])),totals:Object.fromEntries(XA.map(key=>[key,null])),examTeachers:Object.fromEntries(XA.map(key=>[key,''])),examClasses:Object.fromEntries(XA.map(key=>[key,''])),importBatches:Object.fromEntries(XA.map(key=>[key,null]))};
   }
-  const updated={...newRow,scores:{...newRow.scores,[exam]:score},statuses:{...newRow.statuses,[exam]:status},totals:{...newRow.totals,[exam]:total},examClasses:{...newRow.examClasses,[exam]:className},examTeachers:{...newRow.examTeachers,[exam]:newRow.examTeachers?.[exam]||newRow.teacher},importBatches:{...newRow.importBatches,[exam]:null}};
+  const skillScores={...(newRow.skillScores||{})};
+  if(usesSkills)skillScores[exam]=SR63.gradeSkillNormalize(request.skillScores,total).skills;
+  else if(oldSkills&&status!=='present')skillScores[exam]=null;
+  const updated={...newRow,scores:{...newRow.scores,[exam]:score},statuses:{...newRow.statuses,[exam]:status},totals:{...newRow.totals,[exam]:total},examClasses:{...newRow.examClasses,[exam]:className},examTeachers:{...newRow.examTeachers,[exam]:newRow.examTeachers?.[exam]||newRow.teacher},importBatches:{...newRow.importBatches,[exam]:null},
+    ...(usesSkills||oldSkills?{skillScores}:{})};
   if(!SR63.validResult(updated,exam,workspace.settings))SR63.fail('النتيجة المعدلة لا تجتاز التحقق من الدرجات والحالة.');
   const rows=existing?workspace.rows.map(row=>row.id===existing.id?updated:row):[...workspace.rows,updated];
-  return {...workspace,rows};
+  const changed={...workspace,rows};
+  if(!usesSkills&&!oldSkills)return changed;
+  // The ordinary audited React state setter sees that this entry is already present
+  // and will not duplicate it. Undo keeps both score and skill breakdown atomically.
+  const logged=SR63.auditChanges(workspace,changed);
+  if(logged===changed)return changed;
+  const access=SR63.cloud?.profile||{};
+  return {...logged,auditLog:logged.auditLog.map((entry,index)=>index?entry:{
+    ...entry,action:'تعديل درجات المهارات',exam,
+    details:`${studentName} — ${subject} — ${tj(workspace.settings,exam).name}: ${existing?.scores?.[exam]??'—'} ← ${score===null?'—':score}`,
+    actor:{role:SR63.cloud?.role||'owner',username:String(access.username||access.displayName||'مدير النظام').slice(0,100)}
+  })};
 };
 SR63.gradeReviewExcel=function(items,workspace,exam,cohort){
   if(!items.length)return eb.error('لا توجد حالات مطابقة للتصدير.');
@@ -93,7 +153,14 @@ SR63.StudentGradeReview=function({workspace,setWorkspace}){
   const subjects=[...new Map(pages.flatMap(p=>p.results).map(r=>[SR63.subjectAliasKey(r.rawSubject),r.subject])).entries()].sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],workspace.settings));
   const label=(title,control)=>(0,q.jsxs)('label',{className:'sr613-filter',children:[(0,q.jsx)('span',{children:title}),control]}),options=(value,change,choices)=>(0,q.jsx)('select',{value,onChange:event=>change(event.target.value),children:choices.map(([id,name])=>(0,q.jsx)('option',{value:id,children:name},id))});
   const reset=()=>{setSelected('');setDraft(null);};
-  const startEdit=(page,item)=>setDraft({rowId:item.rowId,subject:item.rawSubject,display:item.subject,className:page.className,studentId:page.studentId,studentName:page.studentName,status:item.status,score:item.score===null?'':String(item.score),total:item.total});
+  const startEdit=(page,item)=>{
+    const source=workspace.rows.find(row=>row.id===item.rowId);
+    setDraft({rowId:item.rowId,subject:item.rawSubject,display:item.subject,className:page.className,
+      studentId:page.studentId,studentName:page.studentName,status:item.status,
+      score:item.score===null?'':String(item.score),total:item.total,
+      skillScores:source?.skillScores?.[exam]?.map(skill=>({...skill}))||null,
+      originalSkillScores:!!source?.skillScores?.[exam]});
+  };
   const saveEdit=async()=>{
     if(!draft||busy)return;
     try{
@@ -128,6 +195,21 @@ SR63.StudentGradeReview=function({workspace,setWorkspace}){
       (0,q.jsxs)('p',{className:'sr613-count',children:['عدد الحالات المطابقة: ',exceptions.length,' · عدد الطلاب المتأثرين: ',new Set(exceptions.map(item=>item.studentId)).size]}),
       (0,q.jsx)('div',{className:'sr613-table-wrap',children:(0,q.jsxs)('table',{className:'sr613-table',children:[(0,q.jsx)('thead',{children:(0,q.jsxs)('tr',{children:['الطالب','الشعبة','المادة','الدرجة','الكلي','السبب','مراجعة'].map(h=>(0,q.jsx)('th',{children:h},h))})}),(0,q.jsx)('tbody',{children:exceptions.slice(0,120).map((item,i)=>(0,q.jsxs)('tr',{children:[(0,q.jsxs)('td',{children:[(0,q.jsx)('b',{children:item.studentName}),(0,q.jsx)('small',{children:item.studentId})]}),(0,q.jsx)('td',{children:item.className}),(0,q.jsx)('td',{children:item.subject}),(0,q.jsx)('td',{children:item.score??'—'}),(0,q.jsx)('td',{children:item.total??'—'}),(0,q.jsx)('td',{children:item.reasonLabel}),(0,q.jsx)('td',{children:(0,q.jsx)('button',{onClick:()=>{setSelected(item.studentId);setMode('student')},children:'فتح الطالب'})})]},`${item.studentId}-${item.subject}-${i}`))})]})}),exceptions.length>120?(0,q.jsx)('p',{children:'تعرض الشاشة أول 120 حالة حفاظًا على سرعة العرض؛ ملف Excel والطباعة يشملان جميع الحالات المطابقة.'}):null
     ]}),
-    draft?(0,q.jsx)('div',{className:'sr613-overlay',children:(0,q.jsxs)('section',{className:'sr613-editor',role:'dialog','aria-modal':true,'aria-label':'تعديل درجة الطالب',children:[(0,q.jsx)('h2',{children:'تعديل درجة أو حالة'}),(0,q.jsxs)('p',{children:[draft.studentName,' · ',draft.display,' · ',tj(workspace.settings,exam).name]}),label('الحالة',options(draft.status,value=>setDraft({...draft,status:value,score:value==='present'?draft.score:''}),[['present','حاضر — درجة مرصودة'],['unentered','غير مرصود'],['absent','غائب'],['excused','غياب بعذر'],['unexcused','غياب دون عذر'],['deprived','محروم'],['not_enrolled','غير مقيد']])),label('الدرجة من '+draft.total,(0,q.jsx)('input',{type:'text',inputMode:'decimal',value:draft.score,onChange:event=>setDraft({...draft,score:event.target.value}),disabled:draft.status!=='present',placeholder:'اكتب الدرجة'})),(0,q.jsx)('small',{children:'عند اختيار غياب أو عذر أو حرمان أو غير مرصود، تُحفظ الدرجة فارغة، وليس صفرًا. تنشأ نقطة استعادة قبل الحفظ ويُسجَّل التغيير.'}),(0,q.jsxs)('div',{className:'sr613-editor-actions',children:[(0,q.jsx)('button',{disabled:busy,onClick:()=>setDraft(null),children:'إلغاء'}),(0,q.jsx)('button',{disabled:busy,onClick:()=>void saveEdit(),children:busy?'جارٍ الحفظ…':'اعتماد التعديل'})]})]})}):null
+    draft?(0,q.jsx)('div',{className:'sr613-overlay',children:(0,q.jsxs)('section',{className:'sr613-editor',role:'dialog','aria-modal':true,'aria-label':'تعديل درجة الطالب',children:[(0,q.jsx)('h2',{children:'تعديل درجة أو حالة'}),(0,q.jsxs)('p',{children:[draft.studentName,' · ',draft.display,' · ',tj(workspace.settings,exam).name]}),label('الحالة',options(draft.status,value=>setDraft({...draft,status:value,score:value==='present'?draft.score:''}),[['present','حاضر — درجة مرصودة'],['unentered','غير مرصود'],['absent','غائب'],['excused','غياب بعذر'],['unexcused','غياب دون عذر'],['deprived','محروم'],['not_enrolled','غير مقيد']])),draft.skillScores&&draft.status==='present'?
+      (0,q.jsxs)('div',{className:'sr613-skill-editor',children:[
+        (0,q.jsx)('b',{children:'توزيع درجة الاختبار على المهارات'}),
+        (0,q.jsx)('p',{children:'درجة الاختبار تُحسب آليًا من مجموع المهارات. مجموع الدرجات العظمى للمهارات يجب أن يساوي '+draft.total+'.'}),
+        ...draft.skillScores.map((skill,k)=>(0,q.jsxs)('div',{className:'sr613-skill-row',children:[
+          label('اسم المهارة',(0,q.jsx)('input',{type:'text',maxLength:80,value:skill.name,onChange:event=>setDraft(old=>({...old,skillScores:old.skillScores.map((value,j)=>j===k?{...value,name:event.target.value}:value)}))})),
+          label('الدرجة العظمى',(0,q.jsx)('input',{type:'number',min:0.01,step:0.01,value:skill.max,onChange:event=>setDraft(old=>({...old,skillScores:old.skillScores.map((value,j)=>j===k?{...value,max:event.target.value}:value)}))})),
+          label('درجة الطالب',(0,q.jsx)('input',{type:'number',min:0,step:0.01,value:skill.score,onChange:event=>setDraft(old=>({...old,skillScores:old.skillScores.map((value,j)=>j===k?{...value,score:event.target.value}:value)}))})),
+          (0,q.jsx)('button',{type:'button',disabled:draft.skillScores.length<=1,onClick:()=>setDraft(old=>({...old,skillScores:old.skillScores.filter((_,j)=>j!==k)})),children:'حذف'})
+        ]},k)),
+        (0,q.jsx)('button',{type:'button',disabled:draft.skillScores.length>=20,onClick:()=>setDraft(old=>({...old,skillScores:[...old.skillScores,{name:'',max:'',score:''}]})),children:'إضافة مهارة'}),
+        (0,q.jsx)('strong',{children:['مجموع درجات المهارات: ',Math.round(draft.skillScores.reduce((sum,item)=>sum+(Number(item.score)||0),0)*100)/100,' / ',draft.total]}),
+        !draft.originalSkillScores?(0,q.jsx)('button',{type:'button',onClick:()=>setDraft(old=>({...old,skillScores:null})),children:'العودة لرصد الدرجة الإجمالية'}):null
+      ]}):
+      label('الدرجة من '+draft.total,(0,q.jsx)('input',{type:'text',inputMode:'decimal',value:draft.score,onChange:event=>setDraft({...draft,score:event.target.value}),disabled:draft.status!=='present'||draft.originalSkillScores,placeholder:'اكتب الدرجة'})),
+      !draft.skillScores&&draft.status==='present'&&!draft.originalSkillScores?(0,q.jsx)('button',{type:'button',onClick:()=>setDraft(old=>({...old,skillScores:SR63.gradeSkillDefaults(old.total,old.score)})),children:'توزيع درجة الاختبار على مهارات'}):null,(0,q.jsx)('small',{children:'عند اختيار غياب أو عذر أو حرمان أو غير مرصود، تُحفظ الدرجة فارغة، وليس صفرًا. تنشأ نقطة استعادة قبل الحفظ ويُسجَّل التغيير.'}),(0,q.jsxs)('div',{className:'sr613-editor-actions',children:[(0,q.jsx)('button',{disabled:busy,onClick:()=>setDraft(null),children:'إلغاء'}),(0,q.jsx)('button',{disabled:busy,onClick:()=>void saveEdit(),children:busy?'جارٍ الحفظ…':'اعتماد التعديل'})]})]})}):null
   ]});
 };
