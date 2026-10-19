@@ -157,7 +157,7 @@ b4166a1c8cf4e811f66f683a9719444d87d284e8dfa51f49731ea80cef6967b9  source/tests/s
 103bd693cff35dcb93f41d607c26418df821cf856b42262e278a368f80c238ed  source/tests/staff-access.cjs
 801d1c02adfd7c1defc3dbfb4bbf71e6bbdb405f8336385f087695c7af311ceb  source/tests/staff-ai-plan-visibility-6-10-63.cjs
 3276c04aba053fe9213fddb05c1c27e1c38596b3e48bc1cec943db8e6516e14e  source/tests/staff-dashboard-clarity-6-10-42.cjs
-a94a52e91a4cd9d88183f26e2e2311d2f33ee99ceb23c0e7db86d117cc345d47  source/tests/staff-print-6-10-40.cjs
+63776099410e515b7a909b81964f69d046c86251c903a926be26f3baeaea0516  source/tests/staff-print-6-10-40.cjs
 d93e8be547f33a7614220cdff6f48808f936851e0d2950c47ad048b61227c184  source/tests/staff-roles-levels.cjs
 5c058b61dc3fcb9c7e936078459f9a1766b93a96b832029746f04df0515c784e  source/tests/structure.cjs
 b860080bf5ae09363ebc8e9cbc4b6f0a70e259f79d4ce3fa271f106fb4245337  source/tests/student-print-parity-6-10-57.cjs
