@@ -19,7 +19,7 @@ const indexSubjects=(ws:any,deps:string[])=>{
 };
 // Stable aliases are used for both subject scope and the skill-write authorization.
 const skillKind=(value:unknown)=>{
- const x=dept(value);
+ const x=dept(value).replace(/^قسم(?=(اللغة|العربية|الانجليزية|عربي|انجليزي))/,'');
  if(['عربي','العربية','لغةعربية','اللغةالعربية'].includes(x))return 'arabic';
  if(['انجليزي','الانجليزي','الانجليزية','لغةانجليزية','اللغةالانجليزية','english','englishlanguage'].includes(x))return 'english';
  return '';
@@ -107,7 +107,7 @@ Deno.serve(async(req:Request)=>{
  if(mine.error||owner.error)return reply({error:'ACCOUNT_LOOKUP_FAILED'},503,origin);
  const account=mine.data,ownerId=owner.data?user.id:(account?.active?account.owner_id:null),role=owner.data?'owner':account?.active?account.role:null;
  if(!ownerId||!role)return reply({error:'ACCOUNT_DISABLED_OR_UNAUTHORIZED'},403,origin);
- const profile={role,ownerId,username:account?.username||null,displayName:account?.display_name||user.email?.split('@')[0]||'مدير المدرسة',departments:account?.departments||[],permissions:readRoles.includes(role)?boolPermissions(account?.permissions):Object.fromEntries(pkeys.map(k=>[k,true]))};
+ const profile={role,ownerId,username:account?.username||null,displayName:account?.display_name||user.email?.split('@')[0]||'مدير المدرسة',departments:account?.departments||[],permissions:readRoles.includes(role)?boolPermissions(account?.permissions):Object.fromEntries(pkeys.map(k=>[k,true])),skillsWrite:role==='coordinator'&&boolPermissions(account?.permissions).reports===true&&(account?.departments||[]).some((x:string)=>!!skillKind(x))};
  if(action==='profile')return reply({profile},200,origin);
  if(action==='capabilities'){
   if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);
@@ -175,7 +175,7 @@ Deno.serve(async(req:Request)=>{
   const output={version:1,id:a.id,subject:kind==='arabic'?'اللغة العربية':'اللغة الإنجليزية',subjectKey:kind,
    exam:a.exam,academicYear:String(a.academicYear||ws.settings?.academicYear||'').slice(0,40),
    fileName:String(a.fileName||'إدخال المهارات').slice(0,180),importedAt:new Date().toISOString(),
-   skills,records,issues:[],classCount:new Set(records.map(r=>r.className)).size,
+   skills,records,issues:[],modifiedBy:profile.displayName,modifiedAt:new Date().toISOString(),classCount:new Set(records.map(r=>r.className)).size,
    gradeCount:new Set(records.map(r=>r.grade)).size,
    passThreshold:Number.isFinite(a.passThreshold)&&a.passThreshold>=0&&a.passThreshold<=100?a.passThreshold:50};
   const updated={...ws,skillsAssessments:[...existing.filter((x:any)=>x.id!==a.id),output]};
