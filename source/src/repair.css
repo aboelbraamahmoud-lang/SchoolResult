@@ -1550,3 +1550,45 @@
 .srskill-footer{display:flex;justify-content:space-between;gap:6mm;margin-top:auto!important;padding:2mm 0;border-top:1px solid #839da8;font-size:9px;font-weight:700;flex-shrink:0}
 .srskill-page-number{text-align:center;font-size:9px;color:#42606d;flex-shrink:0}
 @media(max-width:650px){.srskill-center{padding:6px 0}.srskill-controls label{min-width:140px}.srskill-preview{padding:8px}}
+
+
+/* Bilingual skill analysis: editable responsive grid; printed sheets retain fixed A4 layout. */
+.srskill-upgraded .srskill-controls{align-items:flex-end}
+.srskill-upgraded .srskill-controls button,.srskill-editor button{
+ appearance:none;cursor:pointer;border:0;border-radius:9px;background:#086e70;color:#fff;
+ font-size:13px;font-weight:800;padding:10px 13px;min-height:38px
+}
+.srskill-upgraded button:disabled{opacity:.48;cursor:not-allowed}
+.srskill-upgraded .srskill-input-label{display:flex;flex-direction:column;gap:6px;min-width:170px;max-width:290px;font-size:13px;font-weight:800}
+.srskill-upgraded .srskill-input-label input,.srskill-upgraded .srskill-input-label select{
+ width:100%;color:#123a49;background:#fff;border:1px solid #b4cbd3;border-radius:9px;padding:9px;min-height:38px
+}
+.srskill-editor{background:white;border:1px solid #d1e1e6;border-radius:14px;padding:16px;max-width:100%;overflow:hidden}
+.srskill-editor h3{color:#0e5761;font-size:18px;margin:0 0 9px;font-weight:800}
+.srskill-editor p{line-height:1.75;color:#516b76}
+.srskill-config-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(265px,1fr));gap:10px;margin:12px 0}
+.srskill-config-row{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(70px,.7fr) auto;gap:8px;align-items:center}
+.srskill-config-row input{min-width:0;width:100%;padding:9px;border:1px solid #b4cbd3;border-radius:9px}
+.srskill-config-row button{background:#7b4351}
+.srskill-chart-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.srskill-chart-item{background:#f5fafb;border:1px solid #dae7ea;border-radius:10px;padding:12px}
+.srskill-chart-item>div:first-child{display:flex;justify-content:space-between;gap:9px}
+.srskill-chart-item small{color:#667b82}
+.srskill-chart-track{width:100%;height:10px;background:#dce8e9;border-radius:30px;overflow:hidden;margin:9px 0}
+.srskill-chart-bar{height:100%;background:linear-gradient(90deg,#1c9887,#d1a756);border-radius:30px}
+.srskill-scroll{overflow:auto;max-width:100%;border:1px solid #d7e5e7;border-radius:10px}
+.srskill-editor .srskill-scroll .srskill-table{min-width:840px;font-size:12px;table-layout:auto}
+.srskill-editor .srskill-scroll .srskill-table th,.srskill-editor .srskill-scroll .srskill-table td{padding:7px;white-space:nowrap}
+.srskill-editor .srskill-scroll input[type=number]{width:62px;max-width:70px;border:1px solid #b3d0d0;padding:7px;border-radius:6px;background:white}
+.srskill-discrepant{background:#fff0ec!important}
+.srskill-alert{background:#fff3e9;color:#963a19;border:1px solid #e8a176;padding:13px;border-radius:10px;font-weight:750}
+.srskill-upgraded .srskill-actions{padding:12px 0;border:0}
+@media(max-width:690px){
+ .srskill-config-grid,.srskill-chart-grid{grid-template-columns:1fr}
+ .srskill-upgraded .srskill-input-label{min-width:130px}
+ .srskill-editor{padding:10px}
+}
+@media print{
+ .srskill-upgraded .srskill-editor{display:none}
+ .skill-report-page .srskill-table{table-layout:fixed}
+}
