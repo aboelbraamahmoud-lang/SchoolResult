@@ -1516,3 +1516,13 @@
 .sr633-preview-wrap .sr633-results thead th:first-child{background:var(--sr-behavior-gold)!important;color:var(--sr-behavior-white)!important}
 .sr633-preview-wrap .sr633-results tbody th{background:#f8fbfd;color:#27485d!important}
 @media print{.sr632-preview-sheet thead th,.sr633-preview-wrap .sr633-results thead th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+
+/* 6.10.64 — skill-based exam grade editor, inside admin-only grade review. */
+.sr613-skill-editor{display:grid;gap:10px;padding:13px;background:#f4f8fb;border:1px solid #a8c5d4;border-radius:12px;direction:rtl;max-height:52vh;overflow-y:auto}
+.sr613-skill-editor>p{margin:0;color:#27445b;font-size:13px}
+.sr613-skill-row{display:grid;grid-template-columns:minmax(160px,2fr) minmax(90px,1fr) minmax(90px,1fr) auto;align-items:end;gap:8px;border-bottom:1px solid #d9e5ec;padding:6px 0 11px}
+.sr613-skill-row label{min-width:0;max-width:100%}
+.sr613-skill-row input{width:100%;min-width:0;border:1px solid #a4b8c5;border-radius:7px;padding:7px;background:white}
+.sr613-skill-editor>strong{color:#123d53;border-top:1px solid #ccdde6;padding-top:9px}
+.sr613-skill-editor button{cursor:pointer}
+@media(max-width:700px){.sr613-skill-row{grid-template-columns:1fr 1fr}.sr613-skill-row label:first-child{grid-column:1/-1}}
