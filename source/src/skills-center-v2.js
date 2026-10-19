@@ -290,7 +290,7 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
     button('معاينة وطباعة التقرير',()=>void print(),!canPrint||!reportData.pages.length),
     button('تنزيل PDF',()=>void pdf(),!canPrint||!reportData.pages.length),
     button('تصدير الدرجات إلى Excel (CSV)',downloadCSV,!canPrint),
-    h('span',{},'صفحات التقرير: '+reportData.pages.length))),
+    h('span',{},'صفحات التقرير: '+reportData.pages.length)),
    report==='comparison'&&!older?h('p',{role:'status'},'المقارنة تحتاج اختبارين محفوظين لنفس المادة والسنة الدراسية.'):null,
    report==='weak'&&(!skill?.max)?h('p',{role:'status'},'حدد الدرجة العظمى للمهارة قبل تقرير المتعثرين.'):null,
    active&&reportData.pages.length?h('section',{className:'srskill-preview'},
