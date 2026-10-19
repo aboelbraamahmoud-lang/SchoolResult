@@ -5,7 +5,7 @@ SR63.skillSubjects.english={label:'اللغة الإنجليزية',keys:[
  ['grammar','القواعد'],['writing','الكتابة']
 ]};
 SR63.skillSubjectKind=value=>{
- const raw=String(value??'').normalize('NFKC').replace(/[\s\u0640]+/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase();
+ const raw=String(value??'').normalize('NFKC').replace(/[\s\u0640]+/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase().replace(/^قسم(?=(اللغة|العربية|الانجليزية|عربي|انجليزي))/,'');
  if(['عربي','العربية','لغةعربية','اللغةالعربية','arabic'].includes(raw))return 'arabic';
  if(['انجليزي','الانجليزي','الانجليزية','لغةانجليزية','اللغةالانجليزية','english','englishlanguage'].includes(raw))return 'english';
  return '';
