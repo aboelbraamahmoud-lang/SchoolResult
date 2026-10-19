@@ -17,6 +17,14 @@ const indexSubjects=(ws:any,deps:string[])=>{
  for(const d of allowed)subjects.add(d);
  return subjects;
 };
+// Stable aliases are used for both subject scope and the skill-write authorization.
+const skillKind=(value:unknown)=>{
+ const x=dept(value);
+ if(['عربي','العربية','لغةعربية','اللغةالعربية'].includes(x))return 'arabic';
+ if(['انجليزي','الانجليزي','الانجليزية','لغةانجليزية','اللغةالانجليزية','english','englishlanguage'].includes(x))return 'english';
+ return '';
+};
+const skillClass=(value:unknown)=>String(value??'').trim().replace(/^0([789])\//,'$1/').toUpperCase();
 const departmentRows=(ws:any,deps:string[])=>{
  const depts=new Set(deps.map(dept)),subjects=indexSubjects(ws,deps);
  return (Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>depts.has(dept(r.department))||subjects.has(dept(r.subject)));
@@ -48,10 +56,7 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  if(!Number.isFinite(Number(publicSettings.stable)))publicSettings.stable=3;
  const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(dept(p.subject)));
  // Arabic spelling aliases are equivalent for skill reports, without widening any row permissions.
- const skillSubject=(value:unknown)=>{
-  const x=dept(value);
-  return ['عربي','العربية','لغةعربية','اللغةالعربية'].includes(x)?'العربية':x;
- };
+ const skillSubject=(value:unknown)=>skillKind(value)||dept(value);
  const allowedSkills=new Set([...subjects,...depts].map(skillSubject));
  const skillsAssessments=(Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[]).filter((a:any)=>allowedSkills.has(skillSubject(a.subject)));
  return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:[],imports:[],auditLog:[],customReports:[]}};
@@ -82,7 +87,7 @@ async function emailForUsername(username:string){const raw=new TextEncoder().enc
 Deno.serve(async(req:Request)=>{
  const origin=req.headers.get('origin')||'*';if(req.method==='OPTIONS')return reply({},200,origin);
  if(req.method!=='POST')return reply({error:'METHOD_NOT_ALLOWED'},405,origin);
- if(Number(req.headers.get('content-length')||0)>18000)return reply({error:'REQUEST_TOO_LARGE'},413,origin);
+ if(Number(req.headers.get('content-length')||0)>1500000)return reply({error:'REQUEST_TOO_LARGE'},413,origin);
  const token=(req.headers.get('authorization')||'').match(/^Bearer\s+(.+)$/i)?.[1];
  if(!token)return reply({error:'LOGIN_REQUIRED'},401,origin);
  const url=Deno.env.get('SUPABASE_URL'),service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),anon=Deno.env.get('SUPABASE_ANON_KEY');
@@ -93,7 +98,7 @@ Deno.serve(async(req:Request)=>{
  if(authError||!authData?.user)return reply({error:'INVALID_SESSION'},401,origin);
  const user=authData.user;
  let body:any;try{body=await req.json();}catch{return reply({error:'INVALID_JSON'},400,origin);}
- if(JSON.stringify(body).length>18000)return reply({error:'REQUEST_TOO_LARGE'},413,origin);
+ if(JSON.stringify(body).length>(body?.action==='save_skills'?1500000:18000))return reply({error:'REQUEST_TOO_LARGE'},413,origin);
  const action=String(body.action||'profile');
  const [mine,owner]=await Promise.all([
    admin.from('school_staff_accounts').select('user_id,owner_id,username,display_name,role,departments,permissions,active').eq('user_id',user.id).maybeSingle(),
@@ -115,6 +120,71 @@ Deno.serve(async(req:Request)=>{
   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
   if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
+ }
+ if(action==='save_skills'){
+  // Write only one permitted subject's skill analysis. Never accept a whole client workspace.
+  if(role!=='coordinator'||profile.permissions.reports!==true)return reply({error:'PERMISSION_DENIED'},403,origin);
+  const a=body.assessment,expected=Number(body.expectedRevision);
+  if(!a||typeof a!=='object'||Array.isArray(a)||!Number.isSafeInteger(expected)||expected<0)return reply({error:'INVALID_SKILL_DATA'},400,origin);
+  const kind=skillKind(a.subject),allowedKinds=new Set((profile.departments||[]).map(skillKind).filter(Boolean));
+  if(!kind||!allowedKinds.has(kind))return reply({error:'PERMISSION_DENIED'},403,origin);
+  if(a.version!==1||typeof a.id!=='string'||a.id.length>150||!['exam1','exam2','exam3','exam4'].includes(a.exam)||
+    !Array.isArray(a.skills)||a.skills.length<1||a.skills.length>12||
+    !Array.isArray(a.records)||a.records.length>5000)return reply({error:'INVALID_SKILL_DATA'},400,origin);
+  const ids=new Set<string>(),definitions=new Set<string>(),skills:any[]=[];
+  for(const skill of a.skills){
+   if(!skill||typeof skill.key!=='string'||!/^[-_a-zA-Z0-9]{1,50}$/.test(skill.key)||definitions.has(skill.key)||
+     typeof skill.label!=='string'||!skill.label.trim()||skill.label.length>85||
+     (skill.max!==null&&skill.max!==undefined&&(!Number.isFinite(skill.max)||skill.max<=0||skill.max>999)))
+    return reply({error:'INVALID_SKILL_DATA'},400,origin);
+   definitions.add(skill.key);skills.push({key:skill.key,label:skill.label.trim(),max:skill.max??null});
+  }
+  const {data:original,error:readError}=await admin.from('school_workspaces')
+   .select('workspace,revision').eq('owner_id',ownerId).maybeSingle();
+  if(readError||!original)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
+  if(Number(original.revision)!==expected)return reply({error:'CLOUD_CONFLICT'},409,origin);
+  const ws=original.workspace||{},official=departmentRows(ws,profile.departments).filter((r:any)=>skillKind(r.subject)===kind);
+  const roster=new Map<string,any>();
+  for(const row of official){
+   const klass=skillClass(row.examClasses?.[a.exam]||row.className),id=String(row.studentId||'').trim();
+   if(id&&klass)roster.set(id+'|'+klass,row);
+  }
+  if(!roster.size)return reply({error:'NO_AUTHORIZED_STUDENTS'},403,origin);
+  const records:any[]=[];
+  for(const student of a.records){
+   if(!student||typeof student.id!=='string'||student.id.length>40||
+    typeof student.className!=='string'||student.className.length>25||
+    !student.marks||typeof student.marks!=='object'||Array.isArray(student.marks))
+    return reply({error:'INVALID_SKILL_DATA'},400,origin);
+   const klass=skillClass(student.className),key=student.id.trim()+'|'+klass,source=roster.get(key);
+   if(!source||ids.has(key))return reply({error:'UNAUTHORIZED_SKILL_STUDENT'},403,origin);
+   ids.add(key);
+   if(Object.keys(student.marks).some(k=>!definitions.has(k)))return reply({error:'INVALID_SKILL_DATA'},400,origin);
+   const marks:Record<string,number|null>={};
+   for(const skill of skills){
+    const score=student.marks[skill.key]??null;
+    if(score!==null&&(!Number.isFinite(score)||score<0||score>999||(skill.max!==null&&score>skill.max)))
+     return reply({error:'INVALID_SKILL_DATA'},400,origin);
+    marks[skill.key]=score;
+   }
+   records.push({id:student.id.trim(),name:String(source.studentName||'').slice(0,150),className:klass,grade:klass.split('/')[0],marks});
+  }
+  const existing=(Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[]);
+  if(existing.length>=32&&!existing.some((x:any)=>x.id===a.id))return reply({error:'SKILL_LIMIT_REACHED'},400,origin);
+  if(existing.some((x:any)=>x.id===a.id&&skillKind(x.subject)!==kind))return reply({error:'PERMISSION_DENIED'},403,origin);
+  const output={version:1,id:a.id,subject:kind==='arabic'?'اللغة العربية':'اللغة الإنجليزية',subjectKey:kind,
+   exam:a.exam,academicYear:String(a.academicYear||ws.settings?.academicYear||'').slice(0,40),
+   fileName:String(a.fileName||'إدخال المهارات').slice(0,180),importedAt:new Date().toISOString(),
+   skills,records,issues:[],classCount:new Set(records.map(r=>r.className)).size,
+   gradeCount:new Set(records.map(r=>r.grade)).size,
+   passThreshold:Number.isFinite(a.passThreshold)&&a.passThreshold>=0&&a.passThreshold<=100?a.passThreshold:50};
+  const updated={...ws,skillsAssessments:[...existing.filter((x:any)=>x.id!==a.id),output]};
+  const {data:saved,error:saveError}=await admin.from('school_workspaces')
+   .update({workspace:updated,revision:expected+1,saved_at:new Date().toISOString(),write_id:crypto.randomUUID()})
+   .eq('owner_id',ownerId).eq('revision',expected).select('revision').maybeSingle();
+  if(saveError)return reply({error:'SKILL_SAVE_FAILED'},503,origin);
+  if(!saved)return reply({error:'CLOUD_CONFLICT'},409,origin);
+  return reply({saved:true,revision:saved.revision,students:records.length},200,origin);
  }
  if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);
  if(action==='list'){
