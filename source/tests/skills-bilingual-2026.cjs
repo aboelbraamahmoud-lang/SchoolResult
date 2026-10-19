@@ -57,6 +57,19 @@ assert.match(weak.pages[0],/data-orientation="landscape"/,'landscape report prin
 const mismatchReport=SR63.skillReportSelection({assessment,workspace,kind:'reconciliation'});
 assert.match(mismatchReport.pages[0],/غير متطابقة/);
 assert.doesNotMatch(mismatchReport.pages[0],/طالب عربي تجريبي/,'subject scope remains intact');
+// Render without a browser to catch coordinator white-screen regressions.
+globals.v={createElement:(type,props,...children)=>({type,props,children}),
+ useState:initial=>[typeof initial==='function'?initial():initial,()=>{}]};
+const renderSpace={...workspace,skillsAssessments:[assessment]};
+const ownerTree=SR63.SkillCenter({workspace:renderSpace,setWorkspace:()=>{},readOnly:false,canPrint:true});
+const visible=JSON.stringify(ownerTree);
+assert.match(visible,/مركز تحليل مهارات/);
+assert.match(visible,/رصد درجات الطلاب وتعديلها/);
+assert.match(visible,/حفظ درجات المهارات/);
+const leadershipTree=SR63.SkillCenter({workspace:renderSpace,readOnly:true,canPrint:true});
+const leadershipText=JSON.stringify(leadershipTree);
+assert.doesNotMatch(leadershipText,/حفظ درجات المهارات/,'leadership remains read-only');
+assert.match(leadershipText,/مركز تقارير تحليل المهارات/);
 const edge=fs.readFileSync(path.join(__dirname,'../../supabase/functions/school-staff/index.ts'),'utf8');
 const staff=read('src/staff.js'),build=read('build.cjs');
 assert.match(edge,/action==='save_skills'/);
