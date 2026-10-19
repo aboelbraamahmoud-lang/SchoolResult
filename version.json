@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.63",
+  "version": "6.10.64",
   "released": "2026-10-19",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إزالة الخطط العلاجية الذكية وإعدادها من حسابات المنسق والمدير والنائب وإدارة صلاحياتهم دون حذف الخطط المحفوظة، مع الحفاظ على وحدة الأدمن وتقارير الأداء وقفل مادة المنسق وإصلاح معاينته."
+  "notes": "إضافة تحليل مهارات اللغة العربية عبر Excel للصفوف السابع والثامن والتاسع، تقارير الشعب والصفوف ومقارنة مهارات اختبارين كبنية جاهزة، مع مخرجات طباعة A4 وPDF وZIP وحماية صلاحيات المنسقين؛ الدرجات الفارغة غير مرصودة."
 }

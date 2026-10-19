@@ -47,7 +47,14 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  if(typeof publicSettings.coordinatorName!=='string')publicSettings.coordinatorName='';
  if(!Number.isFinite(Number(publicSettings.stable)))publicSettings.stable=3;
  const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(dept(p.subject)));
- return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,grades:[],classes:[],subjects:[],students:[],imports:[],auditLog:[],customReports:[]}};
+ // Arabic spelling aliases are equivalent for skill reports, without widening any row permissions.
+ const skillSubject=(value:unknown)=>{
+  const x=dept(value);
+  return ['عربي','العربية','لغةعربية','اللغةالعربية'].includes(x)?'العربية':x;
+ };
+ const allowedSkills=new Set([...subjects,...depts].map(skillSubject));
+ const skillsAssessments=(Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[]).filter((a:any)=>allowedSkills.has(skillSubject(a.subject)));
+ return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:[],imports:[],auditLog:[],customReports:[]}};
 };
 // School leadership sees the entire school's analytical rows through this
 // whitelisted read-only response. Never expose auth data, backups or arbitrary
@@ -63,6 +70,7 @@ const cleanLeadership=(ws:any)=>{
  // Some legacy school workspaces predate this field, but the original report
  // renderer assumes coordinatorName is a string.
  if(typeof visible.workspace.settings.coordinatorName!=='string')visible.workspace.settings.coordinatorName='';
+ visible.workspace.skillsAssessments=Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[];
  visible.workspace.rows=Array.isArray(ws.rows)?ws.rows:[];
  visible.workspace.teachers=Array.isArray(ws.teachers)?ws.teachers:[];
  visible.workspace.teacherAssignments=Array.isArray(ws.teacherAssignments)?ws.teacherAssignments:[];
@@ -105,6 +113,7 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();
   if(error||!data)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
+  if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
  }
  if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);

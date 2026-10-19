@@ -165,9 +165,9 @@ replace('الربط الدقيق يعتمد على المادة + الشعبة. 
 replace('استورد قاعدة المعلمين واعتمدها أولًا حتى تظهر اختيارات الربط.','أكمل الهيكل الأكاديمي وخريطة التكليفات أولًا؛ ملف النتيجة لا يحتاج اسم المعلم.');
 // 6.10.32 — school academic/behavioral student report, separate from exam grades.
 replace('{id:`studentResultsPrint`,label:`طباعة نتائج الطلاب`,icon:gy,group:`الإدارة`}',
-        '{id:`studentResultsPrint`,label:`طباعة نتائج الطلاب`,icon:gy,group:`الإدارة`},{id:`behaviorReports`,label:`التقارير الأكاديمية والسلوكية`,icon:gy,group:`الإدارة`}');
+        '{id:`studentResultsPrint`,label:`طباعة نتائج الطلاب`,icon:gy,group:`الإدارة`},{id:`behaviorReports`,label:`التقارير الأكاديمية والسلوكية`,icon:gy,group:`الإدارة`},{id:`skillsReports`,label:`تحليل مهارات المواد`,icon:gy,group:`الإدارة`}');
 replace('o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):',
-        'o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):');
+        'o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):');
 // 6.9 premium sidebar: quick actions under search without duplicating navigation.
 replace('placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]})]}),','placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),');
 
@@ -189,6 +189,11 @@ replace('children:e[t.key]','children:SR63.renderReportValue(e[t.key],t.key)');
 replace('children:(0,q.jsx)(Nde,{})','children:(0,q.jsx)(SR63.CloudApp,{})');
 replace('SR63.currentWorkspace=e},[e])','SR63.currentWorkspace=e},[e]);(0,v.useEffect)(()=>{SR63.settingsDirty=i},[i])');
 replace('function Nde(){let[e,t]=(0,v.useState)(()=>zj()),[n,r]=(0,v.useState)(()=>structuredClone(zj().settings))','function Nde(){let[e,t]=(0,v.useState)(()=>Aj()),[n,r]=(0,v.useState)(()=>structuredClone(Aj().settings))');
+// 6.10.64: preserve student skill results in the existing JSONB workspace.
+replace('customReports:Array.isArray(t?.customReports)?t.customReports:[],auditLog:Array.isArray(t?.auditLog)?t.auditLog:[]}',
+ 'customReports:Array.isArray(t?.customReports)?t.customReports:[],skillsAssessments:Array.isArray(t?.skillsAssessments)?t.skillsAssessments:[],auditLog:Array.isArray(t?.auditLog)?t.auditLog:[]}');
+replace('customReports:e?structuredClone(e.customReports):[],auditLog:',
+ 'customReports:e?structuredClone(e.customReports):[],skillsAssessments:[],auditLog:');
 // 6.10.4 — quality center uses the same academic-structure readiness rules as the structure page.
 replace('desc:`يكشف الأخطاء التي تؤثر في التحليل أو ربط المعلمين أو اكتمال الاختبار.`','desc:`فحص موحد لجودة النتائج وسلامة الهيكل الأكاديمي والتكليفات واكتمال الاختبار؛ لا تظهر حالة «جاهز» إذا كان أي تكليف أساسي ناقصًا.`');
 replace('children:be.ready?`البيانات جاهزة`:`تحتاج معالجة`','children:be.ready?`البيانات والهيكل جاهزان`:`تحتاج معالجة`');
@@ -207,7 +212,7 @@ replace('title:`تفصيل القسم: المعلم والمادة والشعب�
         'title:`تفصيل القسم: المعلم والمادة والشعبة`,desc:`قراءة تنفيذية لكل إسناد داخل القسم، مع القيمة المضافة عن الاختبار السابق.`,children:(0,q.jsx)(`div`,{className:`sr614-departments-wrap max-h-[650px] overflow-auto rounded-xl border`');
 replace('title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الصفحة ${r} من ${n}.`,children:[(0,q.jsx)(`div`,{className:`max-h-[650px] overflow-auto rounded-xl border`',
         'title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الصفحة ${r} من ${n}.`,children:[(0,q.jsx)(`div`,{className:`sr614-results-wrap max-h-[650px] overflow-auto rounded-xl border`');
-const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','grade-review.js','ai-plan-core.js','ai-plan-word.js','teacher-performance-core.js','teacher-performance-word.js','word-loader.js','report-print-batch.js','report-download-pdf.js','staff-report-export.js','teacher-reference-word.js','behavior-pdf.js','behavior-reports.js','approved-improvement-word.js','teacher-department-core.js','teacher-department-template.js','teacher-department-ui.js','teacher-performance-ui.js','ai-plans-ui.js','dashboard-pro.js','cloud.js','staff-student-levels.js','school-quantitative.js','staff.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
+const services=['engine.js','legacy-multiclass.js','catalog.js','subject-repair.js','master-ui.js','student-results-print.js','grade-review.js','ai-plan-core.js','ai-plan-word.js','teacher-performance-core.js','teacher-performance-word.js','word-loader.js','report-print-batch.js','report-download-pdf.js','staff-report-export.js','teacher-reference-word.js','behavior-pdf.js','behavior-reports.js','approved-improvement-word.js','teacher-department-core.js','teacher-department-template.js','teacher-department-ui.js','teacher-performance-ui.js','ai-plans-ui.js','dashboard-pro.js','cloud.js','staff-student-levels.js','school-quantitative.js','skills.js','staff.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
 code=services+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);
