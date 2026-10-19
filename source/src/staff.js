@@ -291,7 +291,7 @@ SR63.CoordinatorPortal=function({profile}){
     !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null
    ]):null,
    page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})):null,
-   page==='skillsReports'&&perms.reports?h(SR63.SkillCenter,{workspace:active,readOnly:true,canPrint:!!perms.export,allowedSubjects:isLeadership?null:profile.departments}):null,
+   page==='skillsReports'&&perms.reports?h(SR63.SkillCenter,{workspace:active,readOnly:isLeadership,canPrint:!!perms.export,allowedSubjects:isLeadership?null:profile.departments,onSaved:()=>reload(exam),expectedRevision:payload?.revision}):null,
    page==='reportCenter'&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
     h('header',{className:'srstaff-panel'},[
      h('h2',{},isLeadership?'مركز التقارير والطباعة الأصلي — جميع صفوف المدرسة':'مركز التقارير والطباعة — أقسامي المصرح بها فقط'),
