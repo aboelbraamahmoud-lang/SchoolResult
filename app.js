@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.65', release:'2026-10-19', formDirty:false};
+var SR63 = {version:'6.10.66', release:'2026-10-19', formDirty:false};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -3723,6 +3723,422 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
  );
 };
 
+/* Skill analysis extension for Arabic and English; runtime-only student data. */
+SR63.skillSubjects.english={label:'اللغة الإنجليزية',keys:[
+ ['listening','الاستماع'],['speaking','التحدث'],['reading','القراءة'],['grammar','القواعد'],['writing','الكتابة']
+]};
+SR63.skillKind=value=>{
+ const x=String(value??'').normalize('NFKC').replace(/[\s\u0640]+/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase().replace(/^قسم(?=(?:اللغة|العربية|الانجليزية|عربي|انجليزي))/,'');
+ return ['عربي','العربية','لغةعربية','اللغةالعربية','arabic'].includes(x)?'arabic':
+  ['انجليزي','الانجليزي','الانجليزية','لغةانجليزية','اللغةالانجليزية','english','englishlanguage'].includes(x)?'english':null;
+};
+SR63.skillClass=x=>String(x??'').trim().replace(/^0([789])\//,'$1/').toUpperCase();
+SR63.skillScoped=function(items,departments=null){
+ const list=Array.isArray(items)?items:[];
+ if(!Array.isArray(departments))return list;
+ const keys=new Set(departments.map(SR63.skillKind).filter(Boolean));
+ return list.filter(a=>keys.has(SR63.skillKind(a.subject)));
+};
+SR63.skillRoster=(workspace,kind,exam='exam1',departments=null)=>{
+ if(!SR63.skillSubjects[kind]||Array.isArray(departments)&&!departments.some(d=>SR63.skillKind(d)===kind))return [];
+ const result=new Map();
+ for(const row of workspace?.rows||[]){
+  if(SR63.skillKind(row.subject)!==kind)continue;
+  const id=String(row.studentId??'').trim(),name=String(row.studentName??'').trim(),
+    className=SR63.skillClass(row.examClasses?.[exam]||row.className);
+  if(!id||!name||!className)continue;
+  const k=id+'|'+className;
+  if(!result.has(k))result.set(k,{id,name,className,grade:className.split('/')[0],row});
+ }
+ return [...result.values()].sort((a,b)=>a.className.localeCompare(b.className,'ar',{numeric:true})||a.name.localeCompare(b.name,'ar'));
+};
+SR63.skillCreate=(workspace,kind,exam,departments=null)=>{
+ const schema=SR63.skillSubjects[kind],roster=SR63.skillRoster(workspace,kind,exam,departments);
+ if(!schema||!roster.length)throw Error('لم أجد طلابًا مرتبطين بهذه المادة في نتائج المدرسة المعتمدة.');
+ const academicYear=String(workspace.settings?.academicYear||'').slice(0,40);
+ const safeYear=academicYear.replace(/[^a-z0-9-]/gi,'-').replace(/-+/g,'-').replace(/^-|-$/g,'')||'current';
+ return {version:1,id:'skills-'+kind+'-'+exam+'-'+safeYear,subject:schema.label,subjectKey:kind,
+  exam,academicYear,fileName:'إنشاء من قائمة الطلاب',importedAt:new Date().toISOString(),passThreshold:50,
+  skills:schema.keys.map(([key,label])=>({key,label,max:null})),records:roster.map(({id,name,className,grade})=>({id,name,className,grade,
+   marks:Object.fromEntries(schema.keys.map(([key])=>[key,null]))})),issues:[],classCount:new Set(roster.map(x=>x.className)).size,
+  gradeCount:new Set(roster.map(x=>x.grade)).size};
+};
+SR63.skillSafeAssessment=(assessment,workspace,departments=null)=>{
+ const kind=SR63.skillKind(assessment?.subject),roster=SR63.skillRoster(workspace,kind,assessment?.exam,departments),
+  map=new Map(roster.map(x=>[x.id+'|'+x.className,x]));
+ if(!kind||!roster.length||!['exam1','exam2','exam3','exam4'].includes(assessment?.exam))throw Error('المادة أو الاختبار غير متاح لهذه الصلاحية.');
+ if(!Array.isArray(assessment.skills)||assessment.skills.length<1||assessment.skills.length>12)throw Error('يجب تحديد مهارة واحدة على الأقل وبحد أقصى 12 مهارة.');
+ const keys=new Set(),labels=new Set();
+ const skills=assessment.skills.map(s=>{
+  if(!/^[-_a-zA-Z0-9]{1,50}$/.test(s.key)||keys.has(s.key))throw Error('معرف مهارة غير صالح أو مكرر.');
+  const label=String(s.label||'').trim();if(!label||label.length>85||labels.has(label))throw Error('اسم مهارة فارغ أو مكرر.');
+  keys.add(s.key);labels.add(label);
+  const max=SR63.skillSafeNumber(s.max);if(max!==null&&max<=0)throw Error('الدرجة العظمى يجب أن تكون أكبر من صفر.');
+  return {key:s.key,label,max};
+ });
+ const input=new Map();
+ for(const item of assessment.records||[]){
+  const k=String(item.id)+'|'+SR63.skillClass(item.className);
+  if(!map.has(k)||input.has(k))throw Error('يتضمن التحليل طالبًا غير مطابق لطلاب المادة أو طالبًا مكررًا.');
+  input.set(k,item.marks||{});
+ }
+ const records=roster.map(({id,name,className,grade})=>{
+  const marksIn=input.get(id+'|'+className)||{};
+  const marks={};for(const s of skills){
+   const n=SR63.skillSafeNumber(marksIn[s.key]);
+   if(n!==null&&s.max!==null&&n>s.max)throw Error('درجة '+name+' في '+s.label+' تتجاوز الدرجة العظمى.');
+   marks[s.key]=n;
+  }
+  return {id,name,className,grade,marks};
+ });
+ const pass=Number(assessment.passThreshold??50);
+ if(!Number.isFinite(pass)||pass<0||pass>100)throw Error('نسبة التعثر يجب أن تكون بين صفر و100.');
+ return {...assessment,version:1,subject:SR63.skillSubjects[kind].label,subjectKey:kind,skills,records,passThreshold:pass,
+  classCount:new Set(records.map(x=>x.className)).size,gradeCount:new Set(records.map(x=>x.grade)).size};
+};
+SR63.skillAudit=(assessment,workspace,departments=null)=>{
+ if(!assessment)return [];
+ const official=new Map(SR63.skillRoster(workspace,SR63.skillKind(assessment.subject),assessment.exam,departments).map(x=>[x.id+'|'+x.className,x.row]));
+ const maxima=assessment.skills.every(s=>Number.isFinite(s.max)&&s.max>0)?assessment.skills.reduce((n,s)=>n+s.max,0):null;
+ const exam=workspace?.settings?.exams?.find(x=>x.key===assessment.exam);
+ return (assessment.records||[]).map(r=>{
+  const row=official.get(r.id+'|'+SR63.skillClass(r.className));
+  const complete=assessment.skills.every(s=>Number.isFinite(r.marks?.[s.key]));
+  const total=complete?assessment.skills.reduce((n,s)=>n+r.marks[s.key],0):null;
+  const officialScore=row?.statuses?.[assessment.exam]==='present'&&Number.isFinite(row?.scores?.[assessment.exam])?row.scores[assessment.exam]:null;
+  const officialMax=row?.totals?.[assessment.exam]??exam?.total??null;
+  const difference=total===null||officialScore===null?null:Math.round((total-officialScore)*100)/100;
+  const maxDifference=maxima===null||!Number.isFinite(officialMax)?null:Math.round((maxima-officialMax)*100)/100;
+  const status=!row?'unlinked':!complete?'incomplete':officialScore===null?'noOfficial':
+   Math.abs(difference)>0.00001?'mismatch':maxDifference!==null&&Math.abs(maxDifference)>0.00001?'maxMismatch':'matched';
+  return {id:r.id,name:r.name,className:r.className,grade:r.grade,total,officialScore,officialMax,difference,maxDifference,status};
+ });
+};
+SR63.skillWeak=(assessment,skillKey,threshold=50,grade='الكل',className='الكل')=>{
+ const skill=assessment?.skills.find(s=>s.key===skillKey);
+ if(!skill||!Number.isFinite(skill.max)||skill.max<=0)return [];
+ return assessment.records.filter(r=>(grade==='الكل'||r.grade===grade)&&(className==='الكل'||r.className===className))
+  .flatMap(r=>{const percent=SR63.skillPercent(r.marks?.[skill.key],skill.max);return percent!==null&&percent<threshold?[{...r,percent,score:r.marks[skill.key]}]:[];})
+  .sort((a,b)=>a.percent-b.percent||a.name.localeCompare(b.name,'ar'));
+};
+SR63.skillParseGeneric=function(buffer,name,assessment){
+ const book=hv(buffer,{type:'array'}),got=new Map(),normalize=t=>String(t??'').normalize('NFKC').trim().toLowerCase();
+ for(const sheet of book.SheetNames){
+  const rows=Gv.sheet_to_json(book.Sheets[sheet],{header:1,raw:true,defval:null});
+  let headerIndex=rows.findIndex(r=>normalize(r?.[0])==='الرقم الأكاديمي'&&normalize(r?.[2])==='الشعبة');
+  if(headerIndex<0)continue;
+  const headers=(rows[headerIndex]||[]).map(normalize);
+  const positions=assessment.skills.map(s=>headers.findIndex(t=>t===normalize(s.label)||t===normalize(s.key)));
+  if(positions.some(x=>x<0))throw Error('أعمدة المهارات في الملف لا تطابق إعدادات هذا الاختبار.');
+  for(let i=headerIndex+1;i<rows.length;i++){
+   const cells=rows[i]||[],id=String(cells[0]??'').trim().replace(/\.0$/,''),className=SR63.skillClass(cells[2]);
+   if(!id||!className)continue;
+   const key=id+'|'+className;if(got.has(key))throw Error('طالب مكرر في ورقة Excel: الصف '+(i+1));
+   const marks={};assessment.skills.forEach((s,j)=>{try{marks[s.key]=SR63.skillSafeNumber(cells[positions[j]]);}catch(e){throw Error('خطأ بالصف '+(i+1)+' في '+s.label+': '+e.message);}});
+   got.set(key,marks);
+  }
+ }
+ if(!got.size)throw Error('لم أجد أعمدة الرقم الأكاديمي والشعبة ومهارات الاختبار في ملف Excel.');
+ const known=new Set(assessment.records.map(r=>r.id+'|'+SR63.skillClass(r.className)));
+ for(const key of got.keys())if(!known.has(key))throw Error('الملف يتضمن طالبًا خارج قائمة المادة: '+key);
+ return {...assessment,fileName:name,importedAt:new Date().toISOString(),records:assessment.records.map(r=>({...r,marks:{...r.marks,...(got.get(r.id+'|'+SR63.skillClass(r.className))||{})}}))};
+};
+SR63.skillCsv=(rows,name)=>{
+ const cell=x=>{
+  let s=String(x??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;
+  return '"'+s.replace(/"/g,'""')+'"';
+ };
+ const blob=new Blob(['\ufeff'+rows.map(r=>r.map(cell).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});
+ SR63.downloadReportFile(blob,SR63.safeReportFilename(name)+'.csv');
+};
+SR63.skillReports=function(assessment,workspace,{type='school',grade='الكل',className='الكل',skillKey='',threshold=50,older=null,departments=null}={}){
+ if(!assessment)return {pages:[],rows:[],columns:[]};
+ const settings=workspace.settings||{},fmt=n=>Number.isFinite(n)?String(Math.round(n*10)/10):'—',
+  filtered=assessment.records.filter(r=>(grade==='الكل'||r.grade===grade)&&(className==='الكل'||r.className===className));
+ let title='',columns=[],rows=[];
+ const skill=assessment.skills.find(s=>s.key===skillKey)||assessment.skills[0];
+ if(type==='students'||type==='summary'){
+  const pages=SR63.skillPages(assessment,{grade,className,pass:threshold}).filter(p=>p.kind===(type==='students'?'students':'summary'));
+  return {pages:pages.map(p=>SR63.skillFullHTML(p,assessment,settings)),rows:[],columns:[]};
+ }
+ if(type==='school'){
+  title='التحليل العام للمهارات';columns=['المهارة','الدرجة العظمى','متوسط التحصيل %','نسبة الإتقان %','الطلاب المرصودون','المتعثرون'];
+  rows=SR63.skillAggregate(assessment,filtered,threshold).skills.map(s=>[s.label,s.max??'—',fmt(s.rate),fmt(s.masteryRate),s.observed,s.mastered===null?'—':s.observed-s.mastered]);
+ }
+ if(type==='weak'){
+  title='الطلاب المتعثرون في مهارة '+skill.label;
+  columns=['الرقم الأكاديمي','اسم الطالب','الشعبة','المهارة','درجة المهارة','الدرجة العظمى','نسبة الإتقان %'];
+  rows=SR63.skillWeak(assessment,skill.key,threshold,grade,className).map(r=>[r.id,r.name,r.className,skill.label,r.score,skill.max,fmt(r.percent)]);
+ }
+ if(type==='audit'){
+  title='تقرير مطابقة المهارات مع النتيجة الرسمية';columns=['الرقم الأكاديمي','اسم الطالب','الشعبة','مجموع المهارات','الدرجة الرسمية','فرق الدرجات','الحالة'];
+  const labels={unlinked:'غير مرتبط',incomplete:'درجات غير مكتملة',noOfficial:'نتيجة رسمية غير مرصودة',mismatch:'درجات مختلفة',maxMismatch:'الدرجة العظمى مختلفة',matched:'متطابق'};
+  rows=SR63.skillAudit(assessment,workspace,departments).filter(r=>r.status!=='matched'&&
+   (grade==='الكل'||r.grade===grade)&&(className==='الكل'||r.className===className))
+   .map(r=>[r.id,r.name,r.className,fmt(r.total),fmt(r.officialScore),fmt(r.difference),labels[r.status]]);
+ }
+ if(type==='comparison'){
+  title='مقارنة مهارة '+skill.label+' بين اختبارين';columns=['الرقم الأكاديمي','اسم الطالب','الشعبة','السابق %','الحالي %','التغير (نقطة مئوية)'];
+  rows=older?SR63.skillComparison(older,assessment).filter(r=>(grade==='الكل'||r.className.split('/')[0]===grade)&&(className==='الكل'||r.className===className))
+   .flatMap(r=>r.skills.filter(s=>s.key===skill.key).map(s=>[r.id,r.name,r.className,fmt(s.previous),fmt(s.current),fmt(s.change)])):[];
+ }
+ if(type==='ranking'){
+  title='ترتيب مهارات المادة حسب التحصيل';columns=['الترتيب','المهارة','نسبة التحصيل %','نسبة الإتقان %','المرصود'];
+  rows=SR63.skillAggregate(assessment,filtered,threshold).skills.sort((a,b)=>(a.rate??-1)-(b.rate??-1)).map((s,i)=>[i+1,s.label,fmt(s.rate),fmt(s.masteryRate),s.observed]);
+ }
+ if(!rows.length)rows=[['لا توجد نتائج ضمن التصفية',...Array(Math.max(0,columns.length-1)).fill('')]];
+ const esc=SR63.escape, pages=[];for(let offset=0;offset<rows.length;offset+=20){const chunk=rows.slice(offset,offset+20),p=1+Math.floor(offset/20),count=Math.ceil(rows.length/20);
+  pages.push('<section class="school-report-page skill-report-page report-landscape" data-orientation="landscape">'+
+   '<header class="srskill-header"><img src="./moehe.png" alt="شعار الوزارة"><div><strong>'+esc(settings.schoolName||'المدرسة')+'</strong><h2>'+esc(title)+'</h2><p>'+esc(assessment.subject)+' · '+esc(settings.exams?.find(e=>e.key===assessment.exam)?.name||assessment.exam)+' · '+esc(assessment.academicYear||'')+'</p></div></header>'+
+   '<div class="srskill-body"><h3>'+esc(title)+'</h3><table class="srskill-table"><thead><tr>'+columns.map(s=>'<th>'+esc(s)+'</th>').join('')+
+   '</tr></thead><tbody>'+chunk.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+
+   '<footer class="report-footer srskill-footer"><div>منسق المادة: '+esc(settings.coordinatorName||'........')+'</div><div>النائب الأكاديمي: '+esc(settings.academicViceName||'........')+'</div><div>مدير المدرسة: '+esc(settings.principalName||'........')+'</div></footer>'+
+   '<div class="srskill-page-number">صفحة '+p+' من '+count+'</div></section>');
+ }
+ return {pages,rows,columns,title};
+};
+
+/* Skill Center v2. Uses the pre-existing SchoolResult A4 report/PDF services. */
+SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=true,allowedSubjects=null,onSaved=null,expectedRevision=null}){
+ const h=(tag,props,...children)=>(0,v.createElement)(tag,props,...children);
+ const [wantedKind,setWantedKind]=(0,v.useState)(''),[exam,setExam]=(0,v.useState)(workspace?.activeExam||'exam1'),
+  [chosenId,setChosenId]=(0,v.useState)(''),[grade,setGrade]=(0,v.useState)('الكل'),[className,setClass]=(0,v.useState)('الكل'),
+  [report,setReport]=(0,v.useState)('school'),[wantedSkill,setWantedSkill]=(0,v.useState)(''),
+  [wantedPrior,setWantedPrior]=(0,v.useState)(''),[threshold,setThreshold]=(0,v.useState)(''),
+  [drafts,setDrafts]=(0,v.useState)({}),[configEdits,setConfigEdits]=(0,v.useState)({}),
+  [addName,setAddName]=(0,v.useState)(''),[page,setPage]=(0,v.useState)(0),[reportPage,setReportPage]=(0,v.useState)(0),
+  [loading,setLoading]=(0,v.useState)(false),[message,setMessage]=(0,v.useState)('');
+ const kinds=['arabic','english'].filter(k=>!Array.isArray(allowedSubjects)||allowedSubjects.some(x=>SR63.skillKind(x)===k));
+ const kind=kinds.includes(wantedKind)?wantedKind:(kinds[0]||'');
+ const allowed=SR63.skillScoped(workspace?.skillsAssessments||[],allowedSubjects).filter(x=>SR63.skillKind(x.subject)===kind);
+ const active=allowed.find(x=>x.id===chosenId)||allowed[0]||null;
+ const settings=workspace?.settings||{},grades=[...new Set((active?.records||[]).map(x=>x.grade))].sort((a,b)=>Number(a)-Number(b));
+ const classes=[...new Set((active?.records||[]).filter(r=>grade==='الكل'||r.grade===grade).map(x=>x.className))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
+ const chosenClass=classes.includes(className)?className:'الكل';
+ const subset=(active?.records||[]).filter(r=>(grade==='الكل'||r.grade===grade)&&(chosenClass==='الكل'||r.className===chosenClass));
+ const skill=active?.skills.find(s=>s.key===wantedSkill)||active?.skills[0]||null;
+ const thresholdValue=threshold===''?Number(active?.passThreshold??50):Number(threshold);
+ const pass=Number.isFinite(thresholdValue)&&thresholdValue>=0&&thresholdValue<=100?thresholdValue:50;
+ const metrics=(0,v.useMemo)(()=>SR63.skillAggregate(active,subset,pass),[active,grade,chosenClass,pass]);
+ const audit=(0,v.useMemo)(()=>SR63.skillAudit(active,workspace,allowedSubjects),[active,workspace,allowedSubjects]);
+ const alerts=audit.filter(x=>['mismatch','maxMismatch'].includes(x.status));
+ const pending=audit.filter(x=>['incomplete','noOfficial','unlinked'].includes(x.status));
+ const otherTests=allowed.filter(x=>x.id!==active?.id&&x.exam!==active?.exam&&String(x.academicYear||'')===String(active?.academicYear||''));
+ const prior=otherTests.find(x=>x.id===wantedPrior)||otherTests[0]||null;
+ const reportModel=(0,v.useMemo)(()=>SR63.skillReports(active,workspace,{type:report,grade,className:chosenClass,skillKey:skill?.key||'',threshold:pass,older:prior,departments:allowedSubjects}),[active,workspace,report,grade,chosenClass,skill?.key,pass,prior,allowedSubjects]);
+ const editor=!readOnly&&(typeof setWorkspace==='function'||typeof onSaved==='function');
+ const scoreFmt=n=>Number.isFinite(n)?String(Math.round(n*100)/100):'—';
+ const percent=n=>Number.isFinite(n)?scoreFmt(n)+'%':'—';
+ const typeName=kind==='english'?'اللغة الإنجليزية':'اللغة العربية';
+ const control=(name,value,onChange,opts)=>h('label',{className:'srskill-field'},h('span',{},name),h('select',{value,onChange:e=>onChange(e.target.value)},opts.map(([k,v])=>h('option',{key:k,value:k},v))));
+ const btn=(label,fn,disabled=false)=>h('button',{type:'button',disabled:loading||disabled,onClick:fn},label);
+ const reset=()=>{setGrade('الكل');setClass('الكل');setDrafts({});setConfigEdits({});setThreshold('');setPage(0);setReportPage(0);};
+ async function persist(candidate,{safety=false}={}){
+  if(!editor)throw Error('تعديل المهارات غير مصرح به لهذا الحساب.');
+  const validated=SR63.skillSafeAssessment(candidate,workspace,allowedSubjects);
+  if(typeof setWorkspace==='function'){
+   if(safety&&typeof Kj==='function'&&!await Kj(workspace,'قبل تعديل سجلات المهارات'))throw Error('تعذّر إنشاء نقطة حماية قبل تغيير البيانات.');
+   const others=(workspace.skillsAssessments||[]).filter(x=>x.id!==validated.id);
+   setWorkspace(SR63.validate({...workspace,skillsAssessments:[...others,validated]}).workspace);
+  }else{
+   if(!Number.isSafeInteger(expectedRevision))throw Error('نسخة بيانات المنسق غير صالحة؛ حدّث الصفحة.');
+   await SR63.staff.call({action:'save_skills',assessment:validated,expectedRevision});
+   await onSaved();
+  }
+  setChosenId(validated.id);setDrafts({});setConfigEdits({});
+ }
+ const task=(action,success)=>{
+  setLoading(true);setMessage('جارٍ التحقق من البيانات والحفظ…');
+  Promise.resolve().then(action).then(()=>setMessage(success)).catch(e=>setMessage('تعذّر الإجراء: '+(e?.message||e))).finally(()=>setLoading(false));
+ };
+ const create=()=>task(async()=>{
+  const fresh=SR63.skillCreate(workspace,kind,exam,allowedSubjects);
+  if(allowed.some(x=>x.id===fresh.id))throw Error('تحليل هذا الاختبار موجود بالفعل؛ اختره من القائمة.');
+  await persist(fresh);reset();
+ },'تم إنشاء جدول المهارات من طلاب المادة. حدّد الدرجة العظمى لكل مهارة.');
+ const importFile=file=>{if(!file)return;
+  task(async()=>{
+   if(!/\.xlsx?$/i.test(file.name)||file.size>15*1024*1024)throw Error('اختر ملف Excel لا يزيد عن 15 ميجابايت.');
+   const contents=await file.arrayBuffer();let next;
+   if(kind==='arabic'&&hv(contents,{type:'array'}).SheetNames.some(name=>['السابع','الثامن','التاسع'].includes(String(name).trim()))){
+    next=SR63.skillParseWorkbook(contents,file.name,exam,'arabic');
+    const saved=allowed.find(x=>x.id===next.id);
+    if(saved){next.skills=next.skills.map(s=>({...s,max:saved.skills.find(x=>x.key===s.key)?.max??null}));next.passThreshold=saved.passThreshold??50;}
+   }else{
+    const template=allowed.find(x=>x.exam===exam)||SR63.skillCreate(workspace,kind,exam,allowedSubjects);
+    next=SR63.skillParseGeneric(contents,file.name,template);
+   }
+   if(allowed.some(x=>x.id===next.id)&&!window.confirm('سيتم تحديث درجات مهارات هذا الاختبار. هل تريد المتابعة بعد المراجعة؟'))throw Error('تم إلغاء الاستيراد.');
+   await persist(next,{safety:true});reset();
+  },'اكتمل استيراد الملف ومطابقة الطلاب. راجع تقرير الفروق مع الدرجات الرسمية.');
+ };
+ const saveGrades=()=>task(async()=>{
+  if(!active)throw Error('اختر اختبارًا محفوظًا أولًا.');
+  if(!Object.keys(drafts).length)throw Error('لا توجد درجات جديدة.');
+  const records=active.records.map(r=>{
+   const marks={...r.marks};for(const s of active.skills){const key=r.id+'|'+r.className+'|'+s.key;
+    if(!Object.prototype.hasOwnProperty.call(drafts,key))continue;
+    const n=SR63.skillSafeNumber(drafts[key]);if(n!==null&&Number.isFinite(s.max)&&n>s.max)throw Error('درجة '+r.name+' في '+s.label+' تتجاوز الحد الأقصى.');
+    marks[s.key]=n;
+   }return {...r,marks};
+  });
+  await persist({...active,records,importedAt:new Date().toISOString()});
+ },'حُفظت درجات المهارات دون تعديل نتائج الاختبارات الرسمية.');
+ const saveConfig=()=>task(async()=>{
+  if(!active)throw Error('اختر تحليلًا محفوظًا أولًا.');
+  const skills=active.skills.map(s=>{
+   const changed=configEdits[s.key]||{},label=String(changed.label??s.label).trim();
+   const maximum=SR63.skillSafeNumber(changed.max===undefined?s.max:changed.max);
+   if(!label||label.length>85||maximum!==null&&maximum<=0)throw Error('اسم المهارة أو درجتها العظمى غير صالح.');
+   const largest=Math.max(0,...active.records.map(r=>Number(r.marks[s.key])||0));
+   if(maximum!==null&&maximum<largest)throw Error('الحد الأقصى لمهارة '+label+' أقل من درجة طالب مرصودة.');
+   return {...s,label,max:maximum};
+  });
+  if(threshold!==''&&(!Number.isFinite(Number(threshold))||Number(threshold)<0||Number(threshold)>100))throw Error('حد التعثر يجب أن يقع بين 0 و100.');
+  await persist({...active,skills,passThreshold:pass});
+ },'حُفظت المهارات والدرجات القصوى وحد التعثر لهذا الاختبار فقط.');
+ const addSkill=()=>task(async()=>{
+  if(!active)throw Error('أنشئ اختبار مهارات أولًا.');
+  const label=addName.trim();if(!label||label.length>85||active.skills.some(s=>s.label===label))throw Error('اسم المهارة غير صالح أو مستخدم.');
+  if(active.skills.length>=12)throw Error('الحد الأقصى 12 مهارة.');
+  const key='custom_'+Math.random().toString(36).slice(2,11);
+  await persist({...active,skills:[...active.skills,{key,label,max:null}],records:active.records.map(r=>({...r,marks:{...r.marks,[key]:null}}))});
+  setAddName('');
+ },'تمت إضافة المهارة. حدّد الدرجة العظمى لها.');
+ const deleteSkill=target=>task(async()=>{
+  if(!active||active.skills.length<=1)throw Error('لا يمكن حذف المهارة الوحيدة.');
+  if(active.records.some(r=>r.marks[target]!==null&&r.marks[target]!==undefined))throw Error('لا يمكن حذف مهارة لديها درجات؛ حفاظًا على السجل التاريخي.');
+  if(!window.confirm('حذف المهارة الفارغة من هذا الاختبار فقط؟'))throw Error('أُلغي الحذف.');
+  await persist({...active,skills:active.skills.filter(s=>s.key!==target),records:active.records.map(r=>{const marks={...r.marks};delete marks[target];return {...r,marks};})});
+ },'حُذفت المهارة الفارغة من الاختبار الحالي.');
+ const csvTemplate=()=>{
+  if(!active)return;
+  SR63.skillCsv([['الرقم الأكاديمي','اسم الطالب','الشعبة',...active.skills.map(s=>s.label)],
+   ...active.records.map(r=>[r.id,r.name,r.className,...active.skills.map(s=>r.marks[s.key]??'')])],
+   'نموذج درجات مهارات '+active.subject);
+  setMessage('تم تنزيل نموذج CSV يفتح في Excel. بعد تعبئته، احفظه بصيغة XLSX ثم ارفعه.');
+ };
+ const csvReport=()=>{
+  if(!active)return;
+  const auditMap=new Map(audit.map(x=>[x.id+'|'+x.className,x]));
+  SR63.skillCsv([['الرقم الأكاديمي','الاسم','الشعبة',...active.skills.map(s=>s.label),'مجموع المهارات','الدرجة الرسمية','الفرق','الحالة'],
+   ...subset.map(r=>{const a=auditMap.get(r.id+'|'+r.className);return [r.id,r.name,r.className,...active.skills.map(s=>r.marks[s.key]??''),a?.total??'',a?.officialScore??'',a?.difference??'',a?.status??''];})],
+   'تقرير درجات مهارات '+active.subject);
+ };
+ const print=async()=>{
+  if(!canPrint)return;let win=null;try{
+   if(!reportModel.pages.length||reportModel.pages.length>200)throw Error('اختر تقريرًا يحتوي من 1 إلى 200 صفحة.');
+   win=window.open('','_blank');if(!win)throw Error('اسمح بالنوافذ المنبثقة للمعاينة.');
+   setLoading(true);setMessage('جارٍ تجهيز معاينة الطباعة…');
+   await SR63.printReportBatch(reportModel.pages,'تحليل مهارات '+active.subject,true,win);
+   setMessage('اكتملت المعاينة.');
+  }catch(e){try{win?.close();}catch{}setMessage('تعذرت المعاينة: '+(e?.message||e));}finally{setLoading(false);}
+ };
+ const pdf=async()=>{
+  if(!canPrint)return;let stage=null;try{
+   if(!reportModel.pages.length||reportModel.pages.length>200)throw Error('اختر تقريرًا يحتوي من 1 إلى 200 صفحة.');
+   setLoading(true);setMessage('جارٍ تصدير PDF…');
+   const css=await SR63.getReportStyleText();stage=document.createElement('div');
+   stage.className='srskill-export-stage';stage.style.cssText='position:fixed;left:-24000px;top:0;width:297mm;z-index:-1;pointer-events:none';
+   document.body.appendChild(stage);const images=[];
+   for(const html of reportModel.pages){stage.innerHTML=html;await (document.fonts?.ready||Promise.resolve());
+    images.push(await SR63.reportPageJPEG(stage.querySelector('.skill-report-page'),css,true));}
+   SR63.downloadReportFile(SR63.reportPdfFromJpegs(images),SR63.safeReportFilename('تحليل مهارات '+active.subject)+'.pdf');
+   setMessage('اكتمل تصدير ملف PDF.');
+  }catch(e){setMessage('تعذر تصدير PDF: '+(e?.message||e));}finally{stage?.remove();setLoading(false);}
+ };
+ const zipByClass=async()=>{
+  if(!canPrint||!active)return;
+  let stage=null;try{
+   const allClasses=[...new Set(subset.map(r=>r.className))];
+   if(!allClasses.length||allClasses.length>32)throw Error('اختر صفًا لتقليل عدد الشعب إلى 32 كحد أقصى.');
+   setLoading(true);setMessage('جارٍ تجهيز ملفات PDF للشعب…');
+   const css=await SR63.getReportStyleText(),outputs=[];
+   stage=document.createElement('div');stage.className='srskill-export-stage';
+   stage.style.cssText='position:fixed;left:-24000px;top:0;width:297mm;z-index:-1;pointer-events:none';
+   document.body.appendChild(stage);
+   for(const klass of allClasses){
+    const prepared=SR63.skillReports(active,workspace,{type:report==='summary'?'students':report,grade:klass.split('/')[0],className:klass,
+     skillKey:skill?.key||'',threshold:pass,older:prior,departments:allowedSubjects});
+    const images=[];
+    for(const html of prepared.pages){
+     stage.innerHTML=html;await (document.fonts?.ready||Promise.resolve());
+     images.push(await SR63.reportPageJPEG(stage.querySelector('.skill-report-page'),css,true));
+    }
+    if(images.length)outputs.push({name:SR63.safeReportFilename(active.subject+' - '+klass+'.pdf'),blob:SR63.reportPdfFromJpegs(images)});
+   }
+   if(!outputs.length)throw Error('لا توجد ملفات تقرير قابلة للتصدير.');
+   SR63.downloadReportFile(await SR63.reportZipFromPdfs(outputs),SR63.safeReportFilename('تقارير المهارات حسب الشعب - '+active.subject)+'.zip');
+   setMessage('اكتمل إنشاء ZIP يحتوي تقريرًا مستقلًا لكل شعبة.');
+  }catch(e){setMessage('تعذر تصدير ZIP: '+(e?.message||e));}finally{stage?.remove();setLoading(false);}
+ };
+ const selectedRows=subset.slice(page*40,page*40+40),maxPage=Math.max(1,Math.ceil(subset.length/40));
+ const currentReportPage=Math.min(reportPage,Math.max(0,reportModel.pages.length-1));
+ const rowAudit=new Map(audit.map(x=>[x.id+'|'+x.className,x]));
+ return h('main',{className:'srskill-center srskill-v2',dir:'rtl'},
+  h('header',{className:'srskill-toolbar'},h('div',{},h('h2',{},'تحليل مهارات '+typeName),h('p',{},'الرصد التفصيلي، ومطابقة درجات الاختبار، وتقارير الصفوف والشعب والمتعثرين.'))),
+  !kinds.length?h('p',{className:'srskill-warning'},'هذا الحساب ليس له قسم لغة عربية أو إنجليزية معتمد.'):null,
+  kinds.length>1?h('section',{className:'srskill-controls'},control('المادة',kind,x=>{setWantedKind(x);setChosenId('');reset();},kinds.map(k=>[k,SR63.skillSubjects[k].label]))):null,
+  editor?h('section',{className:'srskill-controls'},
+   control('اختبار إعداد المهارات',exam,setExam,(settings.exams||[]).map(e=>[e.key,e.name])),
+   btn('إنشاء تحليل من أسماء الطلاب',create,!kind),
+   h('label',{className:'srskill-field'},h('span',{},'استيراد Excel (.xlsx)'),h('input',{type:'file',accept:'.xlsx,.xls',disabled:loading,onChange:e=>{const file=e.target.files?.[0];if(file)importFile(file);e.target.value='';}})),
+   active?btn('تنزيل قالب للتعبئة في Excel',csvTemplate):null):null,
+  h('section',{className:'srskill-controls'},
+   control('التحليل المحفوظ',active?.id||'',x=>{setChosenId(x);reset();},allowed.length?allowed.map(a=>[a.id,((settings.exams||[]).find(e=>e.key===a.exam)?.name||a.exam)+' · '+(a.academicYear||'')]):[['','لا توجد اختبارات محفوظة']]),
+   control('الصف',grade,x=>{setGrade(x);setClass('الكل');setPage(0);setReportPage(0);},[['الكل','كل الصفوف'],...grades.map(g=>[g,'الصف '+g])]),
+   control('الشعبة',chosenClass,x=>{setClass(x);setPage(0);setReportPage(0);},[['الكل','كل الشعب'],...classes.map(c=>[c,c])])),
+  active?h('section',{className:'srskill-metrics'},[
+   ['الطلاب',metrics.students],['درجات مرصودة',metrics.observed],['غير مرصودة',metrics.missing],
+   ['متوسط الإتقان',percent(metrics.achievement)],['اختلافات مع النتيجة',alerts.length],['رصد غير مكتمل',pending.length]
+  ].map(([key,value])=>h('div',{key},h('span',{},key),h('strong',{},String(value))))):null,
+  alerts.length?h('p',{className:'srskill-warning',role:'alert'},'يوجد '+alerts.length+' طالبًا لديهم اختلاف بين مجموع المهارات ودرجتهم الرسمية أو اختلاف في الدرجة العظمى. راجع تقرير المطابقة.'):null,
+  active&&editor?h('section',{className:'srskill-panel'},h('h3',{},'إدارة المهارات والدرجات القصوى'),
+   h('p',{},'يمكن تغيير أسماء المهارات ودرجاتها لهذا الاختبار دون تعديل بيانات الاختبارات السابقة.'),
+   h('div',{className:'srskill-skill-grid'},active.skills.map(s=>h('div',{key:s.key,className:'srskill-skill-input'},
+    h('input',{'aria-label':'اسم المهارة',value:configEdits[s.key]?.label??s.label,onChange:e=>setConfigEdits(p=>({...p,[s.key]:{...p[s.key],label:e.target.value}}))}),
+    h('input',{'aria-label':'الدرجة القصوى',type:'number',min:0,step:0.5,placeholder:'الدرجة العظمى',value:configEdits[s.key]?.max??(s.max??''),onChange:e=>setConfigEdits(p=>({...p,[s.key]:{...p[s.key],max:e.target.value}}))}),
+    btn('حذف',()=>deleteSkill(s.key),active.skills.length<=1)))),
+   h('div',{className:'srskill-controls'},h('label',{className:'srskill-field'},h('span',{},'حد التعثر (%)'),h('input',{type:'number',min:0,max:100,step:1,value:threshold===''?String(active.passThreshold??50):threshold,onChange:e=>setThreshold(e.target.value)})),
+    btn('حفظ إعدادات المهارات',saveConfig),h('label',{className:'srskill-field'},h('span',{},'إضافة مهارة جديدة'),h('input',{value:addName,onChange:e=>setAddName(e.target.value),placeholder:'اسم مهارة أخرى'})),
+    btn('إضافة المهارة',addSkill,!addName.trim()))):null,
+  active&&editor?h('section',{className:'srskill-panel'},h('h3',{},'رصد درجات الطلاب'),
+   h('p',{},'اترك الخانة فارغة عند عدم الرصد؛ لا تُحسب صفرًا، ولا تُعدّل الدرجة الرسمية من هذه الشاشة.'),
+   h('div',{className:'srskill-table-scroll'},h('table',{className:'srskill-table'},
+    h('thead',{},h('tr',{},...['الرقم الأكاديمي','اسم الطالب','الشعبة',...active.skills.map(s=>s.label),'المجموع','الدرجة الرسمية','المطابقة'].map(t=>h('th',{key:t},t)))),
+    h('tbody',{},selectedRows.map(r=>{
+     const check=rowAudit.get(r.id+'|'+r.className);return h('tr',{key:r.id+'|'+r.className,className:check?.status==='mismatch'?'srskill-highlight':''},
+      h('td',{},r.id),h('td',{},r.name),h('td',{},r.className),...active.skills.map(s=>{
+       const key=r.id+'|'+r.className+'|'+s.key;
+       return h('td',{key:s.key},h('input',{'aria-label':s.label+' '+r.name,type:'number',min:0,max:s.max??999,step:0.5,
+        value:Object.prototype.hasOwnProperty.call(drafts,key)?drafts[key]:(r.marks?.[s.key]??''),onChange:e=>setDrafts(d=>({...d,[key]:e.target.value}))}));
+      }),h('td',{},scoreFmt(check?.total)),h('td',{},scoreFmt(check?.officialScore)),h('td',{},check?.status==='matched'?'مطابق':
+       check?.status==='mismatch'?'اختلاف':check?.status==='maxMismatch'?'اختلاف الدرجة العظمى':'بانتظار الرصد'));
+    })))),h('div',{className:'srskill-actions'},btn('حفظ درجات المهارات',saveGrades,!Object.keys(drafts).length),
+     btn('السابق',()=>setPage(x=>Math.max(0,x-1)),page===0),h('span',{},'صفحة '+(page+1)+' من '+maxPage),
+     btn('التالي',()=>setPage(x=>x+1),page+1>=maxPage))):null,
+  active?h('section',{className:'srskill-panel'},h('h3',{},'مؤشرات إتقان المهارات'),h('div',{className:'srskill-graphs'},metrics.skills.map(s=>h('article',{key:s.key},
+   h('div',{},h('strong',{},s.label),h('span',{},percent(s.rate))),h('div',{className:'srskill-bar'},h('div',{style:{width:Math.max(0,Math.min(100,s.rate||0))+'%'}})),
+   h('small',{},'مرصود: '+s.observed+' · متعثر: '+(s.mastered===null?'—':s.observed-s.mastered)))))):null,
+  active?h('section',{className:'srskill-panel'},h('h3',{},'مركز تقارير تحليل المهارات'),h('div',{className:'srskill-controls'},
+   control('نوع التقرير',report,x=>{setReport(x);setReportPage(0);},[
+    ['school','التحليل العام للمدرسة أو الصف أو الشعبة'],['summary','تقرير ملخص الشعب'],['students','درجات مهارات الطلاب'],
+    ['weak','الطلاب المتعثرون في مهارة'],['ranking','ترتيب المهارات'],['audit','اختلاف الدرجات الرسمية'],['comparison','مقارنة مهارة بين اختبارين']]),
+   ['weak','comparison'].includes(report)?control('المهارة',skill?.key||'',setWantedSkill,active.skills.map(s=>[s.key,s.label])):null,
+   report==='comparison'?control('الاختبار السابق',prior?.id||'',setWantedPrior,otherTests.length?otherTests.map(x=>[x.id,(settings.exams||[]).find(e=>e.key===x.exam)?.name||x.exam]):[['','لا توجد بيانات مقارنة']]):null),
+   h('div',{className:'srskill-actions'},btn('معاينة وطباعة',()=>void print(),!canPrint||!reportModel.pages.length),
+    btn('تنزيل PDF',()=>void pdf(),!canPrint||!reportModel.pages.length),btn('تقارير الشعب ZIP',()=>void zipByClass(),!canPrint||!reportModel.pages.length),btn('تصدير Excel (CSV)',csvReport,!canPrint),h('span',{},'عدد الصفحات: '+reportModel.pages.length)),
+   report==='comparison'&&!prior?h('p',{},'يلزم وجود درجات مهارات محفوظة للاختبار السابق للمقارنة.'):null,
+   reportModel.pages.length?h('section',{className:'srskill-preview'},
+    h('div',{className:'srskill-preview-navigation'},btn('صفحة سابقة',()=>setReportPage(n=>Math.max(0,n-1)),currentReportPage===0),
+     h('strong',{},'معاينة '+(currentReportPage+1)+' / '+reportModel.pages.length),
+     btn('صفحة تالية',()=>setReportPage(n=>n+1),currentReportPage+1>=reportModel.pages.length)),
+    h('div',{dangerouslySetInnerHTML:{__html:reportModel.pages[currentReportPage]}})):null):null,
+  message?h('p',{role:'status',className:'srskill-status'},message):null,
+  !active?h('section',{className:'srskill-empty'},editor?'أنشئ تحليلًا لطلاب هذه المادة أو استورد ملف المهارات.':'لا توجد بيانات مهارات محفوظة لهذه المادة.'):null
+ );
+};
+
 /* SchoolResult 6.10.26 — authenticated, server-scoped school staff. */
 SR63.staff={
  normalize(username){return String(username||'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');},
@@ -4016,7 +4432,7 @@ SR63.CoordinatorPortal=function({profile}){
     !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null
    ]):null,
    page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})):null,
-   page==='skillsReports'&&perms.reports?h(SR63.SkillCenter,{workspace:active,readOnly:true,canPrint:!!perms.export,allowedSubjects:isLeadership?null:profile.departments}):null,
+   page==='skillsReports'&&perms.reports?h(SR63.SkillCenter,{workspace:active,readOnly:isLeadership||profile.skillsWrite!==true,canPrint:!!perms.export,allowedSubjects:isLeadership?null:profile.departments,onSaved:()=>reload(exam),expectedRevision:payload?.revision}):null,
    page==='reportCenter'&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
     h('header',{className:'srstaff-panel'},[
      h('h2',{},isLeadership?'مركز التقارير والطباعة الأصلي — جميع صفوف المدرسة':'مركز التقارير والطباعة — أقسامي المصرح بها فقط'),
@@ -5614,4 +6030,4 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   try{const result=SR63.rollback(e,batchId,exam);ue(await qj());if(!await _e(result.workspace))return;srRawSet(result.workspace);eb.success(`تم التراجع عن ${result.restored} نتيجة؛ حُفظت ${result.skipped} نتيجة معدّلة لاحقًا.`);}catch(error){eb.error(error.message);}
 }async function $e(snapshot){
   try{const full=await SR63.getSnapshot(snapshot),checked=LN(full.workspace);if(!window.confirm(`استعادة «${full.reason}»؟ ستُحفظ نقطة لبياناتك الحالية.`))return;if(!await Kj(e,'قبل استعادة نقطة محفوظة'))throw new Error('تعذر إنشاء نقطة حماية.');const next=jj(checked.workspace,'استعادة نقطة',full.reason);ue(await qj());if(!await _e(next))return;srRawSet(next);r(structuredClone(next.settings));a(false);eb.success('تمت استعادة النقطة وحفظها.');}catch(error){eb.error(error.message);}
-}function et(){return (0,q.jsx)(SR63.Archives,{workspace:e,snapshots:le,status:c,bytes:u,onSave:()=>_e(),onBackup:Oe,onRestore:ke,onSnapshot:$e,onRollback:Qe,onNewYear:Ie,onClear:Ze,onRefresh:async()=>ue(await qj()),onChange:t});}function tt(){let t=Ej(n.bands),o=e=>{r(t=>({...t,...e})),a(!0)};return(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(p9,{kicker:`إدارة قواعد النظام`,title:`الإعدادات والمعادلات والتقارير`,desc:`عدّل القيم ثم اضغط «حفظ الإعدادات». لا تُطبّق التغييرات على التحليلات والتقارير قبل الحفظ.`,action:(0,q.jsxs)(`div`,{className:`flex flex-wrap gap-2`,children:[(0,q.jsx)(uA,{className:t.length?`bg-rose-50 text-rose-700`:i?`bg-amber-50 text-amber-700`:`bg-emerald-50 text-emerald-700`,children:t.length?`${t.length} ملاحظة`:i?`تعديلات غير محفوظة`:`الإعدادات محفوظة`}),(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1),eb.info(`تم التراجع عن التعديلات غير المحفوظة`)},children:[(0,q.jsx)(Iy,{}),`تراجع`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات`]})]})}),(0,q.jsxs)(`div`,{className:`grid gap-5 xl:grid-cols-2`,children:[(0,q.jsx)(m9,{title:`هوية المدرسة والتقرير`,children:(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-2`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolName,onChange:e=>o({schoolName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`العام الأكاديمي`}),(0,q.jsx)(fA,{className:`mt-2 bg-slate-50`,value:n.academicYear,readOnly:!0}),(0,q.jsx)(`small`,{className:`mt-1 block text-amber-700`,children:`غيّره بأمان من «النسخ والأرشيف ← بدء عام جديد» حتى لا تتغير هوية النتائج القديمة.`})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مدير/مديرة المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.principalName,onChange:e=>o({principalName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`النائب/النائبة الأكاديمية`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.academicViceName,onChange:e=>o({academicViceName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المنسق الافتراضي عند عدم وجود ربط للمادة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.coordinatorName,onChange:e=>o({coordinatorName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`رؤية المدرسة في تذييل التقارير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolVision,onChange:e=>o({schoolVision:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`البرمجة والتصميم`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.programmerDesignerName,onChange:e=>o({programmerDesignerName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم البرنامج الذي طبع التقرير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reportSystemName,onChange:e=>o({reportSystemName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`إعداد التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.preparedByName,onChange:e=>o({preparedByName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مراجعة التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reviewedByName,onChange:e=>o({reviewedByName:e.target.value})})]})]})}),(0,q.jsxs)(m9,{title:`قواعد الحساب`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-3`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`حد النجاح (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,value:n.pass,onChange:e=>o({pass:Math.max(0,Math.min(100,Number(e.target.value)))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`هامش الثبات في المقارنة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,step:`.1`,value:n.stable,onChange:e=>o({stable:Math.max(0,Number(e.target.value))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الحد الأدنى للعينة العادلة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`1`,value:n.minSampleSize,onChange:e=>o({minSampleSize:Math.max(1,Number(e.target.value))})})]})]}),(0,q.jsxs)(`div`,{className:`mt-5 grid gap-3 text-sm`,children:[(0,q.jsxs)(`p`,{className:`rounded-xl bg-teal-50 p-3 text-teal-900`,children:[(0,q.jsx)(`b`,{children:`نسبة النجاح:`}),` عدد الناجحين ÷ عدد الطلاب المقيمين.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-sky-50 p-3 text-sky-900`,children:[(0,q.jsx)(`b`,{children:`نسبة التحصيل:`}),` مجموع الدرجات ÷ مجموع الدرجات الممكنة.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-amber-50 p-3 text-amber-900`,children:[(0,q.jsx)(`b`,{children:`القيمة المضافة:`}),` متوسط فرق النسب المئوية للعينة المشتركة الحاضرة.`]})]})]})]}),(0,q.jsx)(m9,{title:`إجماليات الاختبارات الأربعة`,desc:`يمكن أن تكون الدرجة الكلية مختلفة في كل اختبار دون أن تتأثر المقارنة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-4`,children:n.exams.map((e,t)=>(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-slate-50 p-4`,children:[(0,q.jsxs)(`b`,{className:`text-sm text-teal-700`,children:[`الاختبار `,t+1]}),(0,q.jsx)(J,{className:`mt-3`,children:`الاسم`}),(0,q.jsx)(fA,{className:`mt-2`,value:e.name,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,name:t.target.value}:n)})}),(0,q.jsx)(J,{className:`mt-3`,children:`الدرجة الكلية`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`.01`,step:`.5`,value:e.total,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,total:Math.max(.01,Number(t.target.value))}:n)})})]},e.key))})}),(0,q.jsxs)(m9,{title:`حدود مستويات الأداء`,desc:`ست فئات قابلة للتعديل مع منع التداخل والفجوات والخروج عن 0–100.`,children:[t.length>0&&(0,q.jsx)(`div`,{className:`mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800`,children:t.join(` `)}),(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`,children:(0,q.jsxs)(pA,{children:[(0,q.jsx)(mA,{children:(0,q.jsxs)(gA,{children:[(0,q.jsx)(_A,{children:`اللون`}),(0,q.jsx)(_A,{className:`text-right`,children:`المستوى`}),(0,q.jsx)(_A,{children:`من`}),(0,q.jsx)(_A,{children:`إلى`}),(0,q.jsx)(_A,{className:`text-right`,children:`التجميع`})]})}),(0,q.jsx)(hA,{children:n.bands.map(e=>(0,q.jsxs)(gA,{children:[(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`color`,value:e.color,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,color:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{value:e.label,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,label:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.min,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,min:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.max,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,max:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(g9,{value:e.macro,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,macro:t}:n)}),items:[{value:`above`,label:`فوق المستوى`},{value:`average`,label:`في المتوسط`},{value:`below`,label:`دون المستوى`}]})})]},e.id))})]})})]}),(0,q.jsx)(m9,{title:`التحكم في عناوين أعمدة الاستيراد`,desc:`اكتب جميع الأسماء التي قد تأتي بها الأعمدة في ملفات Excel وافصل بينها بفاصلة؛ سيستخدمها النظام في الاكتشاف التلقائي.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`studentId`,label:`عناوين رقم الطالب`},{key:`studentName`,label:`عناوين اسم الطالب`},{key:`className`,label:`عناوين الصف والشعبة`},{key:`teacher`,label:`عناوين اسم المعلم`},{key:`subject`,label:`عناوين المادة`},{key:`department`,label:`عناوين القسم`},{key:`coordinator`,label:`عناوين منسق المادة`},{key:`classes`,label:`عناوين صفوف المعلم`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.importAliases[e.key].join(`، `),onChange:t=>o({importAliases:{...n.importAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`,desc:`أضف الصيغ المستخدمة في ملفات المدرسة مثل غائب أو معذور أو محروم؛ افصل بينها بفاصلة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`absent`,label:`الغائب`},{key:`excused`,label:`المعذور`},{key:`unexcused`,label:`الغياب دون عذر`},{key:`deprived`,label:`المحروم`},{key:`not_enrolled`,label:`غير المقيد`},{key:`unentered`,label:`لم تُرصد بعد`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.statusAliases[e.key].join(`، `),onChange:t=>o({statusAliases:{...n.statusAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsxs)(`div`,{className:`sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur`,children:[(0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:i?`لديك تعديلات لم تُحفظ بعد.`:`لا توجد تعديلات معلقة.`}),(0,q.jsxs)(`div`,{className:`flex gap-2`,children:[(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1)},children:[(0,q.jsx)(Iy,{}),`إلغاء التعديلات`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات الجديدة`]})]})]})]})}function nt(){return (0,q.jsxs)('section',{className:'executive-hero sr63-start',children:[(0,q.jsx)('span',{className:'sr63-kicker',children:`برنامج نتائج المدرسة · الإصدار السحابي ${SR63.version}`}),(0,q.jsx)('h1',{children:SR63.storage.blocked?'استعادة بياناتك المحفوظة':'جهّز قاعدة حسابك السحابية'}),(0,q.jsx)('p',{children:SR63.storage.blocked?'تعذّر الاتصال أو التحقق من بيانات حسابك. أعد الاتصال ثم أعد تحميل الصفحة؛ لن نستبدل البيانات السحابية بقاعدة فارغة.':'اختر قاعدة فارغة لإدخال نتائج مدرستك، أو استعد نسخة احتياطية، أو افتح البيانات التجريبية.'}),SR63.storage.blocked&&(0,q.jsx)('p',{role:'alert',children:SR63.storage.error}),(0,q.jsxs)('div',{className:'sr63-actions',children:[!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('empty'),children:'قاعدة فارغة'}),!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('demo'),children:'جولة تجريبية'}),(0,q.jsxs)('label',{className:'sr63-button',children:['استعادة نسخة JSON',(0,q.jsx)('input',{type:'file',accept:'.json',className:'sr63-file',onChange:event=>{const file=event.target.files?.[0];if(file)ke(file);event.target.value='';}})]}),SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:async()=>{const raw=await Yj();SR63.storage.block('لم يتم اعتماد البيانات بعد.');if(raw)SR63.download(raw,'بيانات-للفحص.json');},children:'تنزيل البيانات للفحص'})]})]});}let rt;return rt=f?m?nt():o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`staffUsers`?(0,q.jsx)(SR63.StaffAdminPage,{}):o===`departmentQuant`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e,initialView:`department`}):o===`teacherPerformance`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e}):o===`aiPlans`?(0,q.jsx)(SR63.AIPlans,{workspace:e,setWorkspace:t}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):o===`teacherData`?ze():o===`data`?Be():o===`quality`?Ve():o===`classes`?He(`className`,`صفحة مستقلة لكل صف وشعبة`,`بيانات الصف والمعلم والمادة وإجمالي الاختبار والناجحون والراسبون والنجاح والتحصيل والمستويات والقيمة المضافة.`):o===`teachers`?He(`teacher`,`قراءة وصفية لأداء المعلمين`,`تُعرض النتائج لدعم القرار داخل سياق المادة والصف وحجم العينة؛ لا تُستخدم منفردة للحكم على أداء المعلم.`):o===`departments`?He(`department`,`القسم والمعلم والصف في قراءة واحدة`,`النجاح والتحصيل والقيمة المضافة للاختبارات الثاني والثالث والرابع.`):o===`school`?Ue():o===`comparison`?We():o===`value`?Ge():o===`levels`?Ke():o===`struggling`?qe():o===`reports`?Je():o===`customReports`?Xe():o===`reportDesign`?Ye():o===`backups`?et():tt():(0,q.jsx)(`div`,{className:`grid min-h-[60vh] place-items-center`,children:(0,q.jsxs)(`div`,{className:`text-center`,children:[(0,q.jsx)(Iy,{className:`mx-auto size-8 animate-spin text-teal-700`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`جارٍ تحميل مساحة العمل الآمنة…`})]})}),(0,q.jsxs)(LA,{style:{"--sidebar-width":`19rem`},dir:`rtl`,children:[(0,q.jsxs)(RA,{side:`right`,collapsible:`icon`,className:`results-sidebar border-l-0 text-white`,children:[(0,q.jsxs)(VA,{className:`relative border-b border-white/10 px-4 pb-5 pt-6`,children:[(0,q.jsx)(`div`,{className:`absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-[#d49a2f] via-[#f5d37b] to-[#2dd4bf]`}),(0,q.jsxs)(`div`,{className:`flex items-center gap-3`,children:[(0,q.jsx)(`span`,{className:`grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#f6cf69] shadow-lg shadow-black/10`,children:(0,q.jsx)(cy,{className:`size-6`})}),(0,q.jsxs)(`div`,{className:`min-w-0 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-base`,children:`مرصد النتائج المدرسية`}),(0,q.jsx)(`small`,{className:`mt-1 block truncate text-white/55`,children:`إدارة التحليل وصناعة القرار`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 rounded-2xl border border-white/10 bg-white/[.065] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-sm`,children:e.settings.schoolName}),(0,q.jsx)(`span`,{className:`mt-2 inline-flex rounded-full bg-[#d49a2f]/15 px-2.5 py-1 text-xs font-bold text-[#f6cf69]`,children:e.settings.academicYear})]}),(0,q.jsxs)(`div`,{className:`relative mt-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(By,{className:`absolute right-3 top-3 size-4 text-white/45`}),(0,q.jsx)(fA,{value:ce,onChange:e=>V(e.target.value),placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),(0,q.jsx)(UA,{className:`min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:#5b8094_transparent] [scrollbar-width:thin]`,children:[`الرئيسية`,`التحليلات`,`القياس`,`الإدارة`].map(e=>{let t=Q9.filter(t=>t.group===e&&(!ce||ij(t.label).includes(ij(ce))));return t.length?(0,q.jsx)(Mde,{group:e,items:t,page:o,critical:be.critical,forceOpen:!!ce,onSelect:e=>{if((i||SR63.formDirty)&&!window.confirm(`توجد تعديلات لم تعتمدها. مغادرة الصفحة وإلغاء هذه التعديلات؟`))return;a(false);SR63.formDirty=false;s(e);E(`الكل`)}},`${e}-${ce?`search`:`normal`}`):null})}),(0,q.jsx)(HA,{className:`border-t border-white/10 bg-black/10 p-3`,children:(0,q.jsxs)(`div`,{className:`rounded-2xl border border-white/10 bg-white/[.06] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsxs)(`span`,{className:`flex items-center gap-2 text-xs font-bold text-emerald-300`,children:[(0,q.jsx)(py,{className:`size-4`}),c]}),(0,q.jsxs)(`div`,{className:`mt-2 flex items-center justify-between text-[11px] text-white/45`,children:[(0,q.jsx)(`span`,{children:`آخر نقاط الاستعادة`}),(0,q.jsxs)(`b`,{children:[le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`]})]}),(0,q.jsxs)(`button`,{onClick:Oe,className:`mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white`,children:[(0,q.jsx)(_y,{className:`size-4`}),`تنزيل نسخة احتياطية`]}),(0,q.jsx)(`small`,{className:`mt-3 block text-center text-white/35`,children:`الإصدار 6.10.65 — نسخة مستقرة`})]})})]}),(0,q.jsxs)(BA,{className:`min-w-0 bg-[#f6f8f7]`,children:[(0,q.jsxs)(`header`,{className:`sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6`,children:[(0,q.jsx)(zA,{}),(0,q.jsx)(`span`,{className:`hidden truncate text-sm font-bold text-slate-700 sm:inline`,children:Q9.find(e=>e.id===o)?.label}),(0,q.jsxs)(`div`,{className:`mr-auto flex min-w-0 items-center gap-2`,children:[(0,q.jsx)(g9,{className:`max-w-40 sm:max-w-none`,value:e.activeExam,onChange:e=>t(t=>({...t,activeExam:e})),items:e.settings.exams.map(e=>({value:e.key,label:e.name}))}),(0,q.jsx)(dA,{variant:`ghost`,size:`icon`,title:`ملء الشاشة`,onClick:()=>void SR63.fullscreen(),children:(0,q.jsx)(Sy,{})}),(0,q.jsxs)(dA,{size:`sm`,onClick:()=>s(`import`),className:`hidden bg-teal-700 sm:flex`,children:[(0,q.jsx)(Ky,{}),`استيراد`]})]})]}),g&&(0,q.jsxs)(`div`,{className:`sticky top-16 z-20 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6`,children:[(0,q.jsx)(`b`,{children:`يوجد تعارض في الحفظ بين النوافذ.`}),(0,q.jsx)(`span`,{children:`حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.`}),(0,q.jsx)(dA,{size:`sm`,variant:`outline`,className:`mr-auto`,onClick:()=>void Ne(),children:`تحميل أحدث نسخة سحابية`}),(0,q.jsx)(dA,{size:`sm`,className:`bg-amber-700`,onClick:()=>void Pe(),children:`اعتماد نسخة هذه النافذة`})]}),(0,q.jsx)(`main`,{className:`mx-auto w-full max-w-[1700px] flex-1 p-4 sm:p-6 lg:p-8`,children:rt})]}),(0,q.jsx)(ab,{position:`top-center`,richColors:!0})]})}var $9=document.getElementById(`root`);if(!$9)throw Error(`تعذر تشغيل واجهة البرنامج`);(0,y.createRoot)($9).render((0,q.jsx)(v.StrictMode,{children:(0,q.jsx)(SR63.CloudApp,{})}));
+}function et(){return (0,q.jsx)(SR63.Archives,{workspace:e,snapshots:le,status:c,bytes:u,onSave:()=>_e(),onBackup:Oe,onRestore:ke,onSnapshot:$e,onRollback:Qe,onNewYear:Ie,onClear:Ze,onRefresh:async()=>ue(await qj()),onChange:t});}function tt(){let t=Ej(n.bands),o=e=>{r(t=>({...t,...e})),a(!0)};return(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(p9,{kicker:`إدارة قواعد النظام`,title:`الإعدادات والمعادلات والتقارير`,desc:`عدّل القيم ثم اضغط «حفظ الإعدادات». لا تُطبّق التغييرات على التحليلات والتقارير قبل الحفظ.`,action:(0,q.jsxs)(`div`,{className:`flex flex-wrap gap-2`,children:[(0,q.jsx)(uA,{className:t.length?`bg-rose-50 text-rose-700`:i?`bg-amber-50 text-amber-700`:`bg-emerald-50 text-emerald-700`,children:t.length?`${t.length} ملاحظة`:i?`تعديلات غير محفوظة`:`الإعدادات محفوظة`}),(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1),eb.info(`تم التراجع عن التعديلات غير المحفوظة`)},children:[(0,q.jsx)(Iy,{}),`تراجع`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات`]})]})}),(0,q.jsxs)(`div`,{className:`grid gap-5 xl:grid-cols-2`,children:[(0,q.jsx)(m9,{title:`هوية المدرسة والتقرير`,children:(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-2`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolName,onChange:e=>o({schoolName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`العام الأكاديمي`}),(0,q.jsx)(fA,{className:`mt-2 bg-slate-50`,value:n.academicYear,readOnly:!0}),(0,q.jsx)(`small`,{className:`mt-1 block text-amber-700`,children:`غيّره بأمان من «النسخ والأرشيف ← بدء عام جديد» حتى لا تتغير هوية النتائج القديمة.`})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مدير/مديرة المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.principalName,onChange:e=>o({principalName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`النائب/النائبة الأكاديمية`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.academicViceName,onChange:e=>o({academicViceName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المنسق الافتراضي عند عدم وجود ربط للمادة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.coordinatorName,onChange:e=>o({coordinatorName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`رؤية المدرسة في تذييل التقارير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolVision,onChange:e=>o({schoolVision:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`البرمجة والتصميم`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.programmerDesignerName,onChange:e=>o({programmerDesignerName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم البرنامج الذي طبع التقرير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reportSystemName,onChange:e=>o({reportSystemName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`إعداد التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.preparedByName,onChange:e=>o({preparedByName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مراجعة التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reviewedByName,onChange:e=>o({reviewedByName:e.target.value})})]})]})}),(0,q.jsxs)(m9,{title:`قواعد الحساب`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-3`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`حد النجاح (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,value:n.pass,onChange:e=>o({pass:Math.max(0,Math.min(100,Number(e.target.value)))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`هامش الثبات في المقارنة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,step:`.1`,value:n.stable,onChange:e=>o({stable:Math.max(0,Number(e.target.value))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الحد الأدنى للعينة العادلة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`1`,value:n.minSampleSize,onChange:e=>o({minSampleSize:Math.max(1,Number(e.target.value))})})]})]}),(0,q.jsxs)(`div`,{className:`mt-5 grid gap-3 text-sm`,children:[(0,q.jsxs)(`p`,{className:`rounded-xl bg-teal-50 p-3 text-teal-900`,children:[(0,q.jsx)(`b`,{children:`نسبة النجاح:`}),` عدد الناجحين ÷ عدد الطلاب المقيمين.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-sky-50 p-3 text-sky-900`,children:[(0,q.jsx)(`b`,{children:`نسبة التحصيل:`}),` مجموع الدرجات ÷ مجموع الدرجات الممكنة.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-amber-50 p-3 text-amber-900`,children:[(0,q.jsx)(`b`,{children:`القيمة المضافة:`}),` متوسط فرق النسب المئوية للعينة المشتركة الحاضرة.`]})]})]})]}),(0,q.jsx)(m9,{title:`إجماليات الاختبارات الأربعة`,desc:`يمكن أن تكون الدرجة الكلية مختلفة في كل اختبار دون أن تتأثر المقارنة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-4`,children:n.exams.map((e,t)=>(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-slate-50 p-4`,children:[(0,q.jsxs)(`b`,{className:`text-sm text-teal-700`,children:[`الاختبار `,t+1]}),(0,q.jsx)(J,{className:`mt-3`,children:`الاسم`}),(0,q.jsx)(fA,{className:`mt-2`,value:e.name,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,name:t.target.value}:n)})}),(0,q.jsx)(J,{className:`mt-3`,children:`الدرجة الكلية`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`.01`,step:`.5`,value:e.total,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,total:Math.max(.01,Number(t.target.value))}:n)})})]},e.key))})}),(0,q.jsxs)(m9,{title:`حدود مستويات الأداء`,desc:`ست فئات قابلة للتعديل مع منع التداخل والفجوات والخروج عن 0–100.`,children:[t.length>0&&(0,q.jsx)(`div`,{className:`mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800`,children:t.join(` `)}),(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`,children:(0,q.jsxs)(pA,{children:[(0,q.jsx)(mA,{children:(0,q.jsxs)(gA,{children:[(0,q.jsx)(_A,{children:`اللون`}),(0,q.jsx)(_A,{className:`text-right`,children:`المستوى`}),(0,q.jsx)(_A,{children:`من`}),(0,q.jsx)(_A,{children:`إلى`}),(0,q.jsx)(_A,{className:`text-right`,children:`التجميع`})]})}),(0,q.jsx)(hA,{children:n.bands.map(e=>(0,q.jsxs)(gA,{children:[(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`color`,value:e.color,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,color:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{value:e.label,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,label:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.min,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,min:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.max,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,max:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(g9,{value:e.macro,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,macro:t}:n)}),items:[{value:`above`,label:`فوق المستوى`},{value:`average`,label:`في المتوسط`},{value:`below`,label:`دون المستوى`}]})})]},e.id))})]})})]}),(0,q.jsx)(m9,{title:`التحكم في عناوين أعمدة الاستيراد`,desc:`اكتب جميع الأسماء التي قد تأتي بها الأعمدة في ملفات Excel وافصل بينها بفاصلة؛ سيستخدمها النظام في الاكتشاف التلقائي.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`studentId`,label:`عناوين رقم الطالب`},{key:`studentName`,label:`عناوين اسم الطالب`},{key:`className`,label:`عناوين الصف والشعبة`},{key:`teacher`,label:`عناوين اسم المعلم`},{key:`subject`,label:`عناوين المادة`},{key:`department`,label:`عناوين القسم`},{key:`coordinator`,label:`عناوين منسق المادة`},{key:`classes`,label:`عناوين صفوف المعلم`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.importAliases[e.key].join(`، `),onChange:t=>o({importAliases:{...n.importAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`,desc:`أضف الصيغ المستخدمة في ملفات المدرسة مثل غائب أو معذور أو محروم؛ افصل بينها بفاصلة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`absent`,label:`الغائب`},{key:`excused`,label:`المعذور`},{key:`unexcused`,label:`الغياب دون عذر`},{key:`deprived`,label:`المحروم`},{key:`not_enrolled`,label:`غير المقيد`},{key:`unentered`,label:`لم تُرصد بعد`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.statusAliases[e.key].join(`، `),onChange:t=>o({statusAliases:{...n.statusAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsxs)(`div`,{className:`sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur`,children:[(0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:i?`لديك تعديلات لم تُحفظ بعد.`:`لا توجد تعديلات معلقة.`}),(0,q.jsxs)(`div`,{className:`flex gap-2`,children:[(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1)},children:[(0,q.jsx)(Iy,{}),`إلغاء التعديلات`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات الجديدة`]})]})]})]})}function nt(){return (0,q.jsxs)('section',{className:'executive-hero sr63-start',children:[(0,q.jsx)('span',{className:'sr63-kicker',children:`برنامج نتائج المدرسة · الإصدار السحابي ${SR63.version}`}),(0,q.jsx)('h1',{children:SR63.storage.blocked?'استعادة بياناتك المحفوظة':'جهّز قاعدة حسابك السحابية'}),(0,q.jsx)('p',{children:SR63.storage.blocked?'تعذّر الاتصال أو التحقق من بيانات حسابك. أعد الاتصال ثم أعد تحميل الصفحة؛ لن نستبدل البيانات السحابية بقاعدة فارغة.':'اختر قاعدة فارغة لإدخال نتائج مدرستك، أو استعد نسخة احتياطية، أو افتح البيانات التجريبية.'}),SR63.storage.blocked&&(0,q.jsx)('p',{role:'alert',children:SR63.storage.error}),(0,q.jsxs)('div',{className:'sr63-actions',children:[!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('empty'),children:'قاعدة فارغة'}),!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('demo'),children:'جولة تجريبية'}),(0,q.jsxs)('label',{className:'sr63-button',children:['استعادة نسخة JSON',(0,q.jsx)('input',{type:'file',accept:'.json',className:'sr63-file',onChange:event=>{const file=event.target.files?.[0];if(file)ke(file);event.target.value='';}})]}),SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:async()=>{const raw=await Yj();SR63.storage.block('لم يتم اعتماد البيانات بعد.');if(raw)SR63.download(raw,'بيانات-للفحص.json');},children:'تنزيل البيانات للفحص'})]})]});}let rt;return rt=f?m?nt():o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`staffUsers`?(0,q.jsx)(SR63.StaffAdminPage,{}):o===`departmentQuant`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e,initialView:`department`}):o===`teacherPerformance`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e}):o===`aiPlans`?(0,q.jsx)(SR63.AIPlans,{workspace:e,setWorkspace:t}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):o===`teacherData`?ze():o===`data`?Be():o===`quality`?Ve():o===`classes`?He(`className`,`صفحة مستقلة لكل صف وشعبة`,`بيانات الصف والمعلم والمادة وإجمالي الاختبار والناجحون والراسبون والنجاح والتحصيل والمستويات والقيمة المضافة.`):o===`teachers`?He(`teacher`,`قراءة وصفية لأداء المعلمين`,`تُعرض النتائج لدعم القرار داخل سياق المادة والصف وحجم العينة؛ لا تُستخدم منفردة للحكم على أداء المعلم.`):o===`departments`?He(`department`,`القسم والمعلم والصف في قراءة واحدة`,`النجاح والتحصيل والقيمة المضافة للاختبارات الثاني والثالث والرابع.`):o===`school`?Ue():o===`comparison`?We():o===`value`?Ge():o===`levels`?Ke():o===`struggling`?qe():o===`reports`?Je():o===`customReports`?Xe():o===`reportDesign`?Ye():o===`backups`?et():tt():(0,q.jsx)(`div`,{className:`grid min-h-[60vh] place-items-center`,children:(0,q.jsxs)(`div`,{className:`text-center`,children:[(0,q.jsx)(Iy,{className:`mx-auto size-8 animate-spin text-teal-700`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`جارٍ تحميل مساحة العمل الآمنة…`})]})}),(0,q.jsxs)(LA,{style:{"--sidebar-width":`19rem`},dir:`rtl`,children:[(0,q.jsxs)(RA,{side:`right`,collapsible:`icon`,className:`results-sidebar border-l-0 text-white`,children:[(0,q.jsxs)(VA,{className:`relative border-b border-white/10 px-4 pb-5 pt-6`,children:[(0,q.jsx)(`div`,{className:`absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-[#d49a2f] via-[#f5d37b] to-[#2dd4bf]`}),(0,q.jsxs)(`div`,{className:`flex items-center gap-3`,children:[(0,q.jsx)(`span`,{className:`grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#f6cf69] shadow-lg shadow-black/10`,children:(0,q.jsx)(cy,{className:`size-6`})}),(0,q.jsxs)(`div`,{className:`min-w-0 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-base`,children:`مرصد النتائج المدرسية`}),(0,q.jsx)(`small`,{className:`mt-1 block truncate text-white/55`,children:`إدارة التحليل وصناعة القرار`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 rounded-2xl border border-white/10 bg-white/[.065] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-sm`,children:e.settings.schoolName}),(0,q.jsx)(`span`,{className:`mt-2 inline-flex rounded-full bg-[#d49a2f]/15 px-2.5 py-1 text-xs font-bold text-[#f6cf69]`,children:e.settings.academicYear})]}),(0,q.jsxs)(`div`,{className:`relative mt-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(By,{className:`absolute right-3 top-3 size-4 text-white/45`}),(0,q.jsx)(fA,{value:ce,onChange:e=>V(e.target.value),placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),(0,q.jsx)(UA,{className:`min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:#5b8094_transparent] [scrollbar-width:thin]`,children:[`الرئيسية`,`التحليلات`,`القياس`,`الإدارة`].map(e=>{let t=Q9.filter(t=>t.group===e&&(!ce||ij(t.label).includes(ij(ce))));return t.length?(0,q.jsx)(Mde,{group:e,items:t,page:o,critical:be.critical,forceOpen:!!ce,onSelect:e=>{if((i||SR63.formDirty)&&!window.confirm(`توجد تعديلات لم تعتمدها. مغادرة الصفحة وإلغاء هذه التعديلات؟`))return;a(false);SR63.formDirty=false;s(e);E(`الكل`)}},`${e}-${ce?`search`:`normal`}`):null})}),(0,q.jsx)(HA,{className:`border-t border-white/10 bg-black/10 p-3`,children:(0,q.jsxs)(`div`,{className:`rounded-2xl border border-white/10 bg-white/[.06] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsxs)(`span`,{className:`flex items-center gap-2 text-xs font-bold text-emerald-300`,children:[(0,q.jsx)(py,{className:`size-4`}),c]}),(0,q.jsxs)(`div`,{className:`mt-2 flex items-center justify-between text-[11px] text-white/45`,children:[(0,q.jsx)(`span`,{children:`آخر نقاط الاستعادة`}),(0,q.jsxs)(`b`,{children:[le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`]})]}),(0,q.jsxs)(`button`,{onClick:Oe,className:`mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white`,children:[(0,q.jsx)(_y,{className:`size-4`}),`تنزيل نسخة احتياطية`]}),(0,q.jsx)(`small`,{className:`mt-3 block text-center text-white/35`,children:`الإصدار 6.10.66 — نسخة مستقرة`})]})})]}),(0,q.jsxs)(BA,{className:`min-w-0 bg-[#f6f8f7]`,children:[(0,q.jsxs)(`header`,{className:`sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6`,children:[(0,q.jsx)(zA,{}),(0,q.jsx)(`span`,{className:`hidden truncate text-sm font-bold text-slate-700 sm:inline`,children:Q9.find(e=>e.id===o)?.label}),(0,q.jsxs)(`div`,{className:`mr-auto flex min-w-0 items-center gap-2`,children:[(0,q.jsx)(g9,{className:`max-w-40 sm:max-w-none`,value:e.activeExam,onChange:e=>t(t=>({...t,activeExam:e})),items:e.settings.exams.map(e=>({value:e.key,label:e.name}))}),(0,q.jsx)(dA,{variant:`ghost`,size:`icon`,title:`ملء الشاشة`,onClick:()=>void SR63.fullscreen(),children:(0,q.jsx)(Sy,{})}),(0,q.jsxs)(dA,{size:`sm`,onClick:()=>s(`import`),className:`hidden bg-teal-700 sm:flex`,children:[(0,q.jsx)(Ky,{}),`استيراد`]})]})]}),g&&(0,q.jsxs)(`div`,{className:`sticky top-16 z-20 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6`,children:[(0,q.jsx)(`b`,{children:`يوجد تعارض في الحفظ بين النوافذ.`}),(0,q.jsx)(`span`,{children:`حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.`}),(0,q.jsx)(dA,{size:`sm`,variant:`outline`,className:`mr-auto`,onClick:()=>void Ne(),children:`تحميل أحدث نسخة سحابية`}),(0,q.jsx)(dA,{size:`sm`,className:`bg-amber-700`,onClick:()=>void Pe(),children:`اعتماد نسخة هذه النافذة`})]}),(0,q.jsx)(`main`,{className:`mx-auto w-full max-w-[1700px] flex-1 p-4 sm:p-6 lg:p-8`,children:rt})]}),(0,q.jsx)(ab,{position:`top-center`,richColors:!0})]})}var $9=document.getElementById(`root`);if(!$9)throw Error(`تعذر تشغيل واجهة البرنامج`);(0,y.createRoot)($9).render((0,q.jsx)(v.StrictMode,{children:(0,q.jsx)(SR63.CloudApp,{})}));
