@@ -143,7 +143,7 @@ Deno.serve(async(req:Request)=>{
    .select('workspace,revision').eq('owner_id',ownerId).maybeSingle();
   if(readError||!original)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
   if(Number(original.revision)!==expected)return reply({error:'CLOUD_CONFLICT'},409,origin);
-  const ws=original.workspace||{},official=departmentRows(ws,profile.departments).filter((r:any)=>skillKind(r.subject)===kind);
+  const ws=original.workspace||{},official=(Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>skillKind(r.subject)===kind);
   const roster=new Map<string,any>();
   for(const row of official){
    const klass=skillClass(row.examClasses?.[a.exam]||row.className),id=String(row.studentId||'').trim();
