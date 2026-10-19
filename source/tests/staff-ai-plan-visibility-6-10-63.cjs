@@ -13,7 +13,7 @@ assert.match(staff,/plans:false,savePlans:false/,'default coordinator plan permi
 assert.match(staff,/permissions:form\.role==='admin'\?form\.permissions:\{[^}]*plans:false,savePlans:false,generateAI:false/,'new staff cannot receive smart-plan permissions');
 assert.match(staff,/targetRole==='admin'\?\{\}:\{permissions:\{[^}]*plans:false,savePlans:false,generateAI:false/,'legacy permission flags cleared when staff accounts edited');
 assert.match(staff,/SR63\.TeacherPerformanceCenter/,'ordinary improvement reports preserved');
-assert.match(staff,/h\(xde,\{key:'original-report-center'/,'original print center preserved');
+assert.ok(staff.includes("h(xde,{key:'original-report-center-"),'original print center preserved');
 assert.match(ui,/fixedSubject=departmentSubjects\[0\]\|\|''/,'coordinator subject remains fixed');
 assert.match(adminBuild,/id:\x60aiPlans\x60/,'full admin AI planning module preserved');
 const walk=(node,fn)=>{if(Array.isArray(node))return node.forEach(x=>walk(x,fn));if(!node||typeof node!=='object')return;fn(node);walk(node.props?.children,fn)};
