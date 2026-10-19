@@ -48,7 +48,9 @@ const word=S.schoolQuantitativeWordBuild(analyzed,{recommendations:'توصيات
 assert.ok(word.bytes.length>20000&&word.filename.endsWith('.docx'));
 fs.writeFileSync(path.join(root,'qa_6_10_40','school-wide-test.docx'),Buffer.from(word.bytes));
 const portal=fs.readFileSync(path.join(root,'source/src/staff.js'),'utf8');
-for(const x of ["!isLeadership&&!!perms.plans","page==='plans'&&!isLeadership","SR63.SchoolQuantitativePage","staffPrint('levels'","staffPrint('failed'","staffPrint('teachers'","staffPrint('comparison'"])assert.ok(portal.includes(x),'missing permission/print: '+x);
+for(const x of ["SR63.SchoolQuantitativePage","staffPrint('levels'","staffPrint('failed'","staffPrint('teachers'","staffPrint('comparison'"])assert.ok(portal.includes(x),'missing permission/print: '+x);
+assert.ok(!portal.includes("SR63.AIPlans"),'Coordinator and leadership accounts no longer show smart plans');
+assert.ok(!portal.includes("page==='plans'"),'Staff cannot navigate to the retired AI plans page');
 const printer=fs.readFileSync(path.join(root,'source/src/staff-report-export.js'),'utf8');
 assert.ok(printer.includes('win.document.write(SR63.staffReportDocument'));
 assert.ok(!printer.includes("rel=\"stylesheet\""),'print must not load the application print styles');
