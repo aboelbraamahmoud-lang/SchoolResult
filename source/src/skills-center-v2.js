@@ -273,7 +273,7 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
    h('h3',{},'تحليل إتقان المهارات'),h('div',{className:'srskill-chart-grid'},summary.skills.map(s=>
     h('div',{key:s.key,className:'srskill-chart-item'},h('div',{},h('strong',{},s.label),h('span',{},fmt(s.rate)+'%')),
      h('div',{className:'srskill-chart-track'},h('div',{className:'srskill-chart-bar',style:{width:Math.min(100,Math.max(0,s.rate||0))+'%'}})),
-     h('small',{},'المرصود: '+s.observed+' · المتعثرون: '+(s.mastered===null?'—':s.observed-s.mastered))))):null,
+     h('small',{},'المرصود: '+s.observed+' · المتعثرون: '+(s.mastered===null?'—':s.observed-s.mastered)))))):null,
   active?h('section',{className:'srskill-editor'},
    h('h3',{},'مركز تقارير تحليل المهارات'),
    h('div',{className:'srskill-controls'},
