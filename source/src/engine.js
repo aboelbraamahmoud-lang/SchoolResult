@@ -156,6 +156,41 @@ SR63.validate = function(raw) {
       }
     }
   }
+  // The school stores these records in its existing protected JSONB workspace.
+  must(raw.skillsAssessments===undefined||Array.isArray(raw.skillsAssessments)&&raw.skillsAssessments.length<=32,'قائمة اختبارات المهارات غير صالحة.');
+  const assessmentIds=new Set();
+  for(const a of raw.skillsAssessments??[]){
+    must(a&&a.version===1&&typeof a.id==='string'&&a.id.length<=150&&!assessmentIds.has(a.id)&&
+      typeof a.subject==='string'&&a.subject.length<=100&&XA.includes(a.exam)&&
+      Array.isArray(a.skills)&&a.skills.length>=1&&a.skills.length<=12&&
+      Array.isArray(a.records)&&a.records.length<=5000,'بيانات اختبار المهارات غير صالحة.');
+    assessmentIds.add(a.id);
+    const skillIds=new Set();
+    for(const skill of a.skills){
+      must(skill&&typeof skill.key==='string'&&skill.key.length<=50&&!skillIds.has(skill.key)&&
+       typeof skill.label==='string'&&skill.label.length<=85&&
+       (skill.max===null||skill.max===undefined||Number.isFinite(skill.max)&&skill.max>0&&skill.max<=999),
+       'إحدى المهارات أو درجتها القصوى غير صالحة.');
+      skillIds.add(skill.key);
+    }
+    const studentIds=new Set();
+    for(const record of a.records){
+      must(record&&typeof record.id==='string'&&record.id.length<=40&&
+       typeof record.name==='string'&&record.name.length<=150&&
+       typeof record.className==='string'&&record.className.length<=25&&
+       record.marks&&typeof record.marks==='object'&&!Array.isArray(record.marks),
+       'أحد طلاب المهارات لا يحتوي بيانات صحيحة.');
+      const id=record.id+'|'+record.className;
+      must(!studentIds.has(id),'طالب مكرر في اختبار المهارات.');studentIds.add(id);
+      for(const [key,value] of Object.entries(record.marks)){
+       must(skillIds.has(key)&&(value===null||Number.isFinite(value)&&value>=0&&value<=999),
+        'درجة مهارة غير صحيحة.');
+       const max=a.skills.find(skill=>skill.key===key)?.max;
+       must(value===null||max===null||max===undefined||value<=max,
+        'درجة مهارة تتجاوز درجتها القصوى.');
+      }
+    }
+  }
   must(raw.aiPlans===undefined||Array.isArray(raw.aiPlans)&&raw.aiPlans.length<=300,'قائمة الخطط العلاجية غير صالحة أو كبيرة جدًا.');
   if(raw.aiPlanSettings!==undefined)must(raw.aiPlanSettings&&typeof raw.aiPlanSettings==='object'&&!Array.isArray(raw.aiPlanSettings),'إعدادات الخطط العلاجية غير صالحة.');
   for(const plan of raw.aiPlans??[]){

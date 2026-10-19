@@ -63,6 +63,9 @@ assert.equal(checked.workspace.skillsAssessments.length,1,'cloud JSONB workspace
 assert.equal(checked.workspace.skillsAssessments[0].records.length,3);
 const bad=structuredClone(updated);bad.skillsAssessments[0].records[0].marks.reading=11;
 assert.throws(()=>ctx.SR63.validate(bad),/تتجاوز/,'impossible skill scores rejected before cloud save');
+const printer=fs.readFileSync(path.join(__dirname,'../src/report-print-batch.js'),'utf8');
+assert.match(printer,/\.srskill-table/,'skill sheet rows use the shared physical A4 planner');
+assert.match(printer,/\.srskill-footer/,'skill report signatures participate in page fitting');
 const staff=fs.readFileSync(path.join(__dirname,'../src/staff.js'),'utf8');
 const edge=fs.readFileSync(path.join(__dirname,'../../supabase/functions/school-staff/index.ts'),'utf8');
 const build=fs.readFileSync(path.join(__dirname,'../build.cjs'),'utf8');
