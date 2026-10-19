@@ -1519,3 +1519,37 @@
 .sr633-preview-wrap .sr633-results thead th:first-child{background:var(--sr-behavior-gold)!important;color:var(--sr-behavior-white)!important}
 .sr633-preview-wrap .sr633-results tbody th{background:#f8fbfd;color:#27485d!important}
 @media print{.sr632-preview-sheet thead th,.sr633-preview-wrap .sr633-results thead th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+
+
+/* 6.10.64 Arabic skills analysis: one layout for preview, print and PDF. */
+.srskill-center{display:flex;flex-direction:column;gap:18px;direction:rtl;max-width:100%;padding:12px 4px 30px;color:#173c4b}
+.srskill-toolbar{border-radius:16px;background:linear-gradient(120deg,#123e50,#108d85);padding:18px 22px;color:white}
+.srskill-toolbar h2{font-size:23px;font-weight:800;margin:0 0 6px}.srskill-toolbar p{margin:0;color:#e4f3f1}
+.srskill-controls,.srskill-limits,.srskill-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:14px;border:1px solid #d1e0e3;background:white;border-radius:12px}
+.srskill-controls label,.srskill-limits label{display:flex;flex-direction:column;gap:6px;min-width:180px;font-size:13px;font-weight:700}
+.srskill-controls select,.srskill-controls input,.srskill-limits input{background:#fff;border:1px solid #b5ccd2;border-radius:8px;padding:9px;max-width:270px;color:#123a49}
+.srskill-actions button,.srskill-limits button,.srskill-preview-navigation button{border:0;border-radius:9px;background:#0f706e;color:white;padding:10px 14px;font-weight:700;cursor:pointer}
+.srskill-actions button:disabled,.srskill-preview-navigation button:disabled{opacity:.45;cursor:not-allowed}
+.srskill-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px}
+.srskill-metrics>div{background:#fff;border:1px solid #d1e0e3;border-radius:10px;padding:11px;display:flex;flex-direction:column;gap:4px}
+.srskill-metrics span{font-size:12px;color:#53707a}.srskill-metrics strong{font-size:22px;color:#0d5f62}
+.srskill-status{border:1px solid #b4d0d4;border-radius:10px;padding:10px 15px;background:#ebf8f7}
+.srskill-empty{border:1px dashed #8fb4bc;border-radius:14px;padding:24px;background:#fff;text-align:center}
+.srskill-preview{background:#e5eef0;border:1px solid #d2e1e4;border-radius:16px;padding:18px;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:20px}
+.srskill-preview-navigation{width:100%;display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap}
+.skill-report-page{box-sizing:border-box!important;width:297mm!important;min-width:297mm!important;max-width:297mm!important; height:210mm!important;min-height:210mm!important;max-height:210mm!important;display:flex!important;flex-direction:column!important;direction:rtl!important;padding:9mm 9mm 8mm!important;overflow:hidden!important;background:white!important;font-family:Arial,Tahoma,sans-serif!important;color:#17333f!important;font-size:10px!important;box-shadow:0 12px 32px #16374729}
+.srskill-header{display:flex;align-items:center;gap:12mm;padding:2mm 4mm;border:1px solid #d2e4e6;background:#f6fafb;border-radius:5px;min-height:18mm;flex-shrink:0}
+.srskill-header img{width:23mm;height:18mm;object-fit:contain}.srskill-header div{flex:1;text-align:right}
+.srskill-header strong{font-size:11px}.srskill-header h2{font-size:17px;color:#087f7e;margin:3px 0}.srskill-header p{margin:0;font-size:10px}
+.srskill-body{flex:0 1 auto;margin-top:4mm;min-height:0}.srskill-body h3{font-size:13px;text-align:center;color:#153e50;margin:0 0 3mm}
+.srskill-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.6px;direction:rtl}
+.srskill-table th,.srskill-table td{border:1px solid #94afb7;padding:5px 3px;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.srskill-table thead th{background:#123e50;color:white;font-weight:700}
+.srskill-table tbody tr:nth-child(even){background:#f1f7f8}
+.srskill-table tbody td:nth-child(2){text-align:right;font-weight:700}
+.srskill-table .srskill-max th{background:#c8e9e6;color:#173b46}
+.srskill-table .srskill-total{background:#ddede8!important;font-weight:800}
+.srskill-note{font-size:9px;color:#5a6f77;line-height:1.5;margin:2mm 0 0;flex-shrink:0}
+.srskill-footer{display:flex;justify-content:space-between;gap:6mm;margin-top:auto!important;padding:2mm 0;border-top:1px solid #839da8;font-size:9px;font-weight:700;flex-shrink:0}
+.srskill-page-number{text-align:center;font-size:9px;color:#42606d;flex-shrink:0}
+@media(max-width:650px){.srskill-center{padding:6px 0}.srskill-controls label{min-width:140px}.srskill-preview{padding:8px}}
