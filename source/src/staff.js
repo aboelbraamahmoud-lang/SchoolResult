@@ -298,6 +298,7 @@ SR63.CoordinatorPortal=function({profile}){
      h('p',{},isLeadership?'هذه هي نفس شاشة مركز التقارير والطباعة ونفس النماذج والبيانات والتصميم الموجودة بحساب الأدمن. يمكن للمدير والنائب الاطلاع عليها وتجهيز المعاينة وطباعتها، دون تعديل نتائج الطلاب أو إعدادات التقارير.':'نفس تقارير المدير والنائب بنفس القوالب والمعاينة والطباعة وPDF وZIP، ومربع المادة ثابت على مادة قسمك، ولا يمكن اختيار «كل المواد» أو التبديل بينها. البيانات محدودة من الخادم بأقسامك المصرح بها ('+(profile.departments||[]).join('، ')+') فقط، دون عرض نتائج الأقسام الأخرى أو تعديلها.'),
      !perms.export?h('p',{className:'srstaff-alert',role:'alert'},'العرض متاح، لكن الطباعة غير مفعلة لهذا الحساب. اطلب من مسؤول النظام تفعيل صلاحية «تصدير Word والتقارير».'):null
     ]),
+    h(SR63.YearComparisonCenter,{workspace:active,canPrint:!!perms.export}),
     h(SR63.getReportCenterSafeBoundary(),{key:'report-safe-'+profile.role+'-'+payload?.revision+'-'+exam,onReset:()=>setPage('dashboard')},h(xde,{key:'original-report-center-'+profile.role+'-'+payload?.revision+'-'+exam,workspace:active,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage(isLeadership?'overview':'dashboard'),reportScope:isLeadership?'school':'department'}))
    ]):null,
    
