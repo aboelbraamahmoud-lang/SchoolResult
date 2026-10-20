@@ -1579,3 +1579,30 @@
 .srskill-v2 .srskill-bar div{height:100%;background:linear-gradient(90deg,#118a82,#ddae55);border-radius:12px}
 .srskill-v2 .srskill-preview{max-width:100%}
 @media(max-width:650px){.srskill-v2 .srskill-panel{padding:10px}.srskill-v2 .srskill-skill-grid,.srskill-v2 .srskill-graphs{grid-template-columns:1fr}.srskill-v2 .srskill-field{min-width:125px}}
+
+/* 6.10.68 — cross-year exam comparison, native RTL and print-ready metrics */
+.sr67-year-center{border:1px solid #c9d9dd;background:#fff;border-radius:16px;overflow:hidden;padding:18px;margin:0 0 20px;box-shadow:0 8px 23px #0a46510c;color:#17384a}
+.sr67-year-header{border-bottom:1px solid #e1ebed;padding-bottom:13px;margin-bottom:14px}
+.sr67-eyebrow{display:inline-block;font-weight:800;font-size:12px;color:#0b8379;background:#e8f6f2;border-radius:20px;padding:4px 12px}
+.sr67-year-header h2{font-size:20px;font-weight:900;color:#143f50;margin:8px 0}
+.sr67-year-header p,.sr67-year-method,.sr67-year-note{font-size:13px;color:#516e76;line-height:1.9}
+.sr67-year-controls{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin:14px 0}
+.sr67-year-controls label{min-width:185px;display:grid;gap:4px;font-size:12px;font-weight:800}
+.sr67-year-controls select{border:1px solid #c0d0d5;border-radius:8px;background:#fff;color:#214658;padding:9px;min-height:39px}
+.sr67-year-controls button{background:#0b7775;border:0;border-radius:9px;color:#fff;font-size:13px;font-weight:800;min-height:39px;padding:9px 14px;cursor:pointer}
+.sr67-year-controls button:disabled{opacity:.5;cursor:not-allowed}
+.sr67-year-alert{padding:13px 15px;color:#944919;background:#fff3e4;border:1px solid #e4bd82;border-radius:10px;line-height:1.8}
+.sr67-year-status{padding:12px;color:#326c7e}
+.sr67-year-note{background:#f0f7f8;border-radius:8px;padding:8px 11px}
+.sr67-year-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.sr67-metric{border:1px solid #d0e2e2;background:#f8fbfb;border-top:4px solid #0b877e;border-radius:10px;padding:12px;min-width:0}
+.sr67-metric span,.sr67-metric strong,.sr67-metric small{display:block}
+.sr67-metric span{font-size:12px;font-weight:700;color:#50666f}
+.sr67-metric strong{font-size:23px;font-weight:900;margin:8px 0;color:#194450}
+.sr67-metric small{font-size:12px;color:#50646d;line-height:1.6}
+.sr67-year-scroll{overflow-x:auto;border:1px solid #dbe6e8;border-radius:9px}
+.sr67-year-table{border-collapse:collapse;min-width:1000px;width:100%;font-size:12px;text-align:right}
+.sr67-year-table th,.sr67-year-table td{padding:10px 8px;text-align:right;border-bottom:1px solid #e1e8eb;white-space:normal}
+.sr67-year-table thead th{background:#e7f3f3;color:#184859;font-weight:800}
+.sr67-year-table tbody tr:nth-child(odd){background:#fbfcfd}
+@media(max-width:700px){.sr67-year-metrics{grid-template-columns:1fr}.sr67-year-center{padding:11px}.sr67-year-controls label{flex:1 1 150px}}
