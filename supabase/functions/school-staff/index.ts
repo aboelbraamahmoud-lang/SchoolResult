@@ -1,5 +1,6 @@
 /** SchoolResult staff authentication, account management and server-scoped coordinator read, 6.10.26. */
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
+import { yearExamCompare, yearExamDataset, previousAcademicYear } from './year-over-year.ts';
 const reply=(body:unknown,status=200,origin='*')=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Vary':'Origin'}});
 const normalize=(v:unknown)=>String(v??'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
 const safeUsername=(s:string)=>s.length>=3&&s.length<=42&&/^[\p{L}\p{N}_. \-]+$/u.test(s);
@@ -119,6 +120,39 @@ Deno.serve(async(req:Request)=>{
   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
   if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
+ }
+ if(action==='year_comparison'){
+  // Authenticated report-only endpoint. Returns only per-grade and school aggregates, not old-year pupils.
+  if(!(['owner','admin'].includes(role)||readRoles.includes(role))||
+     (readRoles.includes(role)&&profile.permissions.reports!==true))
+   return reply({error:'PERMISSION_DENIED'},403,origin);
+  const exam=String(body.exam||'');
+  if(!/^exam[1-4]$/.test(exam))return reply({error:'INVALID_EXAM'},400,origin);
+  const {data:school,error:schoolError}=await admin.from('school_workspaces')
+   .select('workspace').eq('owner_id',ownerId).maybeSingle();
+  if(schoolError||!school?.workspace)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
+  const ws=school.workspace,previousYear=previousAcademicYear(ws.settings?.academicYear);
+  if(!previousYear)return reply({error:'INVALID_YEAR'},400,origin);
+  const {data:candidates,error:archiveError}=await admin.from('school_archives')
+   .select('id,year,at,reason,pinned,workspace').eq('owner_id',ownerId)
+   .eq('year',previousYear).is('deleted_at',null)
+   .order('pinned',{ascending:false}).order('at',{ascending:false}).limit(20);
+  if(archiveError)return reply({error:'YEAR_ARCHIVE_READ_FAILED'},503,origin);
+  if(!candidates?.length)return reply({error:'YEAR_ARCHIVE_NOT_FOUND',previousYear},404,origin);
+  const selected=candidates.find((x:any)=>(x.workspace?.settings?.exams||[]).some((e:any)=>e.key===exam)&&
+    (x.workspace?.rows||[]).some((r:any)=>r.statuses?.[exam]==='present'))||
+    candidates.find((x:any)=>Array.isArray(x.workspace?.rows)&&x.workspace.rows.length)||
+    candidates[0];
+  const departments=role==='coordinator'?[...(profile.departments||[]),...indexSubjects(ws,profile.departments||[])]:null;
+  try{
+   const report=yearExamCompare(ws,selected.workspace,exam,departments);
+   return reply({report:{...report,archiveAt:selected.at,archivePinned:selected.pinned===true,
+     archiveLabel:selected.pinned===true?'الأرشيف السنوي المعتمد':'آخر أرشيف متاح للعام السابق'}},200,origin);
+  }catch(error){
+   const message=String((error as Error)?.message||'YEAR_COMPARISON_FAILED');
+   const known=['INVALID_EXAM','INVALID_YEAR','ARCHIVE_YEAR_MISMATCH','EXAM_NOT_AVAILABLE_IN_BOTH_YEARS'];
+   return reply({error:known.includes(message)?message:'YEAR_COMPARISON_FAILED'},known.includes(message)?400:503,origin);
+  }
  }
  if(action==='save_skills'){
   // Only coordinators may update skill analysis for their assigned subject.
