@@ -34,8 +34,9 @@ SR63.reportDisplaySubject=function(page,exam){
 };
 SR63.normalizeReportPage=function(page,mode,exam,workspace){
   if(!page||mode==='subjects')return page;
-  const scoped=SR63.reportScopeRows(page.rows??[],{scope:page.scope,entity:page.entity,teacher:page.teacher,className:page.className,grade:page.grade,subject:page.subject,department:page.department,exam});
-  const allScoped=SR63.reportScopeRows(page.allRows??page.rows??[],{scope:page.scope,entity:page.entity,teacher:page.teacher,className:page.className,grade:page.grade,subject:page.subject,department:page.department,exam});
+  // A class report's teacher label can list several teachers; it is display metadata, not a teacher filter.
+  const scoped=SR63.reportScopeRows(page.rows??[],{scope:page.scope,entity:page.entity,teacher:page.scope==='teacher'?(page.teacher||page.entity):'',className:page.className,grade:page.grade,subject:page.subject,department:page.department,exam});
+  const allScoped=SR63.reportScopeRows(page.allRows??page.rows??[],{scope:page.scope,entity:page.entity,teacher:page.scope==='teacher'?(page.teacher||page.entity):'',className:page.className,grade:page.grade,subject:page.subject,department:page.department,exam});
   const normalized={...page,rows:scoped,allRows:allScoped};
   if(mode!=='subjects')normalized.subject=SR63.reportDisplaySubject(normalized,exam);
   if(normalized.scope==='teacher'&&!normalized.teacher)normalized.teacher=normalized.entity||'';
@@ -45,7 +46,7 @@ SR63.reportScopeAudit=function(page,mode,exam){
   const scoped=SR63.normalizeReportPage(page,mode,exam,SR63.currentWorkspace);
   if(!scoped)return {ok:false,reason:'missing-page'};
   if(mode==='subjects')return {ok:true,count:scoped.rows?.length??0};
-  const rows=scoped.rows??[],key=page.scope,expected=page.teacher||page.className||page.grade||page.entity||'';
+  const rows=scoped.rows??[],key=page.scope,expected=(key==='teacher'?page.teacher:key==='className'?page.className:key==='grade'?page.grade:key==='department'?page.department:key==='subject'?page.subject:'')||page.entity||'';
   const leaks=expected&&key?rows.filter(row=>ij(SR63.reportScopeValue(row,key,exam))!==ij(expected)):[];
   const subjects=[...new Set(rows.map(row=>row.subject).filter(Boolean))];
   return {ok:leaks.length===0&&subjects.length<=1,count:rows.length,leaks:leaks.length,subjects,scope:key,expected};

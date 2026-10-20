@@ -1,0 +1,41 @@
+name: Reports browser and download audit
+on:
+  pull_request:
+    branches: [main]
+    paths: ['source/**', '.github/workflows/report-browser-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: reports-browser-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  chromium:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install and build project
+        run: npm --prefix source ci --no-audit --no-fund && npm run build
+      - name: Install pinned browser tools
+        run: |
+          npm install --prefix /tmp/sr-browser-audit --no-package-lock --no-audit --no-fund playwright@1.64.1
+          node /tmp/sr-browser-audit/node_modules/playwright/cli.js install --with-deps chromium
+          sudo apt-get install -y poppler-utils fonts-noto-core
+      - name: Exercise real preview, print, PDF and ZIP controls
+        env:
+          NODE_PATH: /tmp/sr-browser-audit/node_modules:${{ github.workspace }}/source/node_modules
+        run: node --expose-internals source/tests/browser-print-audit.cjs
+      - name: Retain synthetic print and download evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: schoolresult-report-audit-${{ github.sha }}
+          path: audit-artifacts/
+          if-no-files-found: warn
+          retention-days: 14
