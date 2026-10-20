@@ -105,7 +105,7 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
    h('table',{className:'sr67-year-table'},
     h('thead',{},h('tr',{},tableHead.map(x=>h('th',{key:x},x)))),
     h('tbody',{},(grade==='الكل'?[{...r.school,label:'المدرسة بالكامل'},...grades]:grades.filter(x=>x.grade===grade))
-     .map((row,i)=>h('tr',{key:row.grade||'school'},rowData(row).map((x,j)=>h(j===0?'th':'td',{key:j},String(x))))))):null,
+     .map((row,i)=>h('tr',{key:row.grade||'school'},rowData(row).map((x,j)=>h(j===0?'th':'td',{key:j},String(x)))))))):null,
   r?h('p',{className:'sr67-year-method'},'المقارنة بين دفعتين دراسيتين، وليست مقارنة فردية للطلاب. '+
    'تُحسب نسب النجاح والتحصيل من النتائج الحاضرة ذات الدرجة الصحيحة، ويفصل التقرير بين عدد النتائج وعدد الطلاب. '+
    'إذا لم تتوافر نتائج في أحد العامين لا تُعرض فروق مضللة ولا تُتاح الطباعة.'):null
