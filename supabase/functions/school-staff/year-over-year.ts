@@ -16,7 +16,7 @@ const labelGrade=(value:unknown)=>{
  if(/السابع|سابع/.test(text))return '7';
  if(/الثامن|ثامن/.test(text))return '8';
  if(/التاسع|تاسع/.test(text))return '9';
- const m=text.match(/(?:^|[^\d])(1[0-2]|[1-9])(?=\s*[/\\-]|\s|$)/);
+ const m=text.match(/(?:^|[^\d])(1[0-2]|[1-9])(?=\s*(?:\/|-)|\s|$)/);
  return m?String(Number(m[1])):'';
 };
 const support=(r:any,exam:string)=>/^[789]\/ESE$/i.test(String(r.examClasses?.[exam]||r.className||'').trim().replace(/^0([789])\//,'$1/'));
