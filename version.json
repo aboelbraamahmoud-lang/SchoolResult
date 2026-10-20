@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.66",
-  "released": "2026-10-19",
+  "version": "6.10.67",
+  "released": "2026-10-20",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إضافة تحليل مهارات العربية والإنجليزية: رصد وتعديل مهارات الطلاب وتقارير المتعثرين والمقارنات وتنبيه عدم تطابق مجموع المهارات مع الدرجة الرسمية. يتطلب حفظ المنسق نشر وظيفة school-staff الخاصة بالحزمة على مشروع Supabase الأصلي. جميع التقارير والأدوار السابقة محفوظة."
+  "notes": "إصلاح تقسيم تقرير مقارنة الاختبارين إلى صفحات A4 دون قص صفوف الطلاب، مع التحقق من توافق الطباعة وPDF وZIP والمراجعة السابقة للتقارير والصلاحيات. إضافة تحليل مهارات العربية والإنجليزية محفوظة دون تغيير."
 }
