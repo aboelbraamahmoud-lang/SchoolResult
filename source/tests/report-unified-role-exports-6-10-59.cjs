@@ -3,12 +3,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const src=path.resolve(__dirname,'../src');
 const read=p=>fs.readFileSync(path.join(src,p),'utf8');
 const ui=read('patches/ui.js'),roles=read('staff.js'),pdf=read('report-download-pdf.js'),printer=read('report-print-batch.js');
-assert.equal((ui.match(/root\.render\(renderReportPage\(/g)||[]).length,1,'all export modes must capture one shared React page renderer');
+assert.equal((ui.match(/root\.render\(v\.cloneElement\(renderReportPage\(/g)||[]).length,1,'all export modes must capture one shared React page renderer');
 assert.match(ui,/visible\.map\(\(t,r\)=>renderReportPage/,'onscreen preview still uses original React template');
 assert.match(ui,/renderReportHTML\(D,isLandscape/,'normal printing covers all selected pages, not only the current preview batch');
 assert.match(ui,/renderReportHTML\(exportPages,isLandscape/,'vector PDF prints the same HTML and same selected page count');
 assert.match(ui,/renderReportHTML\(group\.pages,isLandscape/,'raster PDF and ZIP use exactly the same page capture function');
-assert.match(ui,/root\.render\(renderReportPage\(page,pageOffset\+pIndex\+1,pageTotal\)\)/,'absolute page numbers match even in per-group ZIP');
+assert.match(ui,/root\.render\(v\.cloneElement\(renderReportPage\(page,pageOffset\+pIndex\+1,pageTotal\),/,'absolute page numbers match even in per-group ZIP');
 assert.match(ui,/capture\?await capture\(node,page,pIndex\):node\.outerHTML/,'one DOM, two serialization formats');
 assert.match(ui,/processed\!==exportPages\.length\|\|outputs\.length\!==groups\.length/,'never silently omit pages from PDF or ZIP');
 assert.match(ui,/if\(images\.length\!==group\.pages\.length\)/,'verify each grouped PDF includes every selected page');

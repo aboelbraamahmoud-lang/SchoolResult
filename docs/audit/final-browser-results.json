@@ -1,0 +1,1079 @@
+{
+  "sourceCommit": "62bc390cc78c1960cfc0abe8f89dbd02594f7395",
+  "run": 39565568015,
+  "authentication": "synthetic boundary only",
+  "results": [
+    {
+      "case": "student-statement",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "student-statement-native.pdf",
+          "bytes": 463881,
+          "pages": 3,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "arabic-school",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-school-native.pdf",
+          "bytes": 412916,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-school-download.pdf",
+          "bytes": 471459,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "arabic-summary",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-summary-native.pdf",
+          "bytes": 429983,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-summary-download.pdf",
+          "bytes": 547461,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "arabic-students",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-students-native.pdf",
+          "bytes": 434380,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-students-download.pdf",
+          "bytes": 1901705,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ],
+      "csv": {
+        "rows": 28,
+        "file": "arabic-students.csv"
+      }
+    },
+    {
+      "case": "arabic-weak",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-weak-native.pdf",
+          "bytes": 409252,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-weak-download.pdf",
+          "bytes": 838854,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "arabic-ranking",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-ranking-native.pdf",
+          "bytes": 400798,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-ranking-download.pdf",
+          "bytes": 464986,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "arabic-audit",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-audit-native.pdf",
+          "bytes": 409110,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-audit-download.pdf",
+          "bytes": 1896646,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "arabic-comparison",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "arabic-comparison-native.pdf",
+          "bytes": 404671,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "arabic-comparison-download.pdf",
+          "bytes": 1684107,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "english-school",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-school-native.pdf",
+          "bytes": 412683,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-school-download.pdf",
+          "bytes": 474623,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "english-summary",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-summary-native.pdf",
+          "bytes": 433547,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-summary-download.pdf",
+          "bytes": 550904,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "english-students",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-students-native.pdf",
+          "bytes": 435159,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-students-download.pdf",
+          "bytes": 1908354,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ],
+      "csv": {
+        "rows": 28,
+        "file": "english-students.csv"
+      }
+    },
+    {
+      "case": "english-weak",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-weak-native.pdf",
+          "bytes": 407148,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-weak-download.pdf",
+          "bytes": 809751,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "english-ranking",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-ranking-native.pdf",
+          "bytes": 396552,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-ranking-download.pdf",
+          "bytes": 468082,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "english-audit",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-audit-native.pdf",
+          "bytes": 413067,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-audit-download.pdf",
+          "bytes": 1900017,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "english-comparison",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "downloads": [
+        {
+          "file": "english-comparison-native.pdf",
+          "bytes": 401679,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "english-comparison-download.pdf",
+          "bytes": 1669678,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true
+        }
+      ],
+      "images": [
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        },
+        {
+          "complete": true,
+          "width": 2048,
+          "display": "block"
+        }
+      ]
+    },
+    {
+      "case": "owner-comparison-10-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 10,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-10-1-native.pdf",
+          "bytes": 890640,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-10-1-download.pdf",
+          "bytes": 1692866,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-comparison-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-18-1-native.pdf",
+          "bytes": 1280872,
+          "pages": 2,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-18-1-download.pdf",
+          "bytes": 3368385,
+          "pages": 2,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ],
+      "zip": {
+        "file": "owner-comparison-18-1.zip",
+        "entries": [
+          {
+            "file": "owner-comparison-18-1-entry-0.pdf",
+            "bytes": 3367524,
+            "pages": 2,
+            "orientation": "portrait",
+            "selectableText": false,
+            "allPagesRendered": true
+          }
+        ],
+        "names": [
+          "مقارنة اختبارين - الصف 7-1 - الاختبار الأول - الاختبار الرابع.pdf"
+        ],
+        "crc": "PASS"
+      }
+    },
+    {
+      "case": "owner-comparison-28-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 28,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-28-1-native.pdf",
+          "bytes": 1674060,
+          "pages": 3,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-28-1-download.pdf",
+          "bytes": 5079288,
+          "pages": 3,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-comparison-40-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 40,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-40-1-native.pdf",
+          "bytes": 2097970,
+          "pages": 4,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-40-1-download.pdf",
+          "bytes": 6826326,
+          "pages": 4,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-comparison-80-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 80,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-80-1-native.pdf",
+          "bytes": 3699212,
+          "pages": 8,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-80-1-download.pdf",
+          "bytes": 13669855,
+          "pages": 8,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-comparison-90-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 90,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-90-1-native.pdf",
+          "bytes": 4112409,
+          "pages": 9,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-90-1-download.pdf",
+          "bytes": 15385294,
+          "pages": 9,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-summary-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "summary",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-summary-18-1-native.pdf",
+          "bytes": 639380,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-summary-18-1-download.pdf",
+          "bytes": 1373046,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "ملخص النتائج - الكل - الاختبار الرابع.pdf"
+        }
+      ],
+      "zip": {
+        "file": "owner-summary-18-1.zip",
+        "entries": [
+          {
+            "file": "owner-summary-18-1-entry-0.pdf",
+            "bytes": 1373046,
+            "pages": 1,
+            "orientation": "portrait",
+            "selectableText": false,
+            "allPagesRendered": true
+          }
+        ],
+        "names": [
+          "ملخص النتائج - الصف 7-1 - الاختبار الرابع.pdf"
+        ],
+        "crc": "PASS"
+      }
+    },
+    {
+      "case": "owner-levels-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "levels",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-levels-18-1-native.pdf",
+          "bytes": 822487,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-levels-18-1-download.pdf",
+          "bytes": 1692212,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "تحليل المستويات - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-struggling-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "struggling",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-struggling-18-1-native.pdf",
+          "bytes": 726804,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-struggling-18-1-download.pdf",
+          "bytes": 1413924,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "الطلاب ضمن نسبة - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-teachers-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "teachers",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-teachers-18-1-native.pdf",
+          "bytes": 552428,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-teachers-18-1-download.pdf",
+          "bytes": 1271900,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "متوسطات المعلمين - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-subjects-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "subjects",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-subjects-18-1-native.pdf",
+          "bytes": 631533,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-subjects-18-1-download.pdf",
+          "bytes": 2367773,
+          "pages": 2,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة المواد - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-departmentStats-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "departmentStats",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-departmentStats-18-1-native.pdf",
+          "bytes": 568207,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-departmentStats-18-1-download.pdf",
+          "bytes": 1134614,
+          "pages": 1,
+          "orientation": "landscape",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "تقرير المدرسة - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-executive-18-1",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "executive",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-executive-18-1-native.pdf",
+          "bytes": 653253,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-executive-18-1-download.pdf",
+          "bytes": 1347772,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "تقرير المدرسة - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "owner-comparison-40-2",
+      "role": "owner",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 40,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "owner-comparison-40-2-native.pdf",
+          "bytes": 2099560,
+          "pages": 4,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "owner-comparison-40-2-download.pdf",
+          "bytes": 6817874,
+          "pages": 4,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ],
+      "zip": {
+        "file": "owner-comparison-40-2.zip",
+        "entries": [
+          {
+            "file": "owner-comparison-40-2-entry-0.pdf",
+            "bytes": 3406042,
+            "pages": 2,
+            "orientation": "portrait",
+            "selectableText": false,
+            "allPagesRendered": true
+          },
+          {
+            "file": "owner-comparison-40-2-entry-1.pdf",
+            "bytes": 3412076,
+            "pages": 2,
+            "orientation": "portrait",
+            "selectableText": false,
+            "allPagesRendered": true
+          }
+        ],
+        "names": [
+          "مقارنة اختبارين - الصف 7-1 - الاختبار الأول - الاختبار الرابع.pdf",
+          "مقارنة اختبارين - الصف 7-2 - الاختبار الأول - الاختبار الرابع.pdf"
+        ],
+        "crc": "PASS"
+      }
+    },
+    {
+      "case": "coordinator-summary-18-1",
+      "role": "coordinator",
+      "authentication": "synthetic boundary only",
+      "mode": "summary",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "coordinator-summary-18-1-native.pdf",
+          "bytes": 637844,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "coordinator-summary-18-1-download.pdf",
+          "bytes": 1373000,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "ملخص النتائج - الكل - الاختبار الرابع.pdf"
+        }
+      ],
+      "zip": {
+        "file": "coordinator-summary-18-1.zip",
+        "entries": [
+          {
+            "file": "coordinator-summary-18-1-entry-0.pdf",
+            "bytes": 1373000,
+            "pages": 1,
+            "orientation": "portrait",
+            "selectableText": false,
+            "allPagesRendered": true
+          }
+        ],
+        "names": [
+          "ملخص النتائج - الصف 7-1 - الاختبار الرابع.pdf"
+        ],
+        "crc": "PASS"
+      }
+    },
+    {
+      "case": "principal-summary-18-1",
+      "role": "principal",
+      "authentication": "synthetic boundary only",
+      "mode": "summary",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "principal-summary-18-1-native.pdf",
+          "bytes": 637846,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "principal-summary-18-1-download.pdf",
+          "bytes": 1373102,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "ملخص النتائج - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "vice_principal-summary-18-1",
+      "role": "vice_principal",
+      "authentication": "synthetic boundary only",
+      "mode": "summary",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "vice_principal-summary-18-1-native.pdf",
+          "bytes": 637844,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "vice_principal-summary-18-1-download.pdf",
+          "bytes": 1373047,
+          "pages": 1,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "ملخص النتائج - الكل - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "coordinator-comparison-18-1",
+      "role": "coordinator",
+      "authentication": "synthetic boundary only",
+      "mode": "comparison",
+      "count": 18,
+      "status": "PASS",
+      "downloads": [
+        {
+          "file": "coordinator-comparison-18-1-native.pdf",
+          "bytes": 1282391,
+          "pages": 2,
+          "orientation": "portrait",
+          "selectableText": true,
+          "allPagesRendered": true
+        },
+        {
+          "file": "coordinator-comparison-18-1-download.pdf",
+          "bytes": 3368188,
+          "pages": 2,
+          "orientation": "portrait",
+          "selectableText": false,
+          "allPagesRendered": true,
+          "suggestedFilename": "مقارنة اختبارين - الكل - الاختبار الأول - الاختبار الرابع.pdf"
+        }
+      ]
+    },
+    {
+      "case": "year-over-year-valid",
+      "status": "PASS",
+      "authentication": "synthetic boundary only",
+      "pdf": {
+        "file": "year-over-year.pdf",
+        "bytes": 132205,
+        "pages": 2,
+        "orientation": "landscape",
+        "selectableText": true,
+        "allPagesRendered": true
+      }
+    },
+    {
+      "case": "year-over-year-empty",
+      "status": "PASS",
+      "authentication": "synthetic boundary only"
+    }
+  ]
+}
+

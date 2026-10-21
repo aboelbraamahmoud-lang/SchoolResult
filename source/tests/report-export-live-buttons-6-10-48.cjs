@@ -24,7 +24,8 @@ assert.ok(scaled.some(([n])=>n==='zoom'));
 (async()=>{
  const {loadApp}=require('./harness.cjs'),{ctx}=loadApp(),ws=ctx.zj(),downloads=[],rendered=[];
  ctx.v={...ctx.v,useState:v=>[typeof v==='function'?v():v,()=>{}],useMemo:fn=>fn(),useEffect:()=>{},useCallback:fn=>fn,useRef:v=>({current:v})};
- ctx.y={createRoot:()=>({render:x=>rendered.push(x),unmount:()=>{}})};
+ // Model a delayed React commit; rendering is not synchronous in concurrent roots.
+ ctx.y={createRoot:()=>({render:x=>{rendered.push(x);setTimeout(()=>{const ref=x.props?.ref||x.ref;if(typeof ref==='function')ref({});},25);},unmount:()=>{}})};
  ctx.requestAnimationFrame=cb=>setTimeout(cb,0);
  const stage={style:{cssText:''},querySelector:()=>({}),remove:()=>{}};
  ctx.document={createElement:()=>stage,body:{appendChild:()=>{}},fonts:{ready:Promise.resolve()}};

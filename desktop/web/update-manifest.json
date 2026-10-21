@@ -1,22 +1,22 @@
 {
   "product": "School Results Cloud",
-  "version": "6.10.31",
+  "version": "6.10.69",
   "files": [
     {
       "name": "app.js",
-      "sha256": "9612e0b25a2a53a3f8ef5ff887fbad8251ef71f798317cc7f8bd9104c761d915"
+      "sha256": "f5517d3090f7ea1b7309042f9b2de54d46d09b68405927509343641be8f5b6fa"
     },
     {
       "name": "style.css",
-      "sha256": "123f129b9c0c5de8d289ab4cc2015c785467ad190564940524a85a0dfd7c8688"
+      "sha256": "412815aed25dc892180cc2e8a5d0e98e13e946459edb590673c64c22a73cb064"
     },
     {
       "name": "version.json",
-      "sha256": "028b7fb986d6b0603e33e7964850b8a3e6c29283e698861ddd0334337a607db7"
+      "sha256": "1217cd35762c7fdf1c21a4a82052f93a58c66941d4f3ed661d7fea573502e33a"
     },
     {
       "name": "index.html",
-      "sha256": "9cae980cce4c4deaf32e2545c008ff45694fa8d57a7c51eb76201c616ed3748b"
+      "sha256": "22d64a8140cf6d05d1ebed72fa33f65d37063cdd8109a67a93845305beae4161"
     },
     {
       "name": "supabase.js",
@@ -25,6 +25,18 @@
     {
       "name": "moehe.png",
       "sha256": "1c9386e0b184818cf6dd62c3bb5ff0a8ad37fc5a37a1d32bb4c5105c8530172c"
+    },
+    {
+      "name": "assets/word-reference.js",
+      "sha256": "86ddad963d5c69173b52efbc8a0e71dd58cdeebc89ae5e8bb16d52c1235c6432"
+    },
+    {
+      "name": "assets/word-improvement.js",
+      "sha256": "858f0254145bd9c9c15ecc1035002cfa853894b666ebe9c7bea722a71292c24e"
+    },
+    {
+      "name": "assets/word-behavior.js",
+      "sha256": "95ca2a7a9c97eb94ac44418b063fccb3abc19a7fc3b9c7c1cb249f4fe7eae3d0"
     }
   ]
 }
