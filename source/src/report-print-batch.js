@@ -155,12 +155,24 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     if(win.closed)return 0;
     const safe=String(title).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     // Copy the already-rendered original pages; never recalculate their data.
-    const html=pages.map(p=>'<div class="sr650-sheet">'+(typeof p==='string'?p:p.outerHTML)+'</div>').join('');
+    const holder=document.createElement('div');
+    holder.innerHTML=pages.map(p=>'<div class="sr650-sheet">'+(typeof p==='string'?p:p.outerHTML)+'</div>').join('');
+    // A rewritten popup can leave relative image requests pending. Embed the
+    // original image bytes before writing the print document, as PDF export does.
+    const embeddedImages=new Map();
+    for(const img of holder.querySelectorAll('img')){
+     const source=img.getAttribute('src')||'';
+     if(!source||source.startsWith('data:'))continue;
+     if(embeddedImages.has(source))img.setAttribute('src',embeddedImages.get(source));
+     else{await SR63.reportEmbedImage(img);embeddedImages.set(source,img.getAttribute('src'));}
+    }
+    const html=holder.innerHTML;
     const doc='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+safe+'</title><base href="'+document.baseURI.replace(/"/g,'%22')+'"><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>'+SR63.reportPrintOverride(landscape)+'</style></head><body><main class="sr646-print-document" dir="rtl"><div id="printable-reports">'+html+'</div></main></body></html>';
     win.document.open();win.document.write(doc);win.document.close();
     const imageTasks=[...win.document.images].map(img=>img.complete?Promise.resolve():img.decode?.().catch(()=>{})||new Promise(ok=>{img.onload=ok;img.onerror=ok;}));
     await Promise.race([Promise.all([win.document.fonts?.ready||Promise.resolve(),...imageTasks]),new Promise(ok=>setTimeout(ok,15000))]);
     if(win.closed)return 0;
+    if([...win.document.images].some(img=>!img.complete||!img.naturalWidth))throw Error('لم يكتمل تحميل صور التقرير؛ أُوقفت الطباعة حتى لا تختفي الترويسة أو التوقيعات.');
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
     const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');

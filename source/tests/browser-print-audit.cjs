@@ -199,7 +199,8 @@ async function main(){
      await page.getByRole('button',{name:kind==='student'?'طباعة 3 نتيجة':'معاينة وطباعة',exact:true}).click();
      const popup=await popupPromise;
      await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
-     record.images=await popup.locator('img').evaluateAll(images=>images.map(im=>({src:im.getAttribute('src'),complete:im.complete,width:im.naturalWidth,display:getComputedStyle(im).display})));
+     record.images=await popup.locator('img').evaluateAll(images=>images.map(im=>({complete:im.complete,width:im.naturalWidth,display:getComputedStyle(im).display})));
+     assert.ok(record.images.every(im=>im.complete&&im.width>0&&im.display!=='none'),'all official logos/images loaded before printing');
      const native=path.join(out,id+'-native.pdf');
      await popup.pdf({path:native,preferCSSPageSize:true,printBackground:true});
      record.downloads.push(inspectPDF(native,{landscape:kind!=='student',vector:true,pages:kind==='student'?3:undefined}));

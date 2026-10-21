@@ -78,3 +78,11 @@ Required next access step: grant the existing Vercel connection access to team `
 ## Open acceptance gaps
 
 Authenticated role sessions, physical printing, Safari/iPhone, full Word/Excel/behavior/custom-report UI downloads, large multi-subject layouts, and vector text in direct PDF/ZIP are not fully accepted. Existing server permission tests use synthetic boundaries; read-only deployed-source inspection is not an authenticated role penetration test. Refer to [the full inventory](report-matrix.md).
+
+## Confirmed print-image defect
+
+A real student-statement print reproduction completed with three relative ministry logo images still pending (`complete=false`, `naturalWidth=0`); all three were missing from the physical PDF. This was not a correct visual PASS despite valid PDF text and dimensions.
+
+The shared print path now embeds original image bytes into detached report markup, reusing `reportEmbedImage`, before writing the popup. It caches repeated sources within the batch and refuses to print with incomplete images. It does not alter live preview nodes or academic data.
+
+The same three-student reproduction passed after the fix: every image was complete with natural width 2048, all three A4 portrait pages retained selectable text, and the logo was visually confirmed in the PDF rendering. Expanded browser tests now assert image readiness and skills pagination explicitly. A fresh final CI run is required.
