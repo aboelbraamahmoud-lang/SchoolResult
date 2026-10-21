@@ -41,3 +41,14 @@ No database writes, migrations, grade changes, archive deletions, account recrea
 
 ## Release state
 No version increment, generated-asset commit, merge or production deployment has occurred. Record actual CI results and remaining gaps before changing this state.
+
+## Browser findings — 2026-10-21 follow-up
+The first real Chromium run (39464624750) completed 20 cases: 12 passed and 8 failed. Native print retained all synthetic student tokens, but direct PDF capture duplicated earlier pages in comparisons with 18, 28, 40 and 80 students and in the coordinator comparison. This is a release-blocking data omission, not a PDF formatting preference.
+
+The export staging loop previously assumed two animation frames guaranteed a React commit. It now awaits the actual page ref commit before capture. The same path serves native print and ZIP. The complete student-token assertions are retained.
+
+Executive and department cards had no visible title when a workspace lacked their optional custom report names. The build fallback replacement no longer matched the newer leadership ternary. The source now explicitly falls back to each card's built-in title.
+
+The standalone regression test also converts the VM array to the host realm before deep equality. This corrects a test-realm mismatch, without changing expected rows.
+
+These follow-up fixes require a fresh successful CI run. No production release is claimed.

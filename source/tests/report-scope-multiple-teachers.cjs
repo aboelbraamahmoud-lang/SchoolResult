@@ -25,7 +25,7 @@ for(const count of [10,18,28,40,80]){
  const data=Array.from({length:count},(_,i)=>({...rows[i%rows.length],id:'case-'+i,studentId:'case-'+i}));
  const pages=ctx.SR63.buildReportPages(data,'className','7/1',subject,'comparison',exam,50,ws.settings);
  assert.equal(pages.length,Math.ceil(count/10));
- const output=pages.flatMap(p=>Array.from(ctx.SR63.normalizeReportPage(p,'comparison',exam,ws).rows));
+ const output=Array.from(pages).flatMap(p=>Array.from(ctx.SR63.normalizeReportPage(p,'comparison',exam,ws).rows));
  assert.deepEqual(output.map(r=>r.id),data.map(r=>r.id));
  assert.equal(new Set(output.map(r=>r.id)).size,count);
 }
