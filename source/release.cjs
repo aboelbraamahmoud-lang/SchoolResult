@@ -20,6 +20,7 @@ function walk(dir,prefix='',exclude=()=>false){
 const repoFiles=walk(projectRoot,'',(rel,entry)=>
   rel.endsWith('checksums.sha256')||
   rel.startsWith('source/node_modules/')||
+  rel.startsWith('audit-artifacts/')||
   rel.startsWith('source/tests/output/')||
   /^qa_[^/]+\//.test(rel)||
   rel.startsWith('public/')||

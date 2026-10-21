@@ -86,7 +86,11 @@ async function main(){
     window.auditCaptures.push({text:node.innerText,orientation:node.dataset.orientation});
     return capture.call(this,node,...args);
    };
-   if(role==='year'){
+   if(role==='student'){
+    auditRoot.render(v.createElement(SR63.StudentResultsPrint,{workspace:ws}));
+   }else if(role==='skills'){
+    auditRoot.render(v.createElement(SR63.SkillCenter,{workspace:ws,readOnly:true,canPrint:true}));
+   }else if(role==='year'){
     SR63.staff.call=async()=>({report:yearReport});
     auditRoot.render(v.createElement(SR63.YearComparisonCenter,{workspace:ws,canPrint:true}));
    }else if(role==='owner'){
@@ -99,7 +103,7 @@ async function main(){
     auditRoot.render(v.createElement(SR63.CoordinatorPortal,{profile}));
    }
   },{ws,role,yearReport});
-  if(!['owner','year'].includes(role)){
+  if(!['owner','year','student','skills'].includes(role)){
    await page.getByRole('button',{name:'مركز التقارير والطباعة',exact:true}).click();
    if(role==='coordinator'){
     await page.getByRole('textbox',{name:'المادة الثابتة لقسم المنسق'}).waitFor();
@@ -172,7 +176,60 @@ async function main(){
    await page.screenshot({path:path.join(out,id+'-failure.png'),fullPage:true}).catch(()=>{});
   }finally{await context.close();records.push(record);console.log('AUDIT_RESULT '+JSON.stringify(record));}
  }
+ async function extraReports(){
+  for(const kind of ['student','arabic','english']){
+   const ws=fixture(kind==='student'?3:28,kind==='student'?1:2);
+   if(kind==='english')ws.rows=ws.rows.map(r=>({...r,subject:'اللغة الإنجليزية'}));
+   if(kind!=='student'){
+    ws.skillsAssessments=['exam4','exam1'].map(exam=>{
+     const a=JSON.parse(JSON.stringify(ctx.SR63.skillCreate(ws,kind,exam)));
+     a.skills=a.skills.map(s=>({...s,max:10}));
+     a.records=a.records.map((r,i)=>({...r,marks:Object.fromEntries(a.skills.map(s=>[s.key,i===0?null:2+i%7]))}));
+     return a;
+    });
+   }
+   const {page,context,errors}=await open(ws,kind==='student'?'student':'skills');
+   if(kind==='english')await page.locator('label').filter({has:page.getByText('المادة',{exact:true})}).locator('select').selectOption('english');
+   for(const mode of kind==='student'?['statement']:['school','summary','students','weak','ranking','audit','comparison']){
+    const id=kind+'-'+mode,record={case:id,status:'FAIL',authentication:'synthetic boundary only',downloads:[]};
+    try{
+     if(kind==='student')await page.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
+     else await page.locator('label').filter({has:page.getByText('نوع التقرير',{exact:true})}).locator('select').selectOption(mode);
+     const popupPromise=page.waitForEvent('popup');
+     await page.getByRole('button',{name:kind==='student'?'طباعة 3 نتيجة':'معاينة وطباعة',exact:true}).click();
+     const popup=await popupPromise;
+     await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
+     record.images=await popup.locator('img').evaluateAll(images=>images.map(im=>({src:im.getAttribute('src'),complete:im.complete,width:im.naturalWidth,display:getComputedStyle(im).display})));
+     const native=path.join(out,id+'-native.pdf');
+     await popup.pdf({path:native,preferCSSPageSize:true,printBackground:true});
+     record.downloads.push(inspectPDF(native,{landscape:kind!=='student',vector:true,pages:kind==='student'?3:undefined}));
+     if(kind!=='student'){
+      const labels=await popup.locator('.srskill-page-number').allTextContents();
+      labels.forEach((label,i)=>assert.equal(label.trim(),'صفحة '+(i+1)+' من '+labels.length));
+     }
+     await popup.close();
+     if(kind!=='student'){
+      const event=page.waitForEvent('download',{timeout:120000});
+      await page.getByRole('button',{name:'تنزيل PDF',exact:true}).click();
+      const dl=await event,file=path.join(out,id+'-download.pdf');await dl.saveAs(file);
+      record.downloads.push(inspectPDF(file,{landscape:true,pages:record.downloads[0].pages}));
+      if(mode==='students'){
+       const csvEvent=page.waitForEvent('download');
+       await page.getByRole('button',{name:'تصدير Excel (CSV)',exact:true}).click();
+       const csv=await csvEvent,csvFile=path.join(out,id+'.csv');await csv.saveAs(csvFile);
+       const rows=fs.readFileSync(csvFile,'utf8').trim().split(/\r?\n/);
+       assert.equal(rows.length,29);record.csv={rows:28,file:path.basename(csvFile)};
+      }
+     }
+     assert.deepEqual(errors,[]);record.status='PASS';
+    }catch(e){record.error=String(e.stack||e);await page.screenshot({path:path.join(out,id+'-failure.png'),fullPage:true}).catch(()=>{});}
+    records.push(record);console.log('AUDIT_RESULT '+JSON.stringify(record));
+   }
+   await context.close();
+  }
+ }
  try{
+  await extraReports();
   for(const count of [10,18,28,40,80,90])await caseReport('comparison',count,{zip:count===18});
   for(const mode of ['summary','levels','struggling','teachers','subjects','departmentStats','executive'])await caseReport(mode,18,{zip:mode==='summary'});
   await caseReport('comparison',40,{classes:2,zip:true});

@@ -134,7 +134,7 @@ SR63.skillReports=function(assessment,workspace,{type='school',grade='الكل',
  const skill=assessment.skills.find(s=>s.key===skillKey)||assessment.skills[0];
  if(type==='students'||type==='summary'){
   const pages=SR63.skillPages(assessment,{grade,className,pass:threshold}).filter(p=>p.kind===(type==='students'?'students':'summary'));
-  return {pages:pages.map(p=>SR63.skillFullHTML(p,assessment,settings)),rows:[],columns:[]};
+  return {pages:pages.map((p,index)=>SR63.skillFullHTML({...p,number:index+1,total:pages.length},assessment,settings)),rows:[],columns:[]};
  }
  if(type==='school'){
   title='التحليل العام للمهارات';columns=['المهارة','الدرجة العظمى','متوسط التحصيل %','نسبة الإتقان %','الطلاب المرصودون','المتعثرون'];

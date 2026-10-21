@@ -40,7 +40,7 @@ Privileged administrator archive access calls an authenticated active-admin owne
 No database writes, migrations, grade changes, archive deletions, account recreation, password changes or Edge Function deployments were performed.
 
 ## Release state
-No version increment, generated-asset commit, merge or production deployment has occurred. Record actual CI results and remaining gaps before changing this state.
+Candidate 6.10.69 is prepared locally with rebuilt assets. No merge or production deployment has occurred. Final commit CI remains required.
 
 ## Browser findings — 2026-10-21 follow-up
 The first real Chromium run (39464624750) completed 20 cases: 12 passed and 8 failed. Native print retained all synthetic student tokens, but direct PDF capture duplicated earlier pages in comparisons with 18, 28, 40 and 80 students and in the coordinator comparison. This is a release-blocking data omission, not a PDF formatting preference.
@@ -52,3 +52,29 @@ Executive and department cards had no visible title when a workspace lacked thei
 The standalone regression test also converts the VM array to the host realm before deep equality. This corrects a test-realm mismatch, without changing expected rows.
 
 These follow-up fixes require a fresh successful CI run. No production release is claimed.
+
+## Follow-up verification — 21 October 2026
+
+- Run [39534531923](https://github.com/aboelbraamahmoud-lang/SchoolResult/actions/runs/39534531923) passed all 20 actual Chromium scenarios at commit `52cf860f06c16f69370981363b6dac9eae3fd88b`.
+- The previously failing direct PDFs now capture every comparison student exactly once for 10, 18, 28, 40, 80 and 90 students. Physical page counts: 1, 2, 3, 4, 8 and 9. Native PDF token checks and pre-raster DOM token checks both pass.
+- Two-class ZIP: 2 PDFs, 2 pages each, valid CRC and unique filenames. Summary ZIP also passed for owner and coordinator.
+- Executive and department-statistics cards are accessible and both print/download successfully.
+- Native PDFs have selectable text. Direct PDF and ZIP still contain rasterized pages; do not claim vector-quality direct downloads.
+- Existing mocked UI tests were updated to model the new asynchronous commit ref and retain shared renderer/page-number assertions. They are not substituted for Chromium tests.
+- Full local `npm run verify` passed on the pre-version-bump patch, including 625 release assertions. Local desktop startup/printing lifecycle checks passed; no Windows installer or physical printer was tested.
+- Additional local visual inspection of the skills student report found incorrect numbering after filtering summary pages. Numbering now restarts at 1 and uses the filtered page count, with a regression assertion for every skills report.
+- Expanded browser tests add student statements and all seven Arabic/English skills report types. Their final CI result must be recorded before accepting the candidate.
+- Local execution became available again during the follow-up. Earlier unavailability statements describe the initial session only.
+
+## Current production status
+
+| Domain | Current version / SHA | Status |
+|---|---|---|
+| schoolresult.vercel.app | Not revalidated; last known 6.10.67 | BLOCKED: team grant 403 |
+| school-result-iota.vercel.app | Not revalidated; last known 6.10.67 | BLOCKED: team grant 403 |
+
+Required next access step: grant the existing Vercel connection access to team `aboelbraamahmoud-6503s-projects`. Do not paste a password or token. CLI fallback was unavailable. The previous paused publication task must remain paused until release coordination is explicitly completed.
+
+## Open acceptance gaps
+
+Authenticated role sessions, physical printing, Safari/iPhone, full Word/Excel/behavior/custom-report UI downloads, large multi-subject layouts, and vector text in direct PDF/ZIP are not fully accepted. Existing server permission tests use synthetic boundaries; read-only deployed-source inspection is not an authenticated role penetration test. Refer to [the full inventory](report-matrix.md).

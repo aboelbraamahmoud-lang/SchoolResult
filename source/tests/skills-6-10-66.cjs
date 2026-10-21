@@ -46,6 +46,7 @@ for(const kind of ['school','audit','weak','ranking','comparison','students','su
  const pages=SR63.skillReports(a,workspace,{type:kind,skillKey:'grammar',threshold:70,older:b}).pages;
  assert.ok(pages.length,'report must render: '+kind);
  assert.match(pages[0],/data-orientation="landscape"/);
+ pages.forEach((html,i)=>assert.ok(html.includes('صفحة '+(i+1)+' من '+pages.length),'filtered skill reports restart pagination and count only exported pages'));
 }
 const tree=SR63.SkillCenter({workspace:{...workspace,skillsAssessments:[a]},setWorkspace:()=>{},readOnly:false,allowedSubjects:['اللغة الإنجليزية']});
 const visible=JSON.stringify(tree);assert.match(visible,/رصد درجات الطلاب/);assert.match(visible,/حفظ درجات المهارات/);

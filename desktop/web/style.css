@@ -1339,7 +1339,7 @@
 .sr625-report-page tr>td:last-child,.sr625-report-page tr>th:last-child{width:12%}
 .sr625-report-page tr:nth-child(even) td{background:#fff}
 /* 6.10.26 — role-controlled staff admin and coordinator area, Arabic RTL. */
-.srstaff-page,.srstaff-coordinator{direction:rtl;text-align:right;max-width:1500px;margin:0 auto;padding:24px;color:#15354a;font-family:inherit}.srstaff-page h1,.srstaff-coordinator h1{font-size:1.75rem;font-weight:900;margin:0 0 8px}.srstaff-panel{background:white;border:1px solid #d9e7e9;border-radius:22px;margin:20px 0;padding:22px;box-shadow:0 10px 25px #0b31520b}.srstaff-panel h2{font-size:1.2rem;font-weight:900;color:#064f57;margin-bottom:16px}.srstaff-panel h3{font-size:1rem;font-weight:850;margin:18px 0 12px}.srstaff-grid,.srstaff-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}.srstaff-field{display:flex;flex-direction:column;gap:7px;font-weight:800}.srstaff-field input,.srstaff-field select{border:1px solid #c7dbdf;border-radius:10px;background:#fff;padding:10px 13px;min-height:44px;direction:auto}.srstaff-panel button,.srstaff-coordinator button{background:#09796d;border:1px solid #09796d;color:white;border-radius:10px;padding:9px 15px;font-weight:800;cursor:pointer}.srstaff-panel button:disabled,.srstaff-coordinator button:disabled{opacity:.5;cursor:not-allowed}.srstaff-checks{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0 20px}.srstaff-checks label{display:flex;gap:8px;align-items:center;border:1px solid #e1e8ea;background:#f7fbfc;padding:9px 12px;border-radius:12px;font-weight:750}.srstaff-checks input{accent-color:#087d73}.srstaff-flex{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}.srstaff-users{display:grid;gap:12px}.srstaff-user{border:1px solid #dce6e7;border-radius:12px;padding:14px}.srstaff-user strong{display:block;font-size:1.05rem}.srstaff-user small{color:#526879}.srstaff-user details{margin-top:12px}.srstaff-user summary{cursor:pointer;font-weight:bold}.srstaff-alert{background:#fff1f2;color:#a01633;padding:13px;border-radius:10px}.srstaff-success{background:#ecfdf5;color:#047857;padding:13px;border-radius:10px}.srstaff-mode{display:flex;gap:6px;margin-bottom:15px}.srstaff-mode button{border:1px solid #cbdde3;background:#f1f6f7;color:#245368;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer}.srstaff-mode button.active{background:#09796d;border-color:#09796d;color:#fff}.srstaff-coordinator-head{border-radius:18px;background:linear-gradient(100deg,#065d5d,#163d57);color:#fff;padding:20px;display:flex;justify-content:space-between;align-items:center;gap:15px}.srstaff-coordinator-head h1{color:#fff}.srstaff-nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.srstaff-nav button{background:white;color:#164c58;border-color:#cbdde3}.srstaff-nav button.active{background:#087a70;color:#fff}.srstaff-kpis article{background:#f0f8f9;border:1px solid #d6e8e9;padding:18px;border-radius:15px}.srstaff-kpis span,.srstaff-kpis strong,.srstaff-kpis small{display:block}.srstaff-kpis strong{font-size:1.7rem;font-weight:950;margin:7px 0}.srstaff-scroll{overflow-x:auto;max-height:570px;overflow-y:auto}.srstaff-scroll table{width:100%;min-width:650px;border-collapse:collapse}.srstaff-scroll th,.srstaff-scroll td{border:1px solid #d9e3e5;padding:10px 14px;text-align:right;white-space:nowrap}.srstaff-scroll th{background:#ecf4f4;font-weight:900}
+.srstaff-page,.srstaff-coordinator{direction:rtl;text-align:right;max-width:1500px;margin:0 auto;padding:24px;color:#15354a;font-family:inherit}.srstaff-page h1,.srstaff-coordinator h1{font-size:1.75rem;font-weight:900;margin:0 0 8px}.srstaff-panel{background:white;border:1px solid #d9e7e9;border-radius:22px;margin:20px 0;padding:22px;box-shadow:0 10px 25px #0b31520b}.srstaff-panel h2{font-size:1.2rem;font-weight:900;color:#064f57;margin-bottom:16px}.srstaff-panel h3{font-size:1rem;font-weight:850;margin:18px 0 12px}.srstaff-grid,.srstaff-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}.srstaff-field{display:flex;flex-direction:column;gap:7px;font-weight:800}.srstaff-field input,.srstaff-field select{border:1px solid #c7dbdf;border-radius:10px;background:#fff;padding:10px 13px;min-height:44px;direction:auto}.srstaff-panel button,:where(.srstaff-coordinator button){background:#09796d;border:1px solid #09796d;color:white;border-radius:10px;padding:9px 15px;font-weight:800;cursor:pointer}.srstaff-panel button:disabled,.srstaff-coordinator button:disabled{opacity:.5;cursor:not-allowed}.srstaff-checks{display:flex;flex-wrap:wrap;gap:9px;margin:10px 0 20px}.srstaff-checks label{display:flex;gap:8px;align-items:center;border:1px solid #e1e8ea;background:#f7fbfc;padding:9px 12px;border-radius:12px;font-weight:750}.srstaff-checks input{accent-color:#087d73}.srstaff-flex{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}.srstaff-users{display:grid;gap:12px}.srstaff-user{border:1px solid #dce6e7;border-radius:12px;padding:14px}.srstaff-user strong{display:block;font-size:1.05rem}.srstaff-user small{color:#526879}.srstaff-user details{margin-top:12px}.srstaff-user summary{cursor:pointer;font-weight:bold}.srstaff-alert{background:#fff1f2;color:#a01633;padding:13px;border-radius:10px}.srstaff-success{background:#ecfdf5;color:#047857;padding:13px;border-radius:10px}.srstaff-mode{display:flex;gap:6px;margin-bottom:15px}.srstaff-mode button{border:1px solid #cbdde3;background:#f1f6f7;color:#245368;padding:8px 12px;border-radius:10px;font-weight:800;cursor:pointer}.srstaff-mode button.active{background:#09796d;border-color:#09796d;color:#fff}.srstaff-coordinator-head{border-radius:18px;background:linear-gradient(100deg,#065d5d,#163d57);color:#fff;padding:20px;display:flex;justify-content:space-between;align-items:center;gap:15px}.srstaff-coordinator-head h1{color:#fff}.srstaff-nav{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.srstaff-nav button{background:white;color:#164c58;border-color:#cbdde3}.srstaff-nav button.active{background:#087a70;color:#fff}.srstaff-kpis article{background:#f0f8f9;border:1px solid #d6e8e9;padding:18px;border-radius:15px}.srstaff-kpis span,.srstaff-kpis strong,.srstaff-kpis small{display:block}.srstaff-kpis strong{font-size:1.7rem;font-weight:950;margin:7px 0}.srstaff-scroll{overflow-x:auto;max-height:570px;overflow-y:auto}.srstaff-scroll table{width:100%;min-width:650px;border-collapse:collapse}.srstaff-scroll th,.srstaff-scroll td{border:1px solid #d9e3e5;padding:10px 14px;text-align:right;white-space:nowrap}.srstaff-scroll th{background:#ecf4f4;font-weight:900}
 @media(max-width:650px){.srstaff-page,.srstaff-coordinator{padding:12px}.srstaff-coordinator-head{flex-direction:column;align-items:stretch}.srstaff-panel{padding:15px}}
 /* Coordinator analytics, RTL school header and visual dashboards, 6.10.27 */
 .srcoord-upgraded{background:linear-gradient(180deg,#eef5f6,#f8fbfb 460px);min-height:calc(100vh - 55px)}
@@ -1361,3 +1361,248 @@
 .sr631-report-preview-header p{margin:3px 0 0;color:#324b5b;font-size:12px;font-weight:750}
 .sr631-report-preview-header img{width:220px;max-width:38%;height:auto;object-fit:contain;flex-shrink:0}
 @media(max-width:620px){.sr631-report-preview-header{flex-direction:column;align-items:stretch}.sr631-report-preview-header img{width:180px;max-width:100%}}
+/* 6.10.32 — official academic and behavioral student certificates */
+.sr632-page{display:grid;gap:18px;color:#163449;direction:rtl}.sr632-banner{display:flex;align-items:center;gap:20px;background:linear-gradient(110deg,#0b615c,#153f60);border-radius:19px;padding:22px;color:#fff}.sr632-banner img{width:70px;height:72px;object-fit:contain;background:#fff;border-radius:12px;padding:5px}.sr632-banner h1{font-size:25px;font-weight:900;margin:4px 0}.sr632-banner p{font-size:14px;opacity:.86;line-height:1.9}.sr632-banner small{font-weight:700;color:#e6d192}.sr632-panel{background:#fff;border:1px solid #d2e2e7;border-radius:19px;padding:20px;box-shadow:0 10px 25px rgba(25,62,73,.04)}.sr632-panel h2{font-size:19px;font-weight:850;margin:0 0 15px;color:#123a52}.sr632-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}.sr632-control{display:grid;gap:7px;color:#274d5c;font-size:13px;font-weight:750}.sr632-control input,.sr632-control select{width:100%;padding:12px 14px;border:1px solid #c5dbe0;border-radius:12px;background:#fbfdfd;min-height:44px;color:#152f42;font-size:14px}.sr632-control input[type=file]{background:#eff8f8}.sr632-note{margin:12px 0;line-height:1.8;color:#617c87;font-size:13px}.sr632-notice{margin-top:14px;padding:14px;border-radius:10px;border-right:4px solid #008e81;background:#edf8f6;font-weight:700;line-height:1.8}.sr632-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:10px;margin-top:16px}.sr632-kpis>div{padding:14px;background:#f0f8f9;border:1px solid #dcecee;border-radius:12px;display:grid;gap:9px}.sr632-kpis span{color:#476977;font-size:12px}.sr632-kpis b{font-size:25px;color:#0b6662}.sr632-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:16px}.sr632-actions button{border-radius:11px;background:#0b7a72;color:#fff;padding:11px 15px;font-size:13px;font-weight:800;cursor:pointer}.sr632-actions button:first-child{background:#153f60}.sr632-actions button:last-child{background:#edf6f7;color:#0c4a5b;border:1px solid #b8d2d9}.sr632-actions button:disabled{opacity:.4;cursor:not-allowed}.sr632-panel details{border:1px solid #ddebed;border-radius:12px;padding:10px 14px;margin:12px 0}.sr632-panel summary{font-weight:800;cursor:pointer}.sr632-issues{max-height:180px;overflow:auto;font-size:12px;color:#9d4928}.sr632-issues p{padding:5px 0;border-bottom:1px solid #f4e9db}.sr632-preview{display:grid;gap:16px;overflow:auto}.sr632-preview-sheet{min-width:660px;max-width:1200px;margin:0 auto;width:100%;background:#fff;direction:rtl;border:1px solid #d4dce0;padding:15px;box-shadow:0 1px 8px #e5ebed}.sr632-preview-sheet header{display:flex;justify-content:space-between;gap:15px;background:#bbd4e8;border:1px solid #315069;padding:8px 12px;font-weight:800}.sr632-name{display:flex;justify-content:space-between;gap:15px;background:#f7d1b5;border:1px solid #ac8c78;padding:12px;margin:15px auto;max-width:86%;font-size:15px;font-weight:800}.sr632-preview-sheet table{width:100%;border-collapse:collapse;table-layout:fixed;text-align:center}.sr632-preview-sheet th,.sr632-preview-sheet td{border:1px solid #52616b;padding:8px 5px;text-align:center;font-size:12px;font-weight:700}.sr632-preview-sheet thead th{background:#b6cce6}.sr632-preview-sheet thead th:nth-child(2),.sr632-preview-sheet thead th:nth-child(4){background:#c2dab8}.sr632-preview-sheet thead th:last-child{background:#ffe5a1}.sr632-preview-sheet thead th:first-child{background:#fff;width:22%}.sr632-preview-sheet small{display:block;color:#6c7d80;padding-top:10px}@media(max-width:720px){.sr632-banner{align-items:flex-start;padding:18px}.sr632-banner h1{font-size:19px}.sr632-banner img{width:50px;height:50px}.sr632-panel{padding:14px}}
+
+/* 6.10.33 — premium behavioral and academic certificate preview */
+.sr632-preview-sheet.sr633-preview-wrap{max-width:1260px;padding:0;background:transparent;border:0;box-shadow:none;overflow-x:auto}
+.sr633-preview-wrap .sr633-certificate{box-sizing:border-box;direction:rtl;min-width:850px;width:100%;max-width:1200px;min-height:735px;background:#fff;border:1px solid #d6dde4;box-shadow:0 12px 36px rgba(18,45,65,.08);padding:36px 40px 32px;display:flex;flex-direction:column;overflow:hidden;font-family:Arial,Tahoma,sans-serif;color:#203749}
+.sr633-preview-wrap .sr633-doc-head{display:flex;align-items:center;justify-content:space-between;gap:14px;border:0;border-bottom:3px solid #702441;background:transparent;padding:0 0 14px;margin-bottom:13px;min-height:75px;font-weight:normal}
+.sr633-preview-wrap .sr633-doc-head img{width:205px;height:auto;max-height:60px;object-fit:contain;object-position:left}
+.sr633-preview-wrap .sr633-brand{display:grid;direction:rtl;text-align:right;gap:3px}
+.sr633-preview-wrap .sr633-ministry{font-size:13px;font-weight:800;color:#702441}
+.sr633-preview-wrap .sr633-school{font-size:21px;font-weight:900;color:#203749}
+.sr633-preview-wrap .sr633-brand small{font-size:11px;color:#678;padding:0}
+.sr633-preview-wrap .sr633-doc-title{margin:0;background:#702441;color:#fff;text-align:center;border-radius:5px;padding:10px;font-size:21px;font-weight:900}
+.sr633-preview-wrap .sr633-identity{display:grid;direction:ltr!important;grid-template-columns:1fr 1fr 2.1fr;gap:8px;margin:13px 0 15px;background:none;border:0;padding:0;max-width:none}
+.sr633-preview-wrap .sr633-identity span{border:1px solid #d7dfe4;background:#f5f8f9;padding:12px 13px;font-size:13px;border-radius:5px;color:#526676;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sr633-preview-wrap .sr633-identity b{color:#142e41;font-weight:900}
+.sr633-preview-wrap .sr633-results{width:100%;border-collapse:collapse;table-layout:fixed;text-align:center;direction:ltr!important;margin:0}
+.sr633-preview-wrap .sr633-results th,.sr633-preview-wrap .sr633-results td{border:1px solid #cbd6dd;padding:10px 5px;font-weight:800;font-size:12px;line-height:1.55;text-align:center;height:auto}
+.sr633-preview-wrap .sr633-results thead th,.sr633-preview-wrap .sr633-results thead th:nth-child(2),.sr633-preview-wrap .sr633-results thead th:nth-child(4){background:#2c6074;color:#fff;font-weight:900;font-size:12px}
+.sr633-preview-wrap .sr633-results thead th:first-child{background:#ae8230;width:auto}
+.sr633-preview-wrap .sr633-results thead th:last-child{background:#284d5d}
+.sr633-preview-wrap .sr633-results tbody th{text-align:right;direction:rtl;color:#27485d;font-weight:900}
+.sr633-preview-wrap .sr633-results tbody tr:nth-child(even){background:#f4f8fa}
+.sr633-preview-wrap .sr633-doc-footer{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;border-top:2px solid #e3cfa2;margin-top:auto;padding-top:15px;min-height:80px}
+.sr633-preview-wrap .sr633-seal{font-size:12px;color:#7a8996}
+.sr633-preview-wrap .sr633-principal{min-width:260px;text-align:center;display:grid;gap:5px;color:#702441}
+.sr633-preview-wrap .sr633-principal span{font-size:13px;font-weight:900}
+.sr633-preview-wrap .sr633-principal strong{font-size:17px;font-weight:900}
+.sr633-preview-wrap .sr633-principal small{font-size:11px;color:#7a8996;padding:0}
+@media(max-width:800px){.sr633-preview-wrap .sr633-certificate{padding:26px 25px}}
+
+/* 6.10.36 — scoped staff student levels */
+.srstaff-level-controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;margin:14px 0 20px}
+.srstaff-level-controls label{display:grid;gap:5px;font-weight:700;color:#21435b;min-width:185px}
+.srstaff-level-controls select{border:1px solid #b8cbd6;border-radius:9px;padding:9px;background:#fff;max-width:290px}
+.srstaff-level-controls button{padding:10px 16px;border:0;border-radius:10px;background:#24536b;color:#fff;font-weight:800}
+.srstaff-band-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.srstaff-band-card{border:1px solid #dce5ea;border-top:5px solid #64748b;border-radius:12px;padding:10px;background:#fff;min-width:0}
+.srstaff-band-card header{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:11px}
+.srstaff-band-card header b{margin-right:auto}
+.srstaff-band-dot{display:inline-block;width:13px;height:13px;border-radius:50%;flex:none}
+.srstaff-band-names{display:grid;gap:6px;max-height:450px;overflow:auto}
+.srstaff-band-names>div{display:flex;justify-content:space-between;gap:8px;padding:7px 4px;border-bottom:1px solid #eef2f4;font-size:12px}
+.srstaff-band-names>div strong{white-space:nowrap;font-weight:900}
+@media print{.srstaff-band-names{max-height:none;overflow:visible}.srstaff-band-card{break-inside:avoid}}
+
+/* 6.10.37 — keyboard-friendly account recovery and state messages. */
+.sr-cloud-text-button{border:0;background:transparent;color:#116474;font-size:13px;font-weight:800;text-decoration:underline;text-underline-offset:3px;padding:9px 5px;cursor:pointer;margin-inline-end:10px}
+.sr-cloud-text-button:hover{color:#702441}
+.sr-cloud-text-button:focus-visible{outline:3px solid #edc979;border-radius:4px}
+.sr-cloud-success{margin-top:12px;border:1px solid #a8dfb5;border-radius:12px;background:#eefcf0;color:#185a30;padding:12px;font-size:13px;line-height:1.9;font-weight:700}
+
+/* 6.10.40 — scope-respecting live charts and editable whole-school qualitative report. */
+.sr640-chart-live{margin:18px 0 24px;max-width:100%;min-width:0}
+.sr640-chart-live .sr640-chart{background:#fff;border:1px solid #d0e1e5;border-radius:18px;box-shadow:0 8px 22px rgba(12,52,70,.05);padding:18px;min-width:0;overflow:hidden}
+.sr640-chart-live .sr640-chart h3{font-size:16px;font-weight:900;color:#173e54;margin:0 0 12px}
+.sr640-chart-live svg{width:100%;height:auto;display:block;max-height:670px}
+.sr640-chart-live .sr640-legend{font-size:12px;color:#526877;line-height:1.8}
+.sr640-school-report .sr619-card{margin-top:16px}
+.sr640-school-report textarea{width:100%;border:1px solid #c2d5dc;border-radius:12px;padding:14px;min-height:98px;line-height:1.9;font:inherit;resize:vertical;background:#fbfdff}
+.sr640-school-report .sr640-targets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.sr640-school-report .sr640-targets label{display:grid;gap:6px;font-size:13px;font-weight:800;color:#244859}
+.sr640-school-report .sr640-targets input{width:100%;border:1px solid #c2d5dc;border-radius:10px;padding:10px;font-size:14px;background:#fff;color:#182f40}
+.sr640-school-report .sr640-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.sr640-school-report .sr640-note{font-size:12px;color:#607280;line-height:1.75}
+@media(max-width:700px){.sr640-school-report .sr640-targets{grid-template-columns:1fr}}
+
+.sr640-chart-rows{display:grid;gap:12px}.sr640-chart-row{display:grid;grid-template-columns:minmax(110px,215px) minmax(145px,1fr) minmax(70px,120px);gap:13px;align-items:center;min-width:0;direction:rtl}.sr640-chart-label{font-size:13px;font-weight:900;color:#174559;overflow-wrap:anywhere}.sr640-chart-vectors svg{width:100%;height:auto;max-height:48px;display:block}.sr640-chart-values{display:block;text-align:left;font-weight:900;font-size:12px;color:#163a4d;white-space:nowrap;direction:rtl}.sr640-chart-values small{display:block;font-size:12px;margin-top:6px}.sr640-chart-live .sr640-legend{display:flex;flex-wrap:wrap;gap:12px}.sr640-chart-live .sr640-legend span:first-child{color:#0e8479}.sr640-chart-live .sr640-legend span:last-child{color:#a6782e}@media(max-width:680px){.sr640-chart-row{grid-template-columns:minmax(75px,115px) minmax(80px,1fr) 70px;gap:7px}.sr640-chart-values,.sr640-chart-values small{font-size:10px}}
+
+/* 6.10.41 — school-wide report routing matches official department form. */
+.sr641-report-address{display:flex;gap:20px;flex-wrap:wrap;border:1px solid #cbdde3;border-right:5px solid #803450;background:#f8fafb;padding:10px 16px;border-radius:10px;margin-bottom:15px;font-weight:700;color:#25485c}
+.sr641-report-address p{margin:4px 0}
+
+/* 6.10.42 — Schoolwide dashboards: accessible, labelled comparisons, real student counts. */
+.srstaff-coordinator .sr642-chart-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr);gap:17px;align-items:stretch}
+.srstaff-coordinator .sr642-chart-grid>.srcoord-chart{min-width:0;border:1px solid #cfdee5;border-radius:20px;padding:19px 20px;background:#fff;box-shadow:0 10px 23px #082e4010}
+.srstaff-coordinator .sr642-chart-grid>.sr642-wide{grid-column:1/-1}
+.sr642-chart-heading{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap}
+.srstaff-coordinator .sr642-chart-heading h3{font-size:17px;line-height:1.7;color:#0f384e;min-height:0;margin:0;max-width:94%}
+.sr642-chart-tag{border:1px solid #c4dce1;border-radius:100px;color:#315a6d;background:#f6fafb;padding:4px 10px;font-size:11px;font-weight:800;white-space:nowrap}
+.sr642-chart-note{font-size:12px;color:#536d7b;line-height:1.9;margin:4px 0 15px}
+.sr642-chart-legend{display:flex;gap:19px;flex-wrap:wrap;margin:12px 0;color:#24495b;font-weight:850;font-size:12px}
+.sr642-chart-legend span{display:inline-flex;align-items:center;gap:7px}.sr642-chart-legend i{display:inline-block;width:13px;height:13px;border-radius:4px}
+.sr642-trend-svg{direction:ltr;overflow:hidden}.sr642-trend-svg svg{width:100%;height:auto;max-height:270px;display:block}
+.sr642-trend-points{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
+.sr642-trend-point{border:1px solid #d8e6e9;background:#f6fafb;border-radius:12px;padding:11px 8px;display:grid;gap:5px;text-align:center;min-width:0}
+.sr642-trend-point b{font-size:12px;color:#16394c;line-height:1.5;overflow-wrap:anywhere}
+.sr642-trend-point span{font-size:12px;color:#4e6372;line-height:1.4;display:flex;justify-content:center;gap:5px;flex-wrap:wrap}
+.sr642-trend-point span strong{font-weight:950;font-variant-numeric:tabular-nums}
+.sr642-trend-point small{font-size:11px;color:#617986}
+.sr642-ring-wrap{width:158px;height:158px;flex:none;position:relative}
+.sr642-ring-wrap .srcoord-ring{width:158px;height:158px}
+.sr642-ring-center{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;pointer-events:none;gap:2px}
+.sr642-ring-center strong{font-size:29px;color:#173e51;font-weight:950;font-variant-numeric:tabular-nums}.sr642-ring-center span{font-size:12px;color:#647983}
+.sr642-level-panel .srcoord-ring-layout{justify-content:space-between;gap:15px;align-items:center}
+.sr642-level-panel .srcoord-legend{gap:8px}.sr642-level-panel .srcoord-legend>div{padding:7px 0;border-bottom:1px solid #eaf1f3;flex-wrap:wrap}
+.sr642-level-panel .srcoord-legend strong{font-size:11px;white-space:nowrap;color:#173e51}
+.sr642-rank-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.sr642-rank-item{border:1px solid #e1e9ed;background:#f8fbfc;border-radius:13px;padding:13px 15px;min-width:0}
+.sr642-rank-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:9px}
+.sr642-rank-head strong{font-size:14px;color:#123f56;font-weight:950;overflow-wrap:anywhere}.sr642-rank-head span{color:#627988;font-size:11px;white-space:nowrap}
+.sr642-compare-bar{display:grid;grid-template-columns:68px minmax(0,1fr) 61px;align-items:center;gap:8px;margin-top:8px;font-size:11px;font-weight:800}
+.sr642-compare-bar>span{color:#3c5968}.sr642-compare-bar>strong{text-align:left;color:#183d54;font-variant-numeric:tabular-nums}
+.sr642-meter{height:11px;background:#e3ebef;border-radius:15px;overflow:hidden}.sr642-meter>div{height:100%;border-radius:inherit}
+.sr642-level-panel h3,.sr642-trend-panel h3{font-size:17px!important;line-height:1.7;min-height:0!important;margin:0!important}
+.srstaff-coordinator .srcoord-mini{border-color:#d1e4e8;box-shadow:0 4px 12px #0e43500a}.srstaff-coordinator .srcoord-mini .srcoord-bar-row{margin-top:10px}
+@media(max-width:1180px){.srstaff-coordinator .sr642-chart-grid{grid-template-columns:1fr}.srstaff-coordinator .sr642-chart-grid>.sr642-wide{grid-column:auto}}
+@media(max-width:760px){.sr642-rank-grid{grid-template-columns:1fr}.sr642-trend-points{grid-template-columns:repeat(2,minmax(0,1fr))}.sr642-level-panel .srcoord-ring-layout{flex-wrap:wrap}.sr642-chart-heading h3{max-width:100%}.sr642-rank-head{flex-wrap:wrap}}
+@media print{.sr642-chart-grid>.srcoord-chart,.sr642-rank-item,.sr642-trend-point{break-inside:avoid;box-shadow:none!important}.sr642-meter,.sr642-compare-bar>strong,.sr642-ring-wrap{print-color-adjust:exact;-webkit-print-color-adjust:exact}.sr642-chart-grid{display:block!important}.sr642-chart-grid>.srcoord-chart{margin:12px 0}}
+
+/* 6.10.43: avoid overriding the original admin report center Tailwind button utilities in leadership portal. */
+.srstaff-original-report-center{min-width:0;max-width:100%;overflow-x:clip}
+.srstaff-original-report-center .report-preview-shell{max-width:100%}
+
+/* 6.10.44 — Leadership report choices, each with a compact printable-page preview. */
+.srstaff-original-report-center{font-size:15px!important;color:#143951}
+.srstaff-original-report-center .sr644-leadership-center{font-size:15px;line-height:1.75}
+.sr644-leader-report-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:15px;margin:22px 0}
+.sr644-report-card{display:grid;grid-template-columns:92px minmax(0,1fr);grid-template-rows:auto auto;align-items:center;gap:5px 16px;min-height:145px;width:100%;text-align:right;direction:rtl;border:1.5px solid #cadae0;border-radius:16px;padding:13px 15px;background:#fff;color:#163b51;cursor:pointer;box-shadow:0 4px 16px #092e4210;transition:background .2s,border-color .2s,transform .2s}
+.sr644-report-card:hover{background:#f1fbfa;border-color:#0b877e;transform:translateY(-1px)}
+.sr644-report-card:focus-visible{outline:3px solid #158f86;outline-offset:3px}
+.sr644-report-card.active{background:#eef9f7;border:2px solid #067c73;box-shadow:0 6px 16px #0a817120}
+.sr644-report-card-title{display:block;font-size:16px;font-weight:950;line-height:1.55;grid-column:2;grid-row:1;align-self:end;color:#113b52}
+.sr644-report-card-desc{display:block;font-size:12.5px;line-height:1.7;color:#4d6a79;grid-column:2;grid-row:2;align-self:start}
+.sr644-report-thumb{grid-row:1/3;grid-column:1;display:grid;grid-template-rows:6px 6px 18px 26px 20px;gap:6px;width:84px;height:112px;border-radius:4px;border:1px solid #bacad2;background:#fff;padding:9px 8px;box-shadow:0 3px 8px #0825351a;overflow:hidden}
+.sr644-thumb-head{display:block;background:#861c45;border-radius:1px}.sr644-thumb-heading{display:block;background:#d7e1e4;border-radius:1px;width:78%}.sr644-thumb-metrics{background:linear-gradient(90deg,#d6e9e6 31%,#fff 31% 35%,#d6e9e6 35% 65%,#fff 65% 69%,#d6e9e6 69%);border-radius:2px}.sr644-thumb-graphic{background:linear-gradient(90deg,#10a292 0 25%,#e9f2f2 25% 29%,#d4a23b 29% 73%,#e9f2f2 73%);border-radius:3px}.sr644-thumb-lines{background:repeating-linear-gradient(0deg,#e4e9eb 0 3px,transparent 3px 7px)}
+.sr644-thumb-levels .sr644-thumb-graphic{background:linear-gradient(90deg,#148e80 0 55%,#d8a23b 55% 80%,#d56b69 80%)}
+.sr644-thumb-comparison .sr644-thumb-graphic{background:linear-gradient(180deg,#64748b 0 38%,#fff 38% 52%,#10a292 52% 89%)}
+.sr644-thumb-subjects .sr644-thumb-graphic{background:repeating-linear-gradient(90deg,#178c80 0 9px,#d2a23b 9px 18px,#f2f6f7 18px 21px)}
+.sr644-thumb-teachers .sr644-thumb-graphic{background:linear-gradient(90deg,#e0ebed 0 15%,#0c8f83 15% 70%,#e0ebed 70%)}
+.srstaff-original-report-center .report-screen-only h1,.srstaff-original-report-center .report-screen-only h2{font-weight:950!important;line-height:1.5}
+.srstaff-original-report-center .report-screen-only label,.srstaff-original-report-center .report-screen-only button,.srstaff-original-report-center .report-screen-only select{font-size:14px!important;line-height:1.5}
+.srstaff-original-report-center .report-screen-only small{font-size:12px!important;color:#536b79}
+.srstaff-original-report-center .school-report-page{color:#17364b}
+@media(max-width:1200px){.sr644-leader-report-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:670px){.sr644-leader-report-cards{grid-template-columns:1fr}.sr644-report-card{min-height:130px}}
+
+/* 6.10.46 — distinct export controls with accessible progress feedback. */
+.sr646-export-status{display:inline-flex;align-items:center;border:1px solid #9bccd1;border-radius:10px;padding:8px 12px;background:#effafa;color:#134d60;font-size:13px;font-weight:800;line-height:1.6}
+.sr646-export-status::before{content:'↻';display:inline-block;margin-left:7px;font-size:16px}
+
+/* 6.10.47 — MATCH SCREEN PREVIEW WITH THE APPROVED PRINT PALETTE.
+   Old preview applied arbitrary alternate green/blue headers by column position,
+   while the official certificate print uses navy for subjects/evaluation and
+   gold ONLY for the behavior column. These rules must remain the same on print. */
+:root{--sr-behavior-head:#2c6074;--sr-behavior-gold:#ae8230;--sr-behavior-white:#ffffff}
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th,
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:nth-child(2),
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:nth-child(4),
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:first-child{background:var(--sr-behavior-head)!important;color:var(--sr-behavior-white)!important}
+.sr632-preview-sheet:not(.sr633-preview-wrap) thead th:last-child{background:var(--sr-behavior-gold)!important;color:var(--sr-behavior-white)!important}
+.sr633-preview-wrap .sr633-results thead th,
+.sr633-preview-wrap .sr633-results thead th:nth-child(2),
+.sr633-preview-wrap .sr633-results thead th:nth-child(4),
+.sr633-preview-wrap .sr633-results thead th:last-child{background:var(--sr-behavior-head)!important;color:var(--sr-behavior-white)!important}
+.sr633-preview-wrap .sr633-results thead th:first-child{background:var(--sr-behavior-gold)!important;color:var(--sr-behavior-white)!important}
+.sr633-preview-wrap .sr633-results tbody th{background:#f8fbfd;color:#27485d!important}
+@media print{.sr632-preview-sheet thead th,.sr633-preview-wrap .sr633-results thead th{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+
+
+/* 6.10.64 Arabic skills analysis: one layout for preview, print and PDF. */
+.srskill-center{display:flex;flex-direction:column;gap:18px;direction:rtl;max-width:100%;padding:12px 4px 30px;color:#173c4b}
+.srskill-toolbar{border-radius:16px;background:linear-gradient(120deg,#123e50,#108d85);padding:18px 22px;color:white}
+.srskill-toolbar h2{font-size:23px;font-weight:800;margin:0 0 6px}.srskill-toolbar p{margin:0;color:#e4f3f1}
+.srskill-controls,.srskill-limits,.srskill-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:end;padding:14px;border:1px solid #d1e0e3;background:white;border-radius:12px}
+.srskill-controls label,.srskill-limits label{display:flex;flex-direction:column;gap:6px;min-width:180px;font-size:13px;font-weight:700}
+.srskill-controls select,.srskill-controls input,.srskill-limits input{background:#fff;border:1px solid #b5ccd2;border-radius:8px;padding:9px;max-width:270px;color:#123a49}
+.srskill-actions button,.srskill-limits button,.srskill-preview-navigation button{border:0;border-radius:9px;background:#0f706e;color:white;padding:10px 14px;font-weight:700;cursor:pointer}
+.srskill-actions button:disabled,.srskill-preview-navigation button:disabled{opacity:.45;cursor:not-allowed}
+.srskill-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(135px,1fr));gap:12px}
+.srskill-metrics>div{background:#fff;border:1px solid #d1e0e3;border-radius:10px;padding:11px;display:flex;flex-direction:column;gap:4px}
+.srskill-metrics span{font-size:12px;color:#53707a}.srskill-metrics strong{font-size:22px;color:#0d5f62}
+.srskill-status{border:1px solid #b4d0d4;border-radius:10px;padding:10px 15px;background:#ebf8f7}
+.srskill-empty{border:1px dashed #8fb4bc;border-radius:14px;padding:24px;background:#fff;text-align:center}
+.srskill-preview{background:#e5eef0;border:1px solid #d2e1e4;border-radius:16px;padding:18px;overflow:auto;display:flex;flex-direction:column;align-items:center;gap:20px}
+.srskill-preview-navigation{width:100%;display:flex;align-items:center;gap:12px;justify-content:center;flex-wrap:wrap}
+.skill-report-page{box-sizing:border-box!important;width:297mm!important;min-width:297mm!important;max-width:297mm!important; height:210mm!important;min-height:210mm!important;max-height:210mm!important;display:flex!important;flex-direction:column!important;direction:rtl!important;padding:9mm 9mm 8mm!important;overflow:hidden!important;background:white!important;font-family:Arial,Tahoma,sans-serif!important;color:#17333f!important;font-size:10px!important;box-shadow:0 12px 32px #16374729}
+.srskill-header{display:flex;align-items:center;gap:12mm;padding:2mm 4mm;border:1px solid #d2e4e6;background:#f6fafb;border-radius:5px;min-height:18mm;flex-shrink:0}
+.srskill-header img{width:23mm;height:18mm;object-fit:contain}.srskill-header div{flex:1;text-align:right}
+.srskill-header strong{font-size:11px}.srskill-header h2{font-size:17px;color:#087f7e;margin:3px 0}.srskill-header p{margin:0;font-size:10px}
+.srskill-body{flex:0 1 auto;margin-top:4mm;min-height:0}.srskill-body h3{font-size:13px;text-align:center;color:#153e50;margin:0 0 3mm}
+.srskill-table{width:100%;table-layout:fixed;border-collapse:collapse;font-size:9.6px;direction:rtl}
+.srskill-table th,.srskill-table td{border:1px solid #94afb7;padding:5px 3px;text-align:center;white-space:normal;overflow-wrap:anywhere}
+.srskill-table thead th{background:#123e50;color:white;font-weight:700}
+.srskill-table tbody tr:nth-child(even){background:#f1f7f8}
+.srskill-table tbody td:nth-child(2){text-align:right;font-weight:700}
+.srskill-table .srskill-max th{background:#c8e9e6;color:#173b46}
+.srskill-table .srskill-total{background:#ddede8!important;font-weight:800}
+.srskill-note{font-size:9px;color:#5a6f77;line-height:1.5;margin:2mm 0 0;flex-shrink:0}
+.srskill-footer{display:flex;justify-content:space-between;gap:6mm;margin-top:auto!important;padding:2mm 0;border-top:1px solid #839da8;font-size:9px;font-weight:700;flex-shrink:0}
+.srskill-page-number{text-align:center;font-size:9px;color:#42606d;flex-shrink:0}
+@media(max-width:650px){.srskill-center{padding:6px 0}.srskill-controls label{min-width:140px}.srskill-preview{padding:8px}}
+
+/* 6.10.66 — Bilingual skills: accessible responsive editing separate from fixed A4 report geometry. */
+.srskill-v2 .srskill-panel{padding:16px;border:1px solid #d0e2e5;background:#fff;border-radius:14px;max-width:100%;overflow:hidden}
+.srskill-v2 .srskill-panel h3{font-weight:850;color:#0d5b68;font-size:18px;margin:0 0 10px}
+.srskill-v2 .srskill-panel p{font-size:13px;line-height:1.7;color:#506972}
+.srskill-v2 .srskill-field{display:flex;flex-direction:column;gap:6px;min-width:155px;flex:1;max-width:320px;font-weight:750;font-size:13px}
+.srskill-v2 .srskill-field input,.srskill-v2 .srskill-field select,.srskill-v2 .srskill-skill-input input{border:1px solid #bfd3d8;color:#173d4b;background:#fff;border-radius:8px;min-height:37px;max-width:100%;padding:8px}
+.srskill-v2 .srskill-skill-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px;margin:12px 0}
+.srskill-v2 .srskill-skill-input{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(65px,.65fr) auto;gap:6px;align-items:center}
+.srskill-v2 button{font-size:13px;font-weight:750;cursor:pointer}
+.srskill-v2 .srskill-controls button,.srskill-v2 .srskill-actions button,.srskill-v2 .srskill-skill-input button{border:0;background:#0b716d;color:#fff;padding:9px 11px;border-radius:8px;min-height:37px}
+.srskill-v2 button:disabled{opacity:.48;cursor:not-allowed}
+.srskill-v2 .srskill-skill-input button{background:#96505b}
+.srskill-v2 .srskill-warning{border-radius:10px;padding:12px 16px;border:1px solid #ebb68d;color:#994319;background:#fff1e4;font-weight:750}
+.srskill-v2 .srskill-table-scroll{overflow:auto;max-width:100%;border:1px solid #d9e5e8;border-radius:10px;margin:12px 0}
+.srskill-v2 .srskill-table-scroll .srskill-table{min-width:860px;table-layout:auto;font-size:12px}
+.srskill-v2 .srskill-table-scroll th,.srskill-v2 .srskill-table-scroll td{white-space:nowrap;padding:7px}
+.srskill-v2 .srskill-table-scroll input[type=number]{width:64px;max-width:66px;padding:6px;border-radius:6px;border:1px solid #abcbd4}
+.srskill-v2 .srskill-highlight{background:#ffe8df!important}
+.srskill-v2 .srskill-graphs{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.srskill-v2 .srskill-graphs article{background:#f7fafb;border:1px solid #d5e3e7;border-radius:10px;padding:11px}
+.srskill-v2 .srskill-graphs article>div:first-child{display:flex;justify-content:space-between}
+.srskill-v2 .srskill-bar{height:10px;border-radius:12px;overflow:hidden;background:#dce9eb;margin:10px 0}
+.srskill-v2 .srskill-bar div{height:100%;background:linear-gradient(90deg,#118a82,#ddae55);border-radius:12px}
+.srskill-v2 .srskill-preview{max-width:100%}
+@media(max-width:650px){.srskill-v2 .srskill-panel{padding:10px}.srskill-v2 .srskill-skill-grid,.srskill-v2 .srskill-graphs{grid-template-columns:1fr}.srskill-v2 .srskill-field{min-width:125px}}
+
+/* 6.10.68 — cross-year exam comparison, native RTL and print-ready metrics */
+.sr67-year-center{border:1px solid #c9d9dd;background:#fff;border-radius:16px;overflow:hidden;padding:18px;margin:0 0 20px;box-shadow:0 8px 23px #0a46510c;color:#17384a}
+.sr67-year-header{border-bottom:1px solid #e1ebed;padding-bottom:13px;margin-bottom:14px}
+.sr67-eyebrow{display:inline-block;font-weight:800;font-size:12px;color:#0b8379;background:#e8f6f2;border-radius:20px;padding:4px 12px}
+.sr67-year-header h2{font-size:20px;font-weight:900;color:#143f50;margin:8px 0}
+.sr67-year-header p,.sr67-year-method,.sr67-year-note{font-size:13px;color:#516e76;line-height:1.9}
+.sr67-year-controls{display:flex;align-items:flex-end;flex-wrap:wrap;gap:10px;margin:14px 0}
+.sr67-year-controls label{min-width:185px;display:grid;gap:4px;font-size:12px;font-weight:800}
+.sr67-year-controls select{border:1px solid #c0d0d5;border-radius:8px;background:#fff;color:#214658;padding:9px;min-height:39px}
+.sr67-year-controls button{background:#0b7775;border:0;border-radius:9px;color:#fff;font-size:13px;font-weight:800;min-height:39px;padding:9px 14px;cursor:pointer}
+.sr67-year-controls button:disabled{opacity:.5;cursor:not-allowed}
+.sr67-year-alert{padding:13px 15px;color:#944919;background:#fff3e4;border:1px solid #e4bd82;border-radius:10px;line-height:1.8}
+.sr67-year-status{padding:12px;color:#326c7e}
+.sr67-year-note{background:#f0f7f8;border-radius:8px;padding:8px 11px}
+.sr67-year-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.sr67-metric{border:1px solid #d0e2e2;background:#f8fbfb;border-top:4px solid #0b877e;border-radius:10px;padding:12px;min-width:0}
+.sr67-metric span,.sr67-metric strong,.sr67-metric small{display:block}
+.sr67-metric span{font-size:12px;font-weight:700;color:#50666f}
+.sr67-metric strong{font-size:23px;font-weight:900;margin:8px 0;color:#194450}
+.sr67-metric small{font-size:12px;color:#50646d;line-height:1.6}
+.sr67-year-scroll{overflow-x:auto;border:1px solid #dbe6e8;border-radius:9px}
+.sr67-year-table{border-collapse:collapse;min-width:1000px;width:100%;font-size:12px;text-align:right}
+.sr67-year-table th,.sr67-year-table td{padding:10px 8px;text-align:right;border-bottom:1px solid #e1e8eb;white-space:normal}
+.sr67-year-table thead th{background:#e7f3f3;color:#184859;font-weight:800}
+.sr67-year-table tbody tr:nth-child(odd){background:#fbfcfd}
+@media(max-width:700px){.sr67-year-metrics{grid-template-columns:1fr}.sr67-year-center{padding:11px}.sr67-year-controls label{flex:1 1 150px}}
