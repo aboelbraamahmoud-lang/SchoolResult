@@ -128,7 +128,8 @@ async function main(){
    if(mode!=='summary'){
     const title=role==='owner'?await page.evaluate(mode=>SR63.currentWorkspace.settings.reportDesign.reportNames[mode]||pde.find(x=>x.id===mode)?.title,mode):titles[mode];
     assert.ok(title,'report title '+mode);
-    await page.locator('button').filter({has:page.getByText(title,{exact:true})}).first().click();
+    const reportArea=['principal','vice_principal'].includes(role)?page.locator('#audit-mount main').last():page.locator('#audit-mount');
+    await reportArea.locator('button').filter({has:page.getByText(title,{exact:true})}).first().click();
    }
    await page.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
    await page.locator('#printable-reports .school-report-page').first().waitFor();
