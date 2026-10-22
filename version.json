@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.70",
+  "version": "6.10.71",
   "released": "2026-10-22",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "توحيد إعدادات تذييل التقارير للمنسقين مع الأدمن وإظهار اسم منسق المادة تلقائيًا، وإخفاء تحليل المهارات عن المدير والنائب."
+  "notes": "لوحة القيادة وتحليلات الأدمن الأصلية للمدير والنائب، بقائمة جانبية موحدة دون تكرار، مع تطابق بيانات الهيكل الأكاديمي ومؤشرات المدرسة."
 }

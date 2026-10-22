@@ -77,6 +77,12 @@ const cleanLeadership=(ws:any)=>{
  // Some legacy school workspaces predate this field, but the original report
  // renderer assumes coordinatorName is a string.
  if(typeof visible.workspace.settings.coordinatorName!=='string')visible.workspace.settings.coordinatorName='';
+ const pickCatalog=(list:any,keys:string[])=>Array.isArray(list)?list.map((item:any)=>typeof item==='string'?item:Object.fromEntries(keys.filter(k=>Object.prototype.hasOwnProperty.call(item||{},k)).map(k=>[k,item[k]]))):[];
+ visible.workspace.grades=pickCatalog(ws.grades,['id','name','order','active']);
+ visible.workspace.classes=pickCatalog(ws.classes,['id','name','className','gradeId','grade','order','active']);
+ visible.workspace.subjects=pickCatalog(ws.subjects,['id','name','department','coordinatorId','coordinatorName','coordinator','gradeIds','order','active']);
+ (visible.workspace as any).catalogDetached=ws.catalogDetached===true;
+ if(Object.prototype.hasOwnProperty.call(originalSettings,'dashboardSubjects'))visible.workspace.settings.dashboardSubjects=originalSettings.dashboardSubjects;
  visible.workspace.skillsAssessments=[];
  visible.workspace.rows=Array.isArray(ws.rows)?ws.rows:[];
  visible.workspace.teachers=Array.isArray(ws.teachers)?ws.teachers:[];

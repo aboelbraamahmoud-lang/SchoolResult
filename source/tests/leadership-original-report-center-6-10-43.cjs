@@ -33,7 +33,12 @@ const read=(element,predicate)=>{const found=[];const visit=node=>{if(Array.isAr
 const runPortal=(role,permissions,page='reportCenter')=>{
  let i=0;
  ctx.v={...ctx.v,useState:initial=>{const j=i++;const value=j===0?payload:j===2?false:j===3?page:typeof initial==='function'?initial():initial;return [value,()=>{}]},useEffect:()=>{},useMemo:fn=>fn(),useCallback:fn=>fn,useRef:v=>({current:v})};
- return SR63.CoordinatorPortal({profile:{role,ownerId:'owner1',username:role,displayName:role,departments:['الرياضيات'],permissions}});
+ const profile={role,ownerId:'owner1',username:role,displayName:role,departments:['الرياضيات'],permissions};
+ if(['principal','vice_principal'].includes(role)){
+  let index=0;ctx.v.useState=initial=>[index++===0?page:typeof initial==='function'?initial():initial,()=>{}];
+  return SR63.LeadershipPortal({profile,payload,loading:false,error:'',reload:()=>{}});
+ }
+ return SR63.CoordinatorPortal({profile});
 };
 const permissions={reports:true,export:true,studentLevels:true,teacherAnalysis:true,failedStudents:true,compare:true};
 for(const role of ['vice_principal','principal']){
@@ -45,7 +50,7 @@ for(const role of ['vice_principal','principal']){
  assert.equal(props.workspace.settings.reportDesign,workspace.settings.reportDesign,'same report design supplied');
  assert.equal(props.readOnly,true);
  assert.equal(props.canPrint,true);
- assert.equal(read(el,node=>node.props?.children==='مركز التقارير والطباعة').length,1);
+ assert.equal(SR63.leadershipNavigation({permissions}).filter(x=>x.id==='reportCenter').length,1);
 }
 const coordinator=read(runPortal('coordinator',permissions),node=>node.type===ctx.xde);
 assert.equal(coordinator.length,1,'coordinator receives identical original report center');
