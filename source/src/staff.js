@@ -241,6 +241,7 @@ SR63.CoordinatorPortal=function({profile}){
    h('button',{type:'button',disabled:loading,onClick:()=>void reload()},loading?'جارٍ التحديث…':'تحديث النتائج')
   ])
  ]);
+ if(isLeadership)return h(SR63.LeadershipPortal,{profile,payload,loading,error,reload});
  return h('main',{className:'srstaff-coordinator srcoord-upgraded',dir:'rtl'},[
   header,h('nav',{className:'srstaff-nav','aria-label':'صفحات المنسق'},views.filter(x=>x[2]).map(([key,label])=>h('button',{key,type:'button',className:page===key?'active':'',onClick:()=>setPage(key)},label))),
   error?h('p',{className:'srstaff-alert',role:'alert'},error):null,

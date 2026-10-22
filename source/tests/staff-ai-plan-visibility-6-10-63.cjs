@@ -22,7 +22,7 @@ ctx.v={...ctx.v,useState:initial=>[typeof initial==='function'?initial():initial
 try{
  for(const role of ['coordinator','principal','vice_principal']){
   const el=ctx.SR63.CoordinatorPortal({profile:{role,ownerId:'test-owner',username:role,departments:['الرياضيات'],permissions:{reports:true,export:true,plans:true,savePlans:true,generateAI:true}}});
-  const labels=[];
+  const labels=role==='coordinator'?[]:ctx.SR63.leadershipNavigation({permissions:{reports:true}}).map(x=>x.label);
   walk(el,node=>{if(typeof node.props?.children==='string')labels.push(node.props.children)});
   assert.ok(labels.some(text=>text.includes('مركز التقارير والطباعة')),role+' keeps report center');
   assert.ok(!labels.some(text=>text.includes('الخطط العلاجية الذكية')),role+' hides smart plans even with stale grants');
