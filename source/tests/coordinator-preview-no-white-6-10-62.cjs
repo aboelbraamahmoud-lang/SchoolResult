@@ -8,7 +8,7 @@ const staff=fs.readFileSync(path.join(__dirname,'../src/staff.js'),'utf8');
 const ui=fs.readFileSync(path.join(__dirname,'../src/patches/ui.js'),'utf8');
 const edge=fs.readFileSync(path.join(__dirname,'../../supabase/functions/school-staff/index.ts'),'utf8');
 assert.match(staff,/SR63\.staffReportWorkspace=function/);
-assert.match(staff,/coordinatorName:typeof settings\.coordinatorName==='string'\?settings\.coordinatorName:''/);
+assert.match(staff,/typeof settings\.coordinatorName==='string'\?settings\.coordinatorName:''/);
 assert.match(staff,/SR63\.ReportCenterSafeBoundary=class extends v\.Component/);
 assert.match(staff,/h\(SR63\.getReportCenterSafeBoundary\(\),/,'React error boundary must wrap actual report center');
 assert.match(edge,/reportDesign','coordinatorName','stable'/,'server source safely projects report fields for future deploys');

@@ -1,7 +1,7 @@
 'use strict';
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm');
-const source=fs.readFileSync(path.join(__dirname,'../src/skills.js'),'utf8');
+const source=fs.readFileSync(path.join(__dirname,'../src/report-footer.js'),'utf8')+'\n'+fs.readFileSync(path.join(__dirname,'../src/skills.js'),'utf8');
 const mk=(grade,id,name,klass,marks)=>{
  const row=[Number(id),1,name,klass,...marks,null,null,null];return row;
 };
@@ -69,7 +69,7 @@ assert.match(printer,/\.srskill-footer/,'skill report signatures participate in 
 const staff=fs.readFileSync(path.join(__dirname,'../src/staff.js'),'utf8');
 const edge=fs.readFileSync(path.join(__dirname,'../../supabase/functions/school-staff/index.ts'),'utf8');
 const build=fs.readFileSync(path.join(__dirname,'../build.cjs'),'utf8');
-assert.match(staff,/page==='skillsReports'&&perms\.reports/);
+assert.match(staff,/page==='skillsReports'&&!isLeadership&&perms\.reports/);
 assert.match(staff,/allowedSubjects:isLeadership\?null:profile\.departments/,'coordinator client scope');
 assert.match(edge,/const skillsAssessments=.*\.filter/,'server filters subject skill records before sending');
 assert.match(edge,/allowedSkills\.has\(skillSubject\(a\.subject\)\)/,'Arabic coordinator aliases remain private and scoped');

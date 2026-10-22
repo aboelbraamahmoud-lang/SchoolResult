@@ -50,16 +50,18 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  const teachers=(ws.teachers||[]).filter((t:any)=>depts.has(dept(t.department))||subjects.has(dept(t.subject)));
  const settings=ws.settings||{};
  // Whitelist settings. Never send whole workspace or backups, imports, other-subject records, auth metadata.
- const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','academicViceName','principalName','signatures','footerText','reportTitle'];
+ const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','academicViceName','principalName','signatures','footerText','reportTitle','schoolVision','programmerDesignerName','reportSystemName','preparedByName','reviewedByName','showGeneratedAt','statusAliases'];
  const publicSettings=Object.fromEntries(fields.filter(k=>Object.prototype.hasOwnProperty.call(settings,k)).map(k=>[k,settings[k]]));
  if(typeof publicSettings.coordinatorName!=='string')publicSettings.coordinatorName='';
  if(!Number.isFinite(Number(publicSettings.stable)))publicSettings.stable=3;
+ // Only authorized subject presentation metadata; never forward arbitrary catalog fields.
+ const visibleSubjects=(Array.isArray(ws.subjects)?ws.subjects:[]).filter((s:any)=>subjects.has(dept(s.name))||depts.has(dept(s.department))).map((s:any)=>({id:s.id,name:s.name,department:s.department,gradeIds:s.gradeIds||[],order:s.order,active:s.active,coordinatorName:String(s.coordinatorName||((ws.teachers||[]).find((t:any)=>t.id===s.coordinatorId)?.teacher)||'')}));
  const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(dept(p.subject)));
  // Arabic spelling aliases are equivalent for skill reports, without widening any row permissions.
  const skillSubject=(value:unknown)=>skillKind(value)||dept(value);
  const allowedSkills=new Set([...subjects,...depts].map(skillSubject));
  const skillsAssessments=(Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[]).filter((a:any)=>allowedSkills.has(skillSubject(a.subject)));
- return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:[],imports:[],auditLog:[],customReports:[]}};
+ return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:visibleSubjects,imports:[],auditLog:[],customReports:[]}};
 };
 // School leadership sees the entire school's analytical rows through this
 // whitelisted read-only response. Never expose auth data, backups or arbitrary
@@ -75,7 +77,7 @@ const cleanLeadership=(ws:any)=>{
  // Some legacy school workspaces predate this field, but the original report
  // renderer assumes coordinatorName is a string.
  if(typeof visible.workspace.settings.coordinatorName!=='string')visible.workspace.settings.coordinatorName='';
- visible.workspace.skillsAssessments=Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[];
+ visible.workspace.skillsAssessments=[];
  visible.workspace.rows=Array.isArray(ws.rows)?ws.rows:[];
  visible.workspace.teachers=Array.isArray(ws.teachers)?ws.teachers:[];
  visible.workspace.teacherAssignments=Array.isArray(ws.teacherAssignments)?ws.teacherAssignments:[];

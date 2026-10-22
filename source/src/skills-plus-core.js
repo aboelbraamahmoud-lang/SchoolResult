@@ -128,7 +128,7 @@ SR63.skillCsv=(rows,name)=>{
 };
 SR63.skillReports=function(assessment,workspace,{type='school',grade='الكل',className='الكل',skillKey='',threshold=50,older=null,departments=null}={}){
  if(!assessment)return {pages:[],rows:[],columns:[]};
- const settings=workspace.settings||{},fmt=n=>Number.isFinite(n)?String(Math.round(n*10)/10):'—',
+ const settings={...(workspace.settings||{}),coordinatorName:SR63.subjectCoordinator?.(workspace,assessment.subject)||workspace.settings?.coordinatorName||''},fmt=n=>Number.isFinite(n)?String(Math.round(n*10)/10):'—',
   filtered=assessment.records.filter(r=>(grade==='الكل'||r.grade===grade)&&(className==='الكل'||r.className===className));
  let title='',columns=[],rows=[];
  const skill=assessment.skills.find(s=>s.key===skillKey)||assessment.skills[0];
@@ -167,7 +167,7 @@ SR63.skillReports=function(assessment,workspace,{type='school',grade='الكل',
    '<header class="srskill-header"><img src="./moehe.png" alt="شعار الوزارة"><div><strong>'+esc(settings.schoolName||'المدرسة')+'</strong><h2>'+esc(title)+'</h2><p>'+esc(assessment.subject)+' · '+esc(settings.exams?.find(e=>e.key===assessment.exam)?.name||assessment.exam)+' · '+esc(assessment.academicYear||'')+'</p></div></header>'+
    '<div class="srskill-body"><h3>'+esc(title)+'</h3><table class="srskill-table"><thead><tr>'+columns.map(s=>'<th>'+esc(s)+'</th>').join('')+
    '</tr></thead><tbody>'+chunk.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+
-   '<footer class="report-footer srskill-footer"><div>منسق المادة: '+esc(settings.coordinatorName||'........')+'</div><div>النائب الأكاديمي: '+esc(settings.academicViceName||'........')+'</div><div>مدير المدرسة: '+esc(settings.principalName||'........')+'</div></footer>'+
+   SR63.reportFooterHTML({...workspace,settings},assessment.subject)+
    '<div class="srskill-page-number">صفحة '+p+' من '+count+'</div></section>');
  }
  return {pages,rows,columns,title};

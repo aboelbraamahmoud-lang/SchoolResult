@@ -36,7 +36,7 @@ assert.equal(school.settings.secretAPIToken,undefined,'no secret config exposed'
 assert.equal(school.aiPlans.length,0,'school leadership must not receive AI plan drafts');
 assert.ok(!JSON.stringify(school).includes('NEVER_EXPOSE_THIS_TOKEN'),'no accidental secrets');
 assert.ok(!JSON.stringify(school).includes('DO_NOT_EXPOSE_INTERNAL'),'no imports or audit log');
-assert.ok(!('schoolVision' in coordinator.settings),'coordinator receives only department-scoped settings');
+assert.equal(coordinator.settings.schoolVision,ws.settings.schoolVision,'coordinator preserves school print vision without widening student scope');
 for(const tab of ['summary','levels','struggling','teachers','comparison','subjects']){
  const dimension=tab==='teachers'?'teacher':'className';
  const args=(settings)=>[ws.rows,dimension,'الكل','الكل',tab,'exam2',ws.settings.pass,settings];
