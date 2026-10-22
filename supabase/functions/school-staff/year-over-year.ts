@@ -26,7 +26,7 @@ export function yearExamDataset(workspace:any,exam:string,threshold:number,allow
  const rows=Array.isArray(workspace?.rows)?workspace.rows:[],defs=workspace?.settings?.exams||[];
  const maxDefault=Number(defs.find((e:any)=>e.key===exam)?.total??0);
  const allowed=Array.isArray(allowedDepartments)?new Set(allowedDepartments.map(norm).filter(Boolean)):null;
- const unique=new Map<string,{grade:string,id:string,score:number,total:number,success:boolean}>();
+ const unique=new Map<string,{grade:string,subject:string,label:string,id:string,score:number,total:number,success:boolean}>();
  for(const r of rows){
   if(!r||support(r,exam)||r.statuses?.[exam]!=='present')continue;
   if(allowed&&!allowed.has(norm(r.subject))&&!allowed.has(norm(r.department)))continue;
@@ -36,7 +36,7 @@ export function yearExamDataset(workspace:any,exam:string,threshold:number,allow
   const score=r.scores?.[exam],total=Number(r.totals?.[exam]??maxDefault);
   if(typeof score!=='number'||!Number.isFinite(score)||!Number.isFinite(total)||total<=0||score<0||score>total)continue;
   const key=grade+'|'+id+'|'+subject;
-  if(!unique.has(key))unique.set(key,{grade,id,score,total,success:100*score/total>=threshold});
+  if(!unique.has(key))unique.set(key,{grade,subject,label:String(r.subject).trim(),id,score,total,success:100*score/total>=threshold});
  }
  return [...unique.values()];
 }
@@ -59,6 +59,9 @@ export function yearExamCompare(current:any,previous:any,exam:string,allowedDepa
   previous:a,current:b,successChange:a.success===null||b.success===null?null:rounded(b.success-a.success),
   achievementChange:a.achievement===null||b.achievement===null?null:rounded(b.achievement-a.achievement)
  });
+ const subjectPairs=(a:typeof prev,b:typeof curr)=>[...new Set([...b,...a].map(x=>x.subject))]
+  .sort((a,b)=>a.localeCompare(b,'ar')).map(subject=>({subject,label:[...b,...a].find(x=>x.subject===subject)!.label,
+   ...pair(aggregate(a.filter(x=>x.subject===subject)),aggregate(b.filter(x=>x.subject===subject)))}));
  const grades=[...new Set([...curr,...prev].map(x=>x.grade))].sort((a,b)=>Number(a)-Number(b));
  const gradeNames:{[key:string]:string}={'1':'الأول','2':'الثاني','3':'الثالث','4':'الرابع','5':'الخامس','6':'السادس','7':'السابع','8':'الثامن','9':'التاسع','10':'العاشر','11':'الحادي عشر','12':'الثاني عشر'};
  return {currentYear,previousYear:prevYear,exam,currentExamName:current.settings.exams.find((x:any)=>x.key===exam)?.name||exam,
@@ -66,6 +69,7 @@ export function yearExamCompare(current:any,previous:any,exam:string,allowedDepa
   schoolName:String(current.settings?.schoolName||'').slice(0,180),principalName:String(current.settings?.principalName||'').slice(0,180),
   threshold,scope:allowedDepartments===null?'school':'department',
   school:pair(aggregate(prev),aggregate(curr)),
-  grades:grades.map(g=>({grade:g,label:'الصف '+(gradeNames[g]||g),...pair(aggregate(prev.filter(x=>x.grade===g)),aggregate(curr.filter(x=>x.grade===g)))})),
+  subjects:subjectPairs(prev,curr),
+  grades:grades.map(g=>({grade:g,label:'الصف '+(gradeNames[g]||g),subjects:subjectPairs(prev.filter(x=>x.grade===g),curr.filter(x=>x.grade===g)),...pair(aggregate(prev.filter(x=>x.grade===g)),aggregate(curr.filter(x=>x.grade===g)))})),
   noCurrentResults:curr.length===0,noPreviousResults:prev.length===0};
 }

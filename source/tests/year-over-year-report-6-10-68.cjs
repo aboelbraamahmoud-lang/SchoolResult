@@ -70,3 +70,15 @@ const ctx={SR63:{},v,console};vm.runInNewContext(ui,ctx,{timeout:10000});
 const tree=ctx.SR63.YearComparisonCenter({workspace:{settings:{exams},activeExam:'exam1'},canPrint:true});
 assert.match(JSON.stringify(tree),/مقارنة الاختبار المناظر بين العام الحالي والسابق/,'display report widget');
 console.log('PASS 6.10.68: same exam across two actual academic years, school/grade success and achievement, staff scoping, archive checks, print UI');
+
+assert.equal(result.subjects.length,2);
+const arabic=result.subjects.find(x=>x.label==='اللغة العربية');
+assert.equal(arabic.previous.success,66.7);assert.equal(arabic.current.success,100);
+assert.equal(arabic.previous.achievement,63.3);assert.equal(arabic.current.achievement,66.7);
+assert.equal(result.grades[0].subjects.length,2);
+assert.equal(scoped.subjects.length,1);assert.equal(scoped.subjects[0].label,'اللغة العربية');
+const oneYear=structuredClone(current);oneYear.rows.push(row('11','7','العلوم',45));
+const science=yearExamCompare(oneYear,previous,'exam1').subjects.find(x=>x.label==='العلوم');
+assert.equal(science.previous.success,null);assert.equal(science.successChange,null);
+assert.equal(science.current.achievement,90);
+assert.equal(result.school.current.achievement,70,'school total weighted by actual results, not average of subject percentages');

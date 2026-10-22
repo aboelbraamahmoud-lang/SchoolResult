@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.69",
-  "released": "2026-10-21",
+  "version": "6.10.70",
+  "released": "2026-10-22",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح نطاق تقارير الشعب متعددة المعلمين، وانتظار اكتمال رسم الصفحة قبل تصدير PDF وZIP لمنع تكرار الصفحات وفقد الطلاب، وإظهار أسماء التقارير الافتراضية. نسخة مرشحة لم تُنشر؛ راجع تقرير التدقيق وحدود التحقق."
+  "notes": "توحيد إعدادات تذييل التقارير للمنسقين مع الأدمن وإظهار اسم منسق المادة تلقائيًا، وإخفاء تحليل المهارات عن المدير والنائب."
 }

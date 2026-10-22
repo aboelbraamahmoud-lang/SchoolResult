@@ -114,11 +114,11 @@ SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
  return {students:persons.length,evaluated:evaluated.length,regular:nonSupport.length,success:nonSupport.length?100*success/nonSupport.length:null,achievement,levels,studentLevels,gradeSummary,failed,teachers:stats(teachers),classes:stats(classes),trend,benchmarks};
 };
 // Keep the coordinator's server-enforced row scope and normalize optional report fields.
-SR63.staffReportWorkspace=function(workspace,exam){
+SR63.staffReportWorkspace=function(workspace,exam,profile={}){
  const settings=workspace?.settings||{};
  return {...workspace,activeExam:exam,settings:{
   ...settings,
-  coordinatorName:typeof settings.coordinatorName==='string'?settings.coordinatorName:'',
+  coordinatorName:profile.role==='coordinator'?(String(profile.displayName||'').trim()||String(settings.coordinatorName||'')):(typeof settings.coordinatorName==='string'?settings.coordinatorName:''),
   stable:Number.isFinite(Number(settings.stable))?Number(settings.stable):3
  }};
 };
@@ -147,13 +147,13 @@ SR63.CoordinatorPortal=function({profile}){
  (0,v.useEffect)(()=>{void reload();},[profile.ownerId,profile.username]);
  const workspace=payload?.workspace||null,perms=profile.permissions||{},settings=workspace?.settings||{},exams=settings.exams||[],
  exam=exams.some(x=>x.key===chosenExam)?chosenExam:(workspace?.activeExam||exams[0]?.key||'exam1');
- const currentExam=exams.find(x=>x.key===exam),examName=currentExam?.name||'التقييم المحدد',active=SR63.staffReportWorkspace(workspace,exam);
+ const currentExam=exams.find(x=>x.key===exam),examName=currentExam?.name||'التقييم المحدد',active=SR63.staffReportWorkspace(workspace,exam,profile);
  const benchmarks=(payload?.comparisonExam===exam||!payload?.comparisonExam&&exam===workspace?.activeExam)?(payload?.benchmarks||[]):[];
  const data=(0,v.useMemo)(()=>workspace?SR63.coordinatorDashboardData(workspace,exam,benchmarks):null,[workspace,exam,payload]);
  // Original admin reports consult SR63.currentWorkspace for report-scope auditing
  // and label/subject ordering. Always bind it to THIS authenticated school;
  // clear the reference when staff exits or switches account/exam.
- (0,v.useEffect)(()=>{if(!workspace)return;const reportWorkspace={...workspace,activeExam:exam};SR63.currentWorkspace=reportWorkspace;return()=>{if(SR63.currentWorkspace===reportWorkspace)SR63.currentWorkspace=null;};},[workspace,exam,profile.ownerId,profile.username]);
+ (0,v.useEffect)(()=>{if(!workspace)return;const reportWorkspace=SR63.staffReportWorkspace(workspace,exam,profile);SR63.currentWorkspace=reportWorkspace;return()=>{if(SR63.currentWorkspace===reportWorkspace)SR63.currentWorkspace=null;};},[workspace,exam,profile.ownerId,profile.username]);
  const isLeadership=['vice_principal','principal'].includes(profile.role),scopeLabel=isLeadership?'المدرسة':'القسم';
  const scopedClasses=[...new Set((workspace?.rows||[]).map(r=>String(r.examClasses?.[exam]||r.className||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
  const scopedSubjects=[...new Set((workspace?.rows||[]).map(r=>String(r.subject||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
@@ -161,7 +161,7 @@ SR63.CoordinatorPortal=function({profile}){
  const otherExam=exams.some(x=>x.key===previousExam&&x.key!==exam)?previousExam:(exams.find(x=>x.key!==exam&&exams.indexOf(x)<exams.findIndex(y=>y.key===exam))?.key||exams.find(x=>x.key!==exam)?.key||'');
  const chronological=SR63.staffExamChronology(settings,exam,otherExam),canCompare=!!chronological;
  const compared=(0,v.useMemo)(()=>workspace&&chronological?SR63.staffExamComparison(workspace,chronological.older,chronological.later):[],[workspace,chronological?.older,chronological?.later]);
- const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName});}catch(error){setError(error.message||'تعذرت الطباعة.');}};
+ const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace:active,subject:isLeadership?'':(profile.departments||[])[0]||''});}catch(error){setError(error.message||'تعذرت الطباعة.');}};
  const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
  const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});
  const liveChart=html=>h('div',{className:'sr640-chart-live',dangerouslySetInnerHTML:{__html:html}});
@@ -230,7 +230,7 @@ SR63.CoordinatorPortal=function({profile}){
   rankedPanel('أي الشعب تحتاج إلى متابعة أكبر؟',data.classes,{note:'الشعب مرتبة من الأقل تحصيلًا. المقارنة حسب نتائج التعليم العام المرصودة في الاختبار المختار.',success:true,wide:true,lowFirst:true,limit:20})
  ]);
  const cards=[['الطلاب ذوو نتائج',data?.students??0,'طالب فريد يشمل الدعم الإضافي'],['النتائج المرصودة',data?.evaluated??0,'يشمل الدعم الإضافي'],['نسبة نجاح النتائج',fmt(data?.success),'من نتائج التعليم العام المرصودة'],['التحصيل الأكاديمي',fmt(data?.achievement),'متوسط نسبة النتائج المرصودة'],['معلمو '+scopeLabel,data?.teachers?.length??0,'من لديهم نتائج مرصودة'],['الطلاب المتعثرون',new Set((data?.failed||[]).map(x=>(x.studentId||x.name)+'|'+x.className)).size,'عدد الطلاب المختلفين تحت حد النجاح في مادة واحدة أو أكثر']];
- const views=[['dashboard','لوحة '+scopeLabel,true],['overview','ملخص أداء المدرسة',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison',isLeadership?'مقارنة نتائج المدرسة بين اختبارين':'مقارنة اختبارين للقسم والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['reportCenter','مركز التقارير والطباعة',!!perms.reports],['skillsReports','تحليل مهارات المواد',!!perms.reports]];
+ const views=[['dashboard','لوحة '+scopeLabel,true],['overview','ملخص أداء المدرسة',isLeadership&&!!perms.reports],['levels','مستويات الطلاب بالألوان',!!perms.studentLevels],['failed','الطلاب المتعثرون',!!perms.failedStudents],['teachers','معلمو '+scopeLabel,!!perms.teacherAnalysis],['comparison',isLeadership?'مقارنة نتائج المدرسة بين اختبارين':'مقارنة اختبارين للقسم والأقسام',!!perms.compare],['reports',isLeadership?'التقرير الكمي والوصفي':'خطط تحسين الأداء والتقارير الكمية والوصفية',!!perms.reports],['reportCenter','مركز التقارير والطباعة',!!perms.reports],['skillsReports','تحليل مهارات المواد',!isLeadership&&!!perms.reports]];
  const header=h('header',{className:'srcoord-hero'},[
   h('div',{className:'srcoord-brand'},[
    h('img',{src:'./moehe.png',alt:'شعار وزارة التربية والتعليم والتعليم العالي'}),
@@ -291,7 +291,7 @@ SR63.CoordinatorPortal=function({profile}){
     !isLeadership?h('section',{},[h('h2',{},'مقارنة الأقسام — إجماليات فقط'),h('p',{},'لا تُعرض أسماء أو درجات الطلاب في الأقسام الأخرى.'),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['القسم','عدد النتائج','نسبة النجاح','التحصيل'].map(x=>h('th',{key:x},x)))),h('tbody',{},benchmarks.map(b=>h('tr',{key:b.department},[b.department,b.evaluated,fmt(b.success),fmt(b.achievement)].map((x,i)=>h('td',{key:i},x)))))])),!benchmarks.length?h('p',{},'لا تتوفر مقارنة إجمالية لهذا الاختبار حتى تحديث خدمة الأقسام.'):null]):null
    ]):null,
    page==='reports'&&perms.reports?(isLeadership?h(SR63.SchoolQuantitativePage,{key:exam,workspace:active,canExport:!!perms.export}):h(SR63.TeacherPerformanceCenter,{key:exam,workspace:active,canExport:!!perms.export})):null,
-   page==='skillsReports'&&perms.reports?h(SR63.SkillCenter,{workspace:active,readOnly:isLeadership||profile.skillsWrite!==true,canPrint:!!perms.export,allowedSubjects:isLeadership?null:profile.departments,onSaved:()=>reload(exam),expectedRevision:payload?.revision}):null,
+   page==='skillsReports'&&!isLeadership&&perms.reports?h(SR63.SkillCenter,{workspace:active,readOnly:isLeadership||profile.skillsWrite!==true,canPrint:!!perms.export,allowedSubjects:isLeadership?null:profile.departments,onSaved:()=>reload(exam),expectedRevision:payload?.revision}):null,
    page==='reportCenter'&&perms.reports?h('section',{className:'srstaff-original-report-center',dir:'rtl'},[
     h('header',{className:'srstaff-panel'},[
      h('h2',{},isLeadership?'مركز التقارير والطباعة الأصلي — جميع صفوف المدرسة':'مركز التقارير والطباعة — أقسامي المصرح بها فقط'),

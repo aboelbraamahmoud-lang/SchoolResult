@@ -5,15 +5,20 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('n
 const {execFileSync}=require('node:child_process');
 const {chromium}=require('playwright');
 const {loadApp}=require('./harness.cjs');
+const vm=require('node:vm'),esbuild=require('esbuild');
 const root=path.resolve(__dirname,'../..'),out=path.join(root,'audit-artifacts');
 fs.mkdirSync(out,{recursive:true});
+const edgeSandbox={exports:{},require:()=>({createClient:()=>({})}),Deno:{serve:()=>{}},TextEncoder,URL,Response,console};
+const edgeSource=fs.readFileSync(path.join(root,'supabase/functions/school-staff/index.ts'),'utf8');
+vm.runInNewContext(esbuild.transformSync(edgeSource+'\nexports.projection={coordinator:cleanCoordinator,principal:cleanLeadership,vice_principal:cleanLeadership};',{loader:'ts',format:'cjs',target:'es2022'}).code,edgeSandbox);
+const projections=edgeSandbox.exports.projection;
 const {ctx}=loadApp(),demo=JSON.parse(JSON.stringify(ctx.zj())),records=[];
 const subject='اللغة العربية',baseRow=demo.rows.find(r=>r.subject===subject&&r.className==='7/1');
 assert.ok(baseRow);
 function fixture(count,classes=1){
  const ws=structuredClone(demo);ws.settings.schoolName='مدرسة التدقيق الاصطناعي';
  ws.settings.principalName='مدير تجريبي';ws.settings.academicYear='2026/2027';
- ws.settings.coordinatorName='منسق تجريبي';ws.activeExam='exam4';
+ ws.settings.coordinatorName='منسق تجريبي';ws.settings.schoolVision='VISION61070';ws.settings.preparedByName='PREPARED61070';ws.settings.reportDesign.footerText='FOOTER61070';ws.settings.reportDesign.showVision=true;ws.settings.reportDesign.showAttribution=true;ws.settings.reportDesign.showSignatures=true;ws.activeExam='exam4';
  ws.rows=Array.from({length:count},(_,i)=>{
   const className='7/'+(1+i%classes),r={...structuredClone(baseRow),id:'row-'+i,studentId:'AUDIT'+String(i+1).padStart(4,'0'),
    studentName:'طالب تجريبي AUDIT'+String(i+1).padStart(4,'0'),className,grade:'7',teacher:'معلم تجريبي',
@@ -96,7 +101,7 @@ async function main(){
    }else if(role==='owner'){
     auditRoot.render(v.createElement(xde,{workspace:ws,onExportExcel:()=>{},canPrint:true}));
    }else{
-    const profile={role,ownerId:'synthetic-owner',username:'synthetic-'+role,departments:['اللغة العربية'],
+    const profile={role,ownerId:'synthetic-owner',username:'synthetic-'+role,displayName:'COORDINATOR61070',departments:['اللغة العربية'],
      permissions:{reports:true,compare:true,export:true,studentLevels:true,failedStudents:true,teacherAnalysis:true},skillsWrite:false};
     SR63.staff.coordinatorLoad=async()=>({workspace:ws,profile,revision:1,benchmarks:[],comparisonExam:ws.activeExam});
     SR63.staff.call=async()=>({report:null});
@@ -104,6 +109,7 @@ async function main(){
    }
   },{ws,role,yearReport});
   if(!['owner','year','student','skills'].includes(role)){
+   assert.equal(await page.getByRole('button',{name:'تحليل مهارات المواد',exact:true}).count(),role==='coordinator'?1:0);
    await page.getByRole('button',{name:'مركز التقارير والطباعة',exact:true}).click();
    if(role==='coordinator'){
     await page.getByRole('textbox',{name:'المادة الثابتة لقسم المنسق'}).waitFor();
@@ -114,6 +120,7 @@ async function main(){
  }
  async function caseReport(mode,count,{role='owner',classes=1,zip=false}={}){
   const id=role+'-'+mode+'-'+count+'-'+classes,ws=fixture(count,classes);
+  if(role!=='owner'){const projected=projections[role](ws,[subject]).workspace;Object.assign(ws,projected);ws.subjects=[];ws.teachers=ws.teachers.map(t=>({...t,coordinator:''}));}
   const state=await open(ws,role),{page,context,errors}=state;
   const record={case:id,role,authentication:'synthetic boundary only',mode,count,status:'FAIL',downloads:[]};
   try{
@@ -125,6 +132,9 @@ async function main(){
    }
    await page.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
    await page.locator('#printable-reports .school-report-page').first().waitFor();
+   const previewFooters=await page.locator('#printable-reports .report-footer').allTextContents();
+   const footerTokens=['FOOTER61070','VISION61070','PREPARED61070',...(role==='coordinator'?['COORDINATOR61070']:[])];
+   for(const footer of previewFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'preview footer includes '+token);
    const landscape=['subjects','departmentStats'].includes(mode);
    let expectedPages=mode==='comparison'?classes*Math.ceil(Math.ceil(count/classes)/10):
     mode==='levels'?classes*Math.ceil(Math.ceil(count/classes)/34):undefined;
@@ -135,6 +145,9 @@ async function main(){
    await page.getByRole('button',{name:'طباعة التقرير الحالي',exact:true}).click();
    const popup=await popupPromise;
    await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
+   const printedFooters=await popup.locator('.report-footer').allTextContents();
+   for(const footer of printedFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'print footer includes '+token);
+   assert.deepEqual(printedFooters.slice(0,previewFooters.length),previewFooters,'print footer equals preview');
    const printPages=await popup.locator('.school-report-page').count();
    if(expectedPages!==undefined)assert.equal(printPages,expectedPages);
    expectedPages=printPages;
@@ -157,6 +170,7 @@ async function main(){
    record.downloads.push({...inspectPDF(downloadFile,{pages:expectedPages,landscape}),suggestedFilename:download.suggestedFilename()});
    const captured=await page.evaluate(()=>window.auditCaptures);
    assert.equal(captured.length,expectedPages);
+   for(const capture of captured)for(const token of footerTokens)assert.ok(capture.text.includes(token),'download footer includes '+token);
    if(fullIds.length)assert.deepEqual(captured.flatMap(x=>x.text.match(/AUDIT\d{4}/g)||[]).sort(),fullIds.slice().sort());
    if(zip){
     const promise=page.waitForEvent('download',{timeout:120000});
@@ -168,6 +182,8 @@ async function main(){
     const entries=zipResult.files.map(f=>inspectPDF(f,{landscape}));
     assert.equal(entries.reduce((sum,x)=>sum+x.pages,0),expectedPages,'ZIP includes all pages');
     record.zip={file:path.basename(file),entries,names:zipResult.names,crc:'PASS'};
+    const zipCaptures=await page.evaluate(()=>window.auditCaptures.slice());
+    for(const capture of zipCaptures)for(const token of footerTokens)assert.ok(capture.text.includes(token),'ZIP footer includes '+token);
    }
    assert.deepEqual(errors,[],'no uncaught browser errors');
    record.status='PASS';
@@ -234,14 +250,15 @@ async function main(){
   for(const count of [10,18,28,40,80,90])await caseReport('comparison',count,{zip:count===18});
   for(const mode of ['summary','levels','struggling','teachers','subjects','departmentStats','executive'])await caseReport(mode,18,{zip:mode==='summary'});
   await caseReport('comparison',40,{classes:2,zip:true});
-  for(const role of ['coordinator','principal','vice_principal'])await caseReport('summary',18,{role,zip:role==='coordinator'});
-  await caseReport('comparison',18,{role:'coordinator'});
+  for(const role of ['coordinator','principal','vice_principal'])for(const mode of ['summary','levels','teachers','comparison','subjects'])await caseReport(mode,18,{role,zip:true});
   // Real annual-report UI/print button with actual calculator output and synthetic cohorts.
   const ts=fs.readFileSync(path.join(root,'supabase/functions/school-staff/year-over-year.ts'),'utf8');
   const code=require('esbuild').transformSync(ts,{loader:'ts',format:'cjs'}).code,mod={exports:{}};
   new Function('module','exports',code)(mod,mod.exports);
   for(const empty of [false,true]){
-   const ws=fixture(18),prior=fixture(10);prior.settings.academicYear='2025/2026';if(empty)ws.rows=[];
+   const ws=fixture(18),prior=fixture(10);prior.settings.academicYear='2025/2026';
+   for(const data of [ws,prior]){const original=[...data.rows];for(let i=1;i<=14;i++)data.rows.push(...original.map(x=>({...x,subject:'مادة اختبار '+i,department:'مادة اختبار '+i})));}
+   if(empty)ws.rows=[];
    const report=mod.exports.yearExamCompare(ws,prior,'exam4');
    const {context,page}=await open(ws,'year',report);
    const record={case:'year-over-year-'+(empty?'empty':'valid'),status:'FAIL',authentication:'synthetic boundary only'};
@@ -250,8 +267,12 @@ async function main(){
     await page.waitForFunction(()=>!document.querySelector('.sr67-year-status'));
     assert.equal(await button.isDisabled(),empty);
     if(!empty){
+     const screenRows=await page.locator('.sr67-year-table tbody tr').allTextContents();
+     assert.equal(screenRows.length,report.subjects.length+1);assert.match(screenRows.at(-1),/إجمالي المدرسة/);
      const promise=page.waitForEvent('popup');await button.click();const popup=await promise;
      await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:15000});
+     assert.deepEqual(await popup.locator('.sr640-table tbody tr').allTextContents(),screenRows,'annual subject table identical in preview and print');
+     assert.equal(await popup.locator('.sr640-chart-row').count(),2*screenRows.length,'every subject and total have both metrics in charts');
      const file=path.join(out,'year-over-year.pdf');await popup.pdf({path:file,preferCSSPageSize:true,printBackground:true});
      record.pdf=inspectPDF(file,{landscape:true,vector:true});
     }else assert.match(await page.locator('#audit-mount').innerText(),/لا توجد نتائج/);

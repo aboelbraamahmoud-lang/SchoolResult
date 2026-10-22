@@ -14,7 +14,7 @@ const excel={SheetNames:['English'],Sheets:{English:{rows:[
 const v={useMemo:fn=>fn(),useState:initial=>[typeof initial==='function'?initial():initial,()=>{}],createElement:(type,props,...children)=>({type,props,children})};
 const context={SR63,v,Date,console,Map,Set,hv:()=>excel,Gv:{sheet_to_json:sheet=>sheet.rows}};
 vm.createContext(context);
-for(const file of ['src/skills.js','src/skills-plus-core.js','src/skills-plus-ui.js'])vm.runInContext(from(file),context,{timeout:7000});
+for(const file of ['src/report-footer.js','src/skills.js','src/skills-plus-core.js','src/skills-plus-ui.js'])vm.runInContext(from(file),context,{timeout:7000});
 assert.equal(SR63.skillSubjects.english.keys.length,5);
 for(const v of ['اللغة الإنجليزية','اللغة الانجليزية','قسم اللغة الإنجليزية','English Language'])assert.equal(SR63.skillKind(v),'english');
 assert.equal(SR63.skillKind('اللغة العربية'),'arabic');

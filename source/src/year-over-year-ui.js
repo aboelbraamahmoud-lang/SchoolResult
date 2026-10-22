@@ -38,9 +38,10 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
  const rowData=x=>[x.label||'المدرسة بالكامل',x.previous?.results??0,number(x.previous?.success),
   number(x.previous?.achievement),x.current?.results??0,number(x.current?.success),
   number(x.current?.achievement),change(x.successChange),change(x.achievementChange)];
- const tableHead=['النطاق','نتائج العام السابق','نجاح السابق','تحصيل السابق','نتائج العام الحالي','نجاح الحالي','تحصيل الحالي','فرق النجاح','فرق التحصيل'];
+ const comparisonRows=()=>[...(grade==='الكل'?r?.subjects:selected?.subjects)||[],{...selected,label:grade==='الكل'?(r.scope==='department'?'إجمالي القسم':'إجمالي المدرسة'):'إجمالي '+selectedTitle}];
+ const tableHead=['المادة / الإجمالي','نتائج العام السابق','نجاح السابق','تحصيل السابق','نتائج العام الحالي','نجاح الحالي','تحصيل الحالي','فرق النجاح','فرق التحصيل'];
  function documentReport(){
-  const rows=grade==='الكل'?[{...r.school,label:'المدرسة بالكامل'},...grades]:grades.filter(x=>x.grade===grade);
+  const rows=comparisonRows();
   const table='<table class="sr640-table" dir="rtl"><thead><tr>'+
    tableHead.map(k=>'<th>'+esc(k)+'</th>').join('')+'</tr></thead><tbody>'+
    rows.map(x=>'<tr>'+rowData(x).map((v,i)=>'<'+(i===0?'th scope="row"':'td')+'>'+esc(v)+'</'+(i===0?'th':'td')+'>').join('')+'</tr>').join('')+
@@ -50,12 +51,12 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
    ['تغير النجاح',change(selected.successChange)],['تغير التحصيل',change(selected.achievementChange)],
    ['نجاح العام السابق',number(selected.previous.success)],['نجاح العام الحالي',number(selected.current.success)]
   ].map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div>';
-  const chart=SR63.staffReportBarChart('مقارنة نسب النجاح والتحصيل حسب الصف',
-   (grade==='الكل'?grades:grades.filter(x=>x.grade===grade)).flatMap(x=>[
+  const chartRows=comparisonRows().flatMap(x=>[
     {name:x.label+' — النجاح',value:x.previous.success,second:x.current.success},
     {name:x.label+' — التحصيل',value:x.previous.achievement,second:x.current.achievement}
-   ]),{two:true,firstLabel:'العام السابق '+r.previousYear,secondLabel:'العام الحالي '+r.currentYear,
-     color:'#64748b',secondColor:'#0e887f'});
+   ]);
+  const chart=Array.from({length:Math.ceil(chartRows.length/6)},(_,i)=>SR63.staffReportBarChart('مقارنة نسب النجاح والتحصيل حسب المادة',chartRows.slice(i*6,i*6+6),{two:true,firstLabel:'العام السابق '+r.previousYear,secondLabel:'العام الحالي '+r.currentYear,
+     color:'#64748b',secondColor:'#0e887f'})).join('');
   const description='يُقارن الاختبار المناظر بين عامين دراسيين مختلفين؛ ولا تفترض المقارنة أن الطلاب أنفسهم في الصفين. '+
    'النجاح = عدد النتائج الناجحة ÷ النتائج المرصودة، والتحصيل = مجموع الدرجات المحصلة ÷ مجموع الدرجات القصوى. '+
    'الغائبون وغير المرصودة نتائجهم وطلاب الدعم الإضافي لا يدخلون في المؤشرات العامة، وتُستخدم نسبة نجاح موحدة '+r.threshold+'%. '+
@@ -70,7 +71,7 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
  const doPrint=()=>{
   if(!canPrint||!canReport)return;
   try{SR63.staffPrintHtml(documentReport(),{schoolName:r.schoolName,academicYear:r.previousYear+' / '+r.currentYear,
-    principalName:r.principalName});}
+    principalName:r.principalName,workspace});}
   catch(error){setState(x=>({...x,error:String(error.message||error)}));}
  };
  const warning=!r?'':r.noPreviousResults?'لا توجد نتائج مرصودة للاختبار المناظر في أرشيف العام السابق.':
@@ -79,7 +80,7 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
   h('header',{className:'sr67-year-header'},
    h('div',{},h('span',{className:'sr67-eyebrow'},'تقرير جديد في مركز التقارير'),
     h('h2',{},'مقارنة الاختبار المناظر بين العام الحالي والسابق'),
-    h('p',{},'مقارنة عادلة للنجاح والتحصيل بين عامين على مستوى الصف والمدرسة، دون تغيير النتائج أو الأرشيف.'))),
+    h('p',{},'مقارنة تفصيلية لكل مادة: النجاح والتحصيل في العام الحالي والسابق، ثم الإجمالي في النهاية.'))),
   h('div',{className:'sr67-year-controls'},
    h('label',{},h('span',{},'الاختبار المناظر'),
     h('select',{value:exam,onChange:e=>{setExam(e.target.value);setGrade('الكل');}},
@@ -104,8 +105,8 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
   r&&grades.length?h('div',{className:'sr67-year-scroll'},
    h('table',{className:'sr67-year-table'},
     h('thead',{},h('tr',{},tableHead.map(x=>h('th',{key:x},x)))),
-    h('tbody',{},(grade==='الكل'?[{...r.school,label:'المدرسة بالكامل'},...grades]:grades.filter(x=>x.grade===grade))
-     .map((row,i)=>h('tr',{key:row.grade||'school'},rowData(row).map((x,j)=>h(j===0?'th':'td',{key:j},String(x)))))))):null,
+    h('tbody',{},comparisonRows()
+     .map((row,i)=>h('tr',{key:row.subject||'total'},rowData(row).map((x,j)=>h(j===0?'th':'td',{key:j},String(x)))))))):null,
   r?h('p',{className:'sr67-year-method'},'المقارنة بين دفعتين دراسيتين، وليست مقارنة فردية للطلاب. '+
    'تُحسب نسب النجاح والتحصيل من النتائج الحاضرة ذات الدرجة الصحيحة، ويفصل التقرير بين عدد النتائج وعدد الطلاب. '+
    'إذا لم تتوافر نتائج في أحد العامين لا تُعرض فروق مضللة ولا تُتاح الطباعة.'):null
