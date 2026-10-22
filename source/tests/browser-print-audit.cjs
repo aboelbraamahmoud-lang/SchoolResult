@@ -257,7 +257,7 @@ async function main(){
   new Function('module','exports',code)(mod,mod.exports);
   for(const empty of [false,true]){
    const ws=fixture(18),prior=fixture(10);prior.settings.academicYear='2025/2026';
-   for(const data of [ws,prior])data.rows.push(...data.rows.map(x=>({...x,subject:'الرياضيات',department:'الرياضيات'})));
+   for(const data of [ws,prior]){const original=[...data.rows];for(let i=1;i<=14;i++)data.rows.push(...original.map(x=>({...x,subject:'مادة اختبار '+i,department:'مادة اختبار '+i})));}
    if(empty)ws.rows=[];
    const report=mod.exports.yearExamCompare(ws,prior,'exam4');
    const {context,page}=await open(ws,'year',report);
@@ -272,6 +272,7 @@ async function main(){
      const promise=page.waitForEvent('popup');await button.click();const popup=await promise;
      await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:15000});
      assert.deepEqual(await popup.locator('.sr640-table tbody tr').allTextContents(),screenRows,'annual subject table identical in preview and print');
+     assert.equal(await popup.locator('.sr640-chart-row').count(),2*screenRows.length,'every subject and total have both metrics in charts');
      const file=path.join(out,'year-over-year.pdf');await popup.pdf({path:file,preferCSSPageSize:true,printBackground:true});
      record.pdf=inspectPDF(file,{landscape:true,vector:true});
     }else assert.match(await page.locator('#audit-mount').innerText(),/لا توجد نتائج/);

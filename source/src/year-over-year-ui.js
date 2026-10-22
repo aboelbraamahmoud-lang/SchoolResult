@@ -51,12 +51,12 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
    ['تغير النجاح',change(selected.successChange)],['تغير التحصيل',change(selected.achievementChange)],
    ['نجاح العام السابق',number(selected.previous.success)],['نجاح العام الحالي',number(selected.current.success)]
   ].map(([k,v])=>'<div><span>'+esc(k)+'</span><strong>'+esc(v)+'</strong></div>').join('')+'</div>';
-  const chart=SR63.staffReportBarChart('مقارنة نسب النجاح والتحصيل حسب المادة',
-   comparisonRows().flatMap(x=>[
+  const chartRows=comparisonRows().flatMap(x=>[
     {name:x.label+' — النجاح',value:x.previous.success,second:x.current.success},
     {name:x.label+' — التحصيل',value:x.previous.achievement,second:x.current.achievement}
-   ]),{two:true,firstLabel:'العام السابق '+r.previousYear,secondLabel:'العام الحالي '+r.currentYear,
-     color:'#64748b',secondColor:'#0e887f'});
+   ]);
+  const chart=Array.from({length:Math.ceil(chartRows.length/6)},(_,i)=>SR63.staffReportBarChart('مقارنة نسب النجاح والتحصيل حسب المادة',chartRows.slice(i*6,i*6+6),{two:true,firstLabel:'العام السابق '+r.previousYear,secondLabel:'العام الحالي '+r.currentYear,
+     color:'#64748b',secondColor:'#0e887f'})).join('');
   const description='يُقارن الاختبار المناظر بين عامين دراسيين مختلفين؛ ولا تفترض المقارنة أن الطلاب أنفسهم في الصفين. '+
    'النجاح = عدد النتائج الناجحة ÷ النتائج المرصودة، والتحصيل = مجموع الدرجات المحصلة ÷ مجموع الدرجات القصوى. '+
    'الغائبون وغير المرصودة نتائجهم وطلاب الدعم الإضافي لا يدخلون في المؤشرات العامة، وتُستخدم نسبة نجاح موحدة '+r.threshold+'%. '+

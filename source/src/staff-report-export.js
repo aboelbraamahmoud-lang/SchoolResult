@@ -21,7 +21,7 @@
    const bars=`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 ${opts.two?54:28}" preserveAspectRatio="none" role="img" aria-label="${esc(firstLabel)}${opts.two?'، '+esc(secondLabel):''}"><rect x="0" y="1" rx="6" width="700" height="22" fill="#e9f0f2"/><rect x="0" y="1" rx="6" width="${(700*a/100).toFixed(1)}" height="22" fill="${c}"/>${opts.two?`<rect x="0" y="30" rx="6" width="700" height="22" fill="#edf1f2"/><rect x="0" y="30" rx="6" width="${(700*b/100).toFixed(1)}" height="22" fill="${c2}"/>`:''}</svg>`;
    return `<div class="sr640-chart-row" dir="rtl"><strong class="sr640-chart-label">${esc(String(x.name||'').slice(0,90))}</strong><div class="sr640-chart-vectors">${bars}</div><span class="sr640-chart-values">${esc(firstLabel)}${opts.two?'<small>'+esc(secondLabel)+'</small>':''}</span></div>`;
   }).join(''):'<p>لا توجد نتائج للرسم البياني.</p>';
-  const legend=opts.two?`<p class="sr640-legend"><span>● ${esc(opts.firstLabel||'الشريط الأول: نسبة التحصيل')}</span> <span>● ${esc(opts.secondLabel||'الشريط الثاني: نسبة النجاح')}</span></p>`:'';
+  const legend=opts.two?`<p class="sr640-legend"><span style="color:${color}">● ${esc(opts.firstLabel||'الشريط الأول: نسبة التحصيل')}</span> <span style="color:${safeColor(opts.secondColor||'#c19036')}">● ${esc(opts.secondLabel||'الشريط الثاني: نسبة النجاح')}</span></p>`:'';
   return `<section class="sr640-chart" dir="rtl"><h3>${esc(title)}</h3>${legend}<div class="sr640-chart-rows">${rows}</div></section>`;
  };
  const levelChart=(bands)=>{
