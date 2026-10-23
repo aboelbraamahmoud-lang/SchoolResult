@@ -62,6 +62,21 @@ function inspectPDF(file,{pages,landscape,vector=false,ids=[]}={}){
  return {file:path.basename(file),bytes:fs.statSync(file).size,pages:count,
  orientation:+sizes[0][1]>+sizes[0][2]?'landscape':'portrait',selectableText:!!text.trim(),allPagesRendered:true};
 }
+function reportGeometry(nodes){return nodes.map(p=>{
+ const page=p.getBoundingClientRect();return [...p.querySelectorAll('*')].map(n=>{
+  const r=n.getBoundingClientRect(),c=getComputedStyle(n);
+  return {tag:n.tagName,cls:n.className?.baseVal??n.className,
+   rect:r.width&&r.height?[r.x-page.x,r.y-page.y,r.width,r.height]:[0,0,0,0],
+   font:c.fontSize,lineHeight:c.lineHeight,color:c.color,padding:c.padding,fit:c.objectFit,position:c.objectPosition};
+ });
+});}
+function assertGeometry(actual,expected,label){
+ assert.equal(actual.length,expected.length,label+' element count');
+ for(let i=0;i<expected.length;i++){
+  for(const key of ['tag','font','lineHeight','color','padding','fit','position'])assert.equal(actual[i][key],expected[i][key],label+' '+i+' '+key);
+  actual[i].rect.forEach((v,j)=>assert.ok(Math.abs(v-expected[i].rect[j])<.75,label+' '+i+' '+actual[i].cls+' axis '+j+': '+v+' vs '+expected[i].rect[j]));
+ }
+}
 async function main(){
  const server=http.createServer((req,res)=>{
   const rel=decodeURIComponent(new URL(req.url,'http://127.0.0.1').pathname).replace(/^\/+/,'')||'index.html';
@@ -81,6 +96,7 @@ async function main(){
   page.on('pageerror',err=>errors.push(String(err)));
   await page.goto(origin,{waitUntil:'load'});
   await page.waitForFunction(()=>typeof xde==='function'&&typeof SR63!=='undefined');
+  await page.evaluate('window.reportGeometry='+reportGeometry.toString());
   await page.evaluate(({ws,role,yearReport})=>{
    document.getElementById('root').style.display='none';
    const mount=document.createElement('div');mount.id='audit-mount';document.body.appendChild(mount);
@@ -88,10 +104,14 @@ async function main(){
    window.auditCaptures=[];
    const capture=SR63.reportPageJPEG;
    SR63.reportPageJPEG=async function(node,...args){
-    window.auditCaptures.push({text:node.innerText,orientation:node.dataset.orientation});
-    return capture.call(this,node,...args);
+    const before=window.reportGeometry([node])[0];
+    const result=await capture.call(this,node,...args);
+    window.auditCaptures.push({text:node.innerText,orientation:node.dataset.orientation,before,after:window.reportGeometry([node])[0]});return result;
    };
-   if(role==='student'){
+   if(role==='custom'){
+    const original=H9;H9=()=>({...original(),orientation:yearReport,subject:'اللغة العربية'});
+    auditRoot.render(v.createElement(Dde,{workspace:ws,setWorkspace:()=>{}}));
+   }else if(role==='student'){
     auditRoot.render(v.createElement(SR63.StudentResultsPrint,{workspace:ws}));
    }else if(role==='skills'){
     auditRoot.render(v.createElement(SR63.SkillCenter,{workspace:ws,readOnly:true,canPrint:true}));
@@ -108,7 +128,7 @@ async function main(){
     auditRoot.render(v.createElement(SR63.CoordinatorPortal,{profile}));
    }
   },{ws,role,yearReport});
-  if(!['owner','year','student','skills'].includes(role)){
+  if(!['owner','year','student','skills','custom'].includes(role)){
    assert.equal(await page.getByRole('button',{name:'تحليل مهارات المواد',exact:true}).count(),role==='coordinator'?1:0);
    await page.getByRole('button',{name:'مركز التقارير والطباعة',exact:true}).click();
    if(role==='coordinator'){
@@ -120,6 +140,7 @@ async function main(){
  }
  async function caseReport(mode,count,{role='owner',classes=1,zip=false}={}){
   const id=role+'-'+mode+'-'+count+'-'+classes,ws=fixture(count,classes);
+  if(process.env.AUDIT_CASE&&!id.includes(process.env.AUDIT_CASE))return;
   if(role!=='owner'){const projected=projections[role](ws,[subject]).workspace;Object.assign(ws,projected);ws.subjects=[];ws.teachers=ws.teachers.map(t=>({...t,coordinator:''}));}
   const state=await open(ws,role),{page,context,errors}=state;
   const record={case:id,role,authentication:'synthetic boundary only',mode,count,status:'FAIL',downloads:[]};
@@ -133,12 +154,14 @@ async function main(){
    }
    await page.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
    await page.locator('#printable-reports .school-report-page').first().waitFor();
+   await page.evaluate(()=>document.fonts.ready);
+   const previewGeometry=await page.locator('#printable-reports .school-report-page').evaluateAll(reportGeometry);
    const previewFooters=await page.locator('#printable-reports .report-footer').allTextContents();
    const footerTokens=['FOOTER61070','VISION61070','PREPARED61070',...(role==='coordinator'?['COORDINATOR61070']:[])];
    for(const footer of previewFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'preview footer includes '+token);
    const landscape=['subjects','departmentStats'].includes(mode);
    let expectedPages=mode==='comparison'?classes*Math.ceil(Math.ceil(count/classes)/10):
-    mode==='levels'?classes*Math.ceil(Math.ceil(count/classes)/34):undefined;
+    mode==='levels'?classes*Math.ceil(Math.ceil(count/classes)/16):undefined;
    const previewCount=await page.locator('#printable-reports .school-report-page').count();
    if(expectedPages)assert.equal(previewCount,Math.min(8,expectedPages));
    const fullIds=['comparison','levels'].includes(mode)?ws.rows.map(r=>r.studentId):[];
@@ -149,6 +172,13 @@ async function main(){
    const printedFooters=await popup.locator('.report-footer').allTextContents();
    for(const footer of printedFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'print footer includes '+token);
    assert.deepEqual(printedFooters.slice(0,previewFooters.length),previewFooters,'print footer equals preview');
+   const printGeometry=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
+   if(process.env.AUDIT_CASE){
+    const styles=nodes=>nodes.flatMap(p=>[p,...p.querySelectorAll('*')].map(n=>({cls:n.className,text:n.innerText?.slice(0,50),css:Object.fromEntries([...getComputedStyle(n)].map(k=>[k,getComputedStyle(n).getPropertyValue(k)]))})));
+    fs.writeFileSync(path.join(out,id+'-styles.json'),JSON.stringify({screen:await page.locator('#printable-reports .school-report-page').evaluateAll(styles),print:await popup.locator('.school-report-page').evaluateAll(styles)}));
+   }
+   previewGeometry.forEach((g,i)=>assertGeometry(printGeometry[i],g,id+' preview/print '+i));
+   record.geometryParity=true;
    const printPages=await popup.locator('.school-report-page').count();
    if(expectedPages!==undefined)assert.equal(printPages,expectedPages);
    expectedPages=printPages;
@@ -171,6 +201,7 @@ async function main(){
    record.downloads.push({...inspectPDF(downloadFile,{pages:expectedPages,landscape}),suggestedFilename:download.suggestedFilename()});
    const captured=await page.evaluate(()=>window.auditCaptures);
    assert.equal(captured.length,expectedPages);
+   captured.forEach((g,i)=>{assertGeometry(g.after,g.before,id+' PDF unchanged '+i);if(previewGeometry[i])assertGeometry(g.after,previewGeometry[i],id+' preview/PDF '+i);});
    for(const capture of captured)for(const token of footerTokens)assert.ok(capture.text.includes(token),'download footer includes '+token);
    if(fullIds.length)assert.deepEqual(captured.flatMap(x=>x.text.match(/AUDIT\d{4}/g)||[]).sort(),fullIds.slice().sort());
    if(zip){
@@ -184,6 +215,7 @@ async function main(){
     assert.equal(entries.reduce((sum,x)=>sum+x.pages,0),expectedPages,'ZIP includes all pages');
     record.zip={file:path.basename(file),entries,names:zipResult.names,crc:'PASS'};
     const zipCaptures=await page.evaluate(()=>window.auditCaptures.slice());
+    for(const capture of zipCaptures)assertGeometry(capture.after,capture.before,id+' ZIP');
     for(const capture of zipCaptures)for(const token of footerTokens)assert.ok(capture.text.includes(token),'ZIP footer includes '+token);
    }
    assert.deepEqual(errors,[],'no uncaught browser errors');
@@ -192,6 +224,25 @@ async function main(){
    record.error=String(error.stack||error);record.browserErrors=errors;
    await page.screenshot({path:path.join(out,id+'-failure.png'),fullPage:true}).catch(()=>{});
   }finally{await context.close();records.push(record);console.log('AUDIT_RESULT '+JSON.stringify(record));}
+ }
+ async function customReports(){
+  for(const orientation of ['portrait','landscape']){
+   const record={case:'custom-'+orientation,status:'FAIL',downloads:[]};
+   const {page,context,errors}=await open(fixture(18),'custom',orientation);
+   try{
+    await page.locator('#custom-printable-reports .school-report-page').first().waitFor();
+    await page.evaluate(()=>document.fonts.ready);
+    const before=await page.locator('#custom-printable-reports .school-report-page').evaluateAll(reportGeometry);
+    const promise=page.waitForEvent('popup');
+    await page.evaluate(()=>SR63.print(SR63.currentWorkspace,['exam4']));
+    const popup=await promise;await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:30000});
+    const after=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
+    assert.equal(before.length,after.length);before.forEach((g,i)=>assertGeometry(after[i],g,record.case));
+    const file=path.join(out,record.case+'.pdf');await popup.pdf({path:file,preferCSSPageSize:true,printBackground:true});
+    record.downloads.push(inspectPDF(file,{pages:before.length,landscape:orientation==='landscape',vector:true}));
+    record.geometryParity=true;record.status='PASS';
+   }catch(e){record.error=String(e.stack||e);record.errors=errors;record.text=await page.locator('#audit-mount').innerText();}finally{await context.close();records.push(record);console.log('AUDIT_RESULT '+JSON.stringify(record));}
+  }
  }
  async function extraReports(){
   for(const kind of ['student','arabic','english']){
@@ -212,10 +263,20 @@ async function main(){
     try{
      if(kind==='student')await page.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
      else await page.locator('label').filter({has:page.getByText('نوع التقرير',{exact:true})}).locator('select').selectOption(mode);
+     await page.evaluate(()=>document.fonts.ready);
+     const selector=kind==='student'?'#printable-reports .school-report-page':'.srskill-preview .skill-report-page';
+     const previewGeometry=await page.locator(selector).evaluateAll(reportGeometry);
      const popupPromise=page.waitForEvent('popup');
      await page.getByRole('button',{name:kind==='student'?'طباعة 3 نتيجة':'معاينة وطباعة',exact:true}).click();
      const popup=await popupPromise;
      await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
+     const printedGeometry=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
+     if(process.env.AUDIT_CASE==='extras'){
+      const styles=nodes=>nodes.flatMap(p=>[p,...p.querySelectorAll('*')].map(n=>({cls:n.className,css:Object.fromEntries([...getComputedStyle(n)].map(k=>[k,getComputedStyle(n).getPropertyValue(k)]))})));
+      fs.writeFileSync(path.join(out,id+'-styles.json'),JSON.stringify({screen:await page.locator(selector).evaluateAll(styles),print:await popup.locator('.school-report-page').evaluateAll(styles)}));
+     }
+     previewGeometry.forEach((g,i)=>assertGeometry(printedGeometry[i],g,id+' preview/print'));
+     record.geometryParity=true;
      record.images=await popup.locator('img').evaluateAll(images=>images.map(im=>({complete:im.complete,width:im.naturalWidth,display:getComputedStyle(im).display})));
      assert.ok(record.images.every(im=>im.complete&&im.width>0&&im.display!=='none'),'all official logos/images loaded before printing');
      const native=path.join(out,id+'-native.pdf');
@@ -247,7 +308,8 @@ async function main(){
   }
  }
  try{
-  await extraReports();
+  if(!process.env.AUDIT_CASE||process.env.AUDIT_CASE==='custom')await customReports();
+  if(!process.env.AUDIT_CASE||process.env.AUDIT_CASE==='extras')await extraReports();
   for(const count of [10,18,28,40,80,90])await caseReport('comparison',count,{zip:count===18});
   for(const mode of ['summary','levels','struggling','teachers','subjects','departmentStats','executive'])await caseReport(mode,18,{zip:mode==='summary'});
   await caseReport('comparison',40,{classes:2,zip:true});
@@ -256,7 +318,7 @@ async function main(){
   const ts=fs.readFileSync(path.join(root,'supabase/functions/school-staff/year-over-year.ts'),'utf8');
   const code=require('esbuild').transformSync(ts,{loader:'ts',format:'cjs'}).code,mod={exports:{}};
   new Function('module','exports',code)(mod,mod.exports);
-  for(const empty of [false,true]){
+  for(const empty of (process.env.AUDIT_CASE?[]:[false,true])){
    const ws=fixture(18),prior=fixture(10);prior.settings.academicYear='2025/2026';
    for(const data of [ws,prior]){const original=[...data.rows];for(let i=1;i<=14;i++)data.rows.push(...original.map(x=>({...x,subject:'مادة اختبار '+i,department:'مادة اختبار '+i})));}
    if(empty)ws.rows=[];

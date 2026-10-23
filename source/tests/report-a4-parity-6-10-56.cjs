@@ -16,13 +16,13 @@ for(const [label,style,w,h] of [['portrait',portrait,210,297],['landscape',wide,
  assert.match(style,new RegExp('width:'+w+'mm!important;height:'+h+'mm!important'),label+' fills full physical A4');
  assert.match(style,/padding:9mm 9mm 8mm!important/,'retain original report inner padding');
  assert.match(style,/display:flex!important;flex-direction:column!important/,'retain screen flex layout');
- assert.match(style,/flex-shrink:0!important/,'never collapse logo and report headings');
+ assert.doesNotMatch(style,/school-report-page>\*\{flex-shrink/,'preserve original flex behavior');
  assert.match(style,/margin-top:auto!important/,'retain page signature/footer position');
 }
 assert.match(pr,/SR63\.planReportSheet\(page,width,height\)/);
 assert.match(pdf,/SR63\.planReportSheet\(element,w,h\)/,'PDF/ZIP use same full paper layout as printer');
-assert.match(pdf,/const offsetX=0,offsetY=0/,'no additional raster centering margins');
-assert.match(pdf,/css\.objectPosition/,'preserve exact logo object positioning');
+assert.match(pdf,/style:\{margin:'0',transform:'none',left:'0',top:'0'\}/,'no additional raster centering margins');
+assert.match(pdf,/SR72Canvas\.toCanvas\(element/,'render the original DOM with computed image styles');
 assert.match(ui,/data-orientation/);
 assert.match(ui,/grade-subjects-landscape report-landscape/,'landscape preview matches landscape PDF');
 assert.match(ui,/renderReportHTML\(D,isLandscape/,'all selected pages are printed');

@@ -57,6 +57,8 @@ replace('الدرجة المقترحة مبنية على أعلى درجة مو�
 replace('حتى 50 ملفًا · 25MB للملف · 100 ألف سجل للدفعة','حتى 50 ملفًا · 25MB للملف · 100 ألف سجل طالب/مادة · 400 ألف نتيجة اختبار');
 replace('children:t.grade})','children:t.grade+(t.exam?` · `+tj(e.settings,t.exam).name:``)+(t.inputTeacher?` · المعلم بالملف: `+t.inputTeacher:``)})');
 replace('`نموذج النتيجة`]})})]','`نموذج النتيجة`]})}),(0,q.jsx)(dA,{variant:`outline`,asChild:true,children:(0,q.jsx)(`a`,{href:`./نموذج-استيراد-نتائج-المدرسة.xlsx`,download:true,children:`نموذج الاختبارات الأربعة`})})]');
+// Custom pages paginate at preview time; printing must not shrink their contents.
+replace('u=Math.max(12,(n.orientation===`landscape`?34:30)-l*2-(n.subtitle?2:0))','u=Math.max(8,(n.orientation===`landscape`?12:20)-l*2-(n.subtitle?2:0))');
 // All local edits participate in the same dirty/save and audit mechanism.
 replace('ge=(0,v.useRef)(Promise.resolve(!0));','ge=(0,v.useRef)(Promise.resolve(!0));const srRawSet=t;t=(0,v.useCallback)(change=>{SR63.storage.touch();srRawSet(previous=>SR63.auditChanges(previous,typeof change===`function`?change(previous):change));},[srRawSet]);(0,v.useEffect)(()=>{const handler=()=>{if(SR63.storage.blocked){_(!0);l(SR63.storage.error)}};window.addEventListener(`sr63-storage`,handler);return()=>window.removeEventListener(`sr63-storage`,handler)},[]);');
 const loading='(0,v.useEffect)(()=>{(async()=>{let e=await Yj();';
@@ -211,7 +213,21 @@ replace('title:`سجلات النتائج`,desc:`${Q(H.length)} سجل · الص
 replace('o===`reports`?Je():o===`customReports`?', 'o===`reports`?(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(SR63.YearComparisonCenter,{workspace:e,canPrint:!0}),Je()]}):o===`customReports`?');
 const sharedAnalytics=require('./shared-analytics.cjs')(code,acorn);code=sharedAnalytics.code;
 const services=['engine.js','legacy-multiclass.js','catalog.js','report-footer.js','subject-repair.js','master-ui.js','student-results-print.js','grade-review.js','ai-plan-core.js','ai-plan-word.js','teacher-performance-core.js','teacher-performance-word.js','word-loader.js','report-print-batch.js','report-download-pdf.js','staff-report-export.js','teacher-reference-word.js','behavior-pdf.js','behavior-reports.js','approved-improvement-word.js','teacher-department-core.js','teacher-department-template.js','teacher-department-ui.js','teacher-performance-ui.js','ai-plans-ui.js','dashboard-pro.js','cloud.js','staff-student-levels.js','school-quantitative.js','skills.js','skills-plus-core.js','skills-plus-ui.js','staff.js','leadership.js','year-over-year-ui.js','backups.js','imports.js','subject-presentation.js','report-scope.js','report-grouping.js','reports.js','ui.js','cloud-ui.js'].filter(f=>fs.existsSync(path.join(sourceRoot,'src',f))).map(f=>readSource(path.join('src',f))).join('\n');
-code=services+'\n'+sharedAnalytics.generated+'\n'+importOld+'\n'+qualityOld+'\n'+code;
+// Preserve exact computed font sizes; the dependency's default rounding changes
+// Arabic wrapping. Build a patched temporary copy; leave installed files untouched.
+const canvasTemp=fs.mkdtempSync(path.join(require('os').tmpdir(),'sr-report-renderer-'));
+let canvasBundle;
+try{
+ const packageRoot=path.dirname(require.resolve('html-to-image/package.json'));
+ fs.cpSync(path.join(packageRoot,'es'),canvasTemp,{recursive:true});
+ const clonePath=path.join(canvasTemp,'clone-node.js'),original=fs.readFileSync(clonePath,'utf8');
+ const rounding=/            if \(name === 'font-size' && value.endsWith\('px'\)\) \{[\s\S]*?\n            \}/;
+ if(!rounding.test(original))throw Error('Report renderer font-size contract changed');
+ fs.writeFileSync(clonePath,original.replace(rounding,''));
+ canvasBundle=require('esbuild').buildSync({entryPoints:[path.join(canvasTemp,'index.js')],bundle:true,format:'iife',globalName:'SR72Canvas',write:false,minify:true,target:'es2020'}).outputFiles[0].text;
+}finally{fs.rmSync(canvasTemp,{recursive:true,force:true});}
+
+code=canvasBundle+'\n'+services+'\n' +sharedAnalytics.generated+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);
 fs.writeFileSync(path.join(webRoot,'style.css'),readSource('base/style.css')+'\n'+readSource('src/repair.css'));

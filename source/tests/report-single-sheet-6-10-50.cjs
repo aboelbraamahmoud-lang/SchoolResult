@@ -11,7 +11,7 @@ assert.match(css,/visibility:visible!important/);
 assert.match(css,/break-inside:avoid!important/);
 assert.match(src,/pages\.map\(p=>'<div class="sr650-sheet">'/);
 assert.match(pdf,/SR63\.planReportSheet\(element,w,h\)/);
-assert.match(pdf,/density\*offsetX-density\*scale\*layout\.left/,'300dpi offset must preserve paper margins and fitted coordinates');
+assert.match(pdf,/canvasWidth:w,canvasHeight:h/,'raster paper dimensions must preserve A4');
 function sample(height){
  let width=756,extra=0;
  const tab={style:{setProperty:(k,v)=>{if(k==='height')extra=Math.max(0,parseFloat(v)-400)}},getBoundingClientRect:()=>({width:width-8,height:400}),querySelectorAll:()=>Array(20).fill(null)};

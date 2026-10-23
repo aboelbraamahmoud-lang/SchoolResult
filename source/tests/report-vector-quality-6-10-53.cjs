@@ -4,13 +4,13 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
 const source=p=>fs.readFileSync(path.join(__dirname,'../src',p),'utf8');
 const pdf=source('report-download-pdf.js'),printer=source('report-print-batch.js'),ui=source('patches/ui.js');
-assert.match(pdf,/const density=300\/96/,'300dpi must be used, not old 192dpi');
-assert.match(pdf,/canvas\.width=Math\.round\(w\*density\)/,'physical pixel dimensions must match density');
-assert.match(pdf,/canvas\.height=Math\.round\(h\*density\)/);
-assert.match(pdf,/ctx\.setTransform\(density\*scale/);
+assert.match(pdf,/pixelRatio:300\/96/,'300dpi must be used, not old 192dpi');
+assert.match(pdf,/canvasWidth:w/,'physical pixel dimensions must match density');
+assert.match(pdf,/canvasHeight:h/);
+assert.match(pdf,/skipAutoScale:true/);
 assert.match(pdf,/toDataURL\('image\/jpeg',\.985\)/,'avoid low quality jpeg artifacts');
 assert.doesNotMatch(pdf,/canvas\.width=w\*2;canvas\.height=h\*2/);
-assert.match(pdf,/ctx\.measureText\?\.\(label\)/,'avoid unnecessary Arabic text squeezing');
+assert.doesNotMatch(pdf,/measureText|fillText/,'Arabic shaping is performed by the browser');
 assert.match(ui,/const saveVectorPDF=async\(\)=>/);
 assert.match(ui,/const printWindow=window\.open\('','_blank'\)/,'reserve native dialog synchronously in click handler');
 assert.match(ui,/const exportPages=prepared\?D:\(departmentMode&&!fixedSubject\?\[\]:SR63\.buildReportPages\(reportRows/,'vector path must render only authorized selected subject, not 8-preview only');

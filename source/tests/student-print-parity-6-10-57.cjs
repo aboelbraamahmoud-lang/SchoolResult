@@ -64,7 +64,7 @@ vm.runInNewContext(fn,context);
   querySelectorAll:()=>[footer,table,lastNote]};
  const plan=layoutSandbox.SR63.planReportSheet(page,794,1123);
  assert.equal(plan.singleSheet,true,'nine subjects and their report footer fit exactly one A4');
- assert.ok(extra>60&&extra<300,'only actual available space may be distributed to score rows');
+ assert.equal(extra,0,'retain preview row spacing and signature position');
  assert.ok(footer.getBoundingClientRect().bottom<=1123,'student summary and signatures never leave paper');
  console.log('PASS 6.10.57 student results preview/print parity, no clipped main-window report, safe popup closing');
 })().catch(err=>{console.error(err);process.exitCode=1});

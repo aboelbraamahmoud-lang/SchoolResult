@@ -5,11 +5,10 @@ SR63.print=async function(workspace,exams){
   if(invalid.length){eb.error('عالج المشكلات الحرجة في جودة البيانات قبل الطباعة: '+invalid.map(item=>tj(workspace.settings,item.key).name).join('، '));return;}
   const report=document.getElementById('custom-printable-reports')??document.getElementById('printable-reports');
   if(!report)return eb.error('افتح معاينة التقرير أولًا.');
-  if(document.fonts?.ready)await document.fonts.ready;
-  document.getElementById('sr63-print-root')?.remove();
-  const printRoot=document.createElement('div');printRoot.id='sr63-print-root';printRoot.appendChild(report.cloneNode(true));document.body.appendChild(printRoot);
-  const cleanup=()=>printRoot.remove();window.addEventListener('afterprint',cleanup,{once:true});
-  try{window.print();}catch{cleanup();eb.error('تعذر فتح الطباعة.');}
+  const pages=[...report.querySelectorAll('.school-report-page')];
+  if(!pages.length)return eb.error('جهّز معاينة التقرير أولًا.');
+  try{await SR63.printReportBatch(pages,'تقرير المدرسة',pages[0].classList.contains('landscape'));}
+  catch(error){eb.error(error.message||'تعذر فتح الطباعة.');}
 };
 SR63.reportStatus=function(workspace,assessment,subject){
   const cache=SR63.reportStatusCache??(SR63.reportStatusCache=new WeakMap());let byScope=cache.get(workspace);if(!byScope){byScope=new Map();cache.set(workspace,byScope);}const scope=assessment+'|'+subject;if(byScope.has(scope))return byScope.get(scope);
@@ -71,7 +70,7 @@ SR63.renderReportValue=function(value,key=''){
   }
   if(isPercent&&Number.isFinite(numeric)){
     let pct=/%$/.test(text)?numeric:(numeric>=0&&numeric<=1?numeric*100:numeric);pct=SR63.clampPercent(pct);const tone=SR63.metricTone(pct);
-    return (0,q.jsxs)(`div`,{className:`report-meter report-cell-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:SR63.reportWestern(/%$/.test(text)?text:wj(pct))})]});
+    return (0,q.jsxs)(`span`,{className:`report-meter report-cell-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:SR63.reportWestern(/%$/.test(text)?text:wj(pct))})]});
   }
   return raw;
 };

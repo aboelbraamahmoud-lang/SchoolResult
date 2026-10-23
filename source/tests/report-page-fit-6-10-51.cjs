@@ -15,11 +15,11 @@ for(const [name,content,students] of [['few',460,7],['medium',730,19],['large',1
  const sample=sheet(content,students),f=plan(sample.root,756,1085);
  assert.equal(f.singleSheet,true,name);assert.equal(f.rows,students,name);
  assert.ok(f.fill>.98,name+': uses nearly the whole A4 width');
- assert.ok(f.verticalFill>(students<=12?.80:students<=20?.90:.95),name+': prevent excessive blank vertical A4 space');
+ assert.equal(f.height,content,name+': preserve preview content height');
  assert.ok(f.scale>.96,name+': avoids unnecessary downscaling');
  assert.ok(f.height*f.scale<=1085,name+': all rows fit the physical page');
  assert.ok(sample.requested.every(w=>w<=756.01),name+': never widen the logical page');
- assert.ok(sample.tableExtra>0,name+': distribute free space across student rows');
+ assert.equal(sample.tableExtra,0,name+': preserve preview row spacing');
 }
 assert.throws(()=>plan(sheet(2000,65).root,756,1085),/صفحة A4/,'must reject unreadable layout, not clip student data');
 const portrait=scope.SR63.reportPrintOverride(false),landscape=scope.SR63.reportPrintOverride(true);

@@ -84,7 +84,13 @@
   if(!win)throw Error('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.');
   win.document.open();win.document.write(SR63.staffReportDocument(report,meta));win.document.close();
   let started=false;const print=()=>{if(started||win.closed)return;started=true;win.focus();win.print();};
-  const ready=()=>Promise.race([win.document.fonts?.ready||Promise.resolve(),new Promise(done=>setTimeout(done,1200))]).then(()=>{if(win.closed)return;const image=win.document.querySelector('header img');if(image&&!image.complete){image.addEventListener('load',print,{once:true});image.addEventListener('error',print,{once:true});setTimeout(print,1200);}else print();}).catch(error=>{if(!win.closed)console.error('Staff report printing:',error);});
+  const ready=async()=>{try{
+   const images=[...win.document.images];
+   await Promise.race([Promise.all([win.document.fonts?.ready||Promise.resolve(),...images.map(img=>img.decode())]),new Promise((_,reject)=>setTimeout(()=>reject(Error('لم يكتمل تحميل خطوط أو صور التقرير.')),15000))]);
+   if(win.closed)return;
+   if(images.some(img=>!img.complete||!img.naturalWidth))throw Error('تعذر تحميل شعار التقرير.');
+   print();
+  }catch(error){if(!win.closed){win.document.body.textContent='تعذر تجهيز الطباعة: '+error.message;console.error('Staff report printing:',error);}}};
   if(win.document.readyState==='complete')void ready();else win.addEventListener('load',()=>void ready(),{once:true});
  };
  SR63.staffReportPrint=function(type,args,meta={}){return SR63.staffPrintHtml(SR63.staffReportBuild(type,args),meta);};

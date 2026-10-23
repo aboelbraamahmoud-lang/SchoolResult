@@ -14,8 +14,8 @@ assert.match(ui,/processed\!==exportPages\.length\|\|outputs\.length\!==groups\.
 assert.match(ui,/if\(images\.length\!==group\.pages\.length\)/,'verify each grouped PDF includes every selected page');
 assert.match(printer,/SR63\.fitReportPagesForPrint\(win\.document,landscape\)/,'vector and printer use same physical A4 engine');
 assert.match(pdf,/SR63\.planReportSheet\(element,w,h\)/,'raster direct download uses same A4 fitter');
-assert.match(pdf,/ctx\.clip\(\)/,'logo image crop in PDF respects browser element box');
-assert.match(pdf,/objectFit==='fill'\?r\.width/,'object-fit fill retains browser stretch semantics');
+assert.match(pdf,/SR72Canvas\.toCanvas\(element/,'logo crop is rendered from original DOM styles');
+assert.doesNotMatch(pdf,/drawImage/,'do not approximate browser object-fit geometry');
 assert.doesNotMatch(ui,/id:\x60school-overview\x60/,'remove only duplicate leader summary shortcut');
 assert.match(roles,/page==='overview'&&isLeadership&&perms\.reports/,'unique grade-wise leader overview retained');
 assert.match(roles,/page==='dashboard'\?h\('section',\{className:'srcoord-charts-section'/,'dashboard still shows graphs');
