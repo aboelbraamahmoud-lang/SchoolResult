@@ -52,6 +52,6 @@ for(const x of ["SR63.SchoolQuantitativePage","staffPrint('levels'","staffPrint(
 assert.ok(!portal.includes("SR63.AIPlans"),'Coordinator and leadership accounts no longer show smart plans');
 assert.ok(!portal.includes("page==='plans'"),'Staff cannot navigate to the retired AI plans page');
 const printer=fs.readFileSync(path.join(root,'source/src/staff-report-export.js'),'utf8');
-assert.ok(printer.includes('win.document.write(SR63.staffReportDocument'));
+assert.ok(printer.includes('parseFromString(SR63.staffReportDocument'));
 assert.ok(!printer.includes("rel=\"stylesheet\""),'print must not load the application print styles');
 console.log('PASS staff reporting: 4 SVG/chart print layouts, report data and school Word export, permission and XSS checks');

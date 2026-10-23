@@ -15,7 +15,7 @@ assert.match(student,/className:'school-report-page student-result-page'/,'React
 assert.match(printer,/\.sr646-print-document \.sr650-sheet>\.student-result-page/,'student-specific print A4 styles');
 assert.match(printer,/padding:12mm 12mm 10mm!important/,'original report identity spacing is retained');
 assert.match(printer,/\.student-result-footer\{margin-top:auto!important\}/,'signatures stay in their expected position');
-assert.match(printer,/\.report-footer,\.student-result-footer/,'both report kinds are measured');
+assert.match(printer,/\.report-footer/);assert.match(printer,/\.student-result-footer/,'both report kinds are measured');
 assert.match(printer,/\.student-result-table/,'student results table may adjust to A4, not be clipped');
 assert.match(css,/\.student-result-header img\{width:25mm/,'official logo screen template remains intact');
 const original=[{outerHTML:'<section class="student-result-page">one</section>'},{outerHTML:'<section class="student-result-page">two</section>'}];

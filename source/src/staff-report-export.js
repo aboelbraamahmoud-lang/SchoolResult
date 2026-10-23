@@ -82,16 +82,19 @@
   // Open in the click handler before performing any awaited operations.
   const win=window.open('','_blank');
   if(!win)throw Error('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.');
-  win.document.open();win.document.write(SR63.staffReportDocument(report,meta));win.document.close();
-  let started=false;const print=()=>{if(started||win.closed)return;started=true;win.focus();win.print();};
-  const ready=async()=>{try{
+  // Embed the same logo bytes before rewriting the popup. This also prevents
+  // a pending relative-image request from racing the print dialog.
+  void (async()=>{try{
+   const prepared=new DOMParser().parseFromString(SR63.staffReportDocument(report,meta),'text/html');
+   for(const img of prepared.images)await SR63.reportEmbedImage(img);
+   if(win.closed)return;
+   win.document.open();win.document.write('<!doctype html>'+prepared.documentElement.outerHTML);win.document.close();
    const images=[...win.document.images];
    await Promise.race([Promise.all([win.document.fonts?.ready||Promise.resolve(),...images.map(img=>img.decode())]),new Promise((_,reject)=>setTimeout(()=>reject(Error('لم يكتمل تحميل خطوط أو صور التقرير.')),15000))]);
    if(win.closed)return;
    if(images.some(img=>!img.complete||!img.naturalWidth))throw Error('تعذر تحميل شعار التقرير.');
-   print();
-  }catch(error){if(!win.closed){win.document.body.textContent='تعذر تجهيز الطباعة: '+error.message;console.error('Staff report printing:',error);}}};
-  if(win.document.readyState==='complete')void ready();else win.addEventListener('load',()=>void ready(),{once:true});
+   win.focus();win.print();
+  }catch(error){if(!win.closed){win.document.body.textContent='تعذر تجهيز الطباعة: '+error.message;console.error('Staff report printing:',error);}}})();
  };
  SR63.staffReportPrint=function(type,args,meta={}){return SR63.staffPrintHtml(SR63.staffReportBuild(type,args),meta);};
 })();

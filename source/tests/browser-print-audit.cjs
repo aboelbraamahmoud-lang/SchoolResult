@@ -58,7 +58,12 @@ function inspectPDF(file,{pages,landscape,vector=false,ids=[]}={}){
    }
   }
  }
- execFileSync('pdftoppm',['-scale-to','1000','-png',file,file.replace(/\.pdf$/, '')],{timeout:120000});
+ for(let n=1;n<=count;n++){
+  const png=execFileSync('pdftoppm',['-f',String(n),'-singlefile','-scale-to','1000','-png',file],{timeout:120000,maxBuffer:16000000});
+  fs.writeFileSync(file.replace(/\.pdf$/, '')+'-'+n+'.png',png);
+ }
+ execFileSync('python3',['-c',
+  'import sys,glob\nfrom PIL import Image\nfor p in glob.glob(sys.argv[1]+"-*.png"):\n im=Image.open(p).convert("L"); values=list(im.getdata()); white=sum(v>235 for v in values)/len(values); ink=sum(v<150 for v in values)/len(values); assert .20<white<.999 and ink>.001, (p,white,ink)',file.replace(/\.pdf$/, '')]);
  return {file:path.basename(file),bytes:fs.statSync(file).size,pages:count,
  orientation:+sizes[0][1]>+sizes[0][2]?'landscape':'portrait',selectableText:!!text.trim(),allPagesRendered:true};
 }
@@ -173,10 +178,7 @@ async function main(){
    for(const footer of printedFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'print footer includes '+token);
    assert.deepEqual(printedFooters.slice(0,previewFooters.length),previewFooters,'print footer equals preview');
    const printGeometry=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
-   if(process.env.AUDIT_CASE){
-    const styles=nodes=>nodes.flatMap(p=>[p,...p.querySelectorAll('*')].map(n=>({cls:n.className,text:n.innerText?.slice(0,50),css:Object.fromEntries([...getComputedStyle(n)].map(k=>[k,getComputedStyle(n).getPropertyValue(k)]))})));
-    fs.writeFileSync(path.join(out,id+'-styles.json'),JSON.stringify({screen:await page.locator('#printable-reports .school-report-page').evaluateAll(styles),print:await popup.locator('.school-report-page').evaluateAll(styles)}));
-   }
+
    previewGeometry.forEach((g,i)=>assertGeometry(printGeometry[i],g,id+' preview/print '+i));
    record.geometryParity=true;
    const printPages=await popup.locator('.school-report-page').count();
@@ -271,10 +273,7 @@ async function main(){
      const popup=await popupPromise;
      await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
      const printedGeometry=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
-     if(process.env.AUDIT_CASE==='extras'){
-      const styles=nodes=>nodes.flatMap(p=>[p,...p.querySelectorAll('*')].map(n=>({cls:n.className,css:Object.fromEntries([...getComputedStyle(n)].map(k=>[k,getComputedStyle(n).getPropertyValue(k)]))})));
-      fs.writeFileSync(path.join(out,id+'-styles.json'),JSON.stringify({screen:await page.locator(selector).evaluateAll(styles),print:await popup.locator('.school-report-page').evaluateAll(styles)}));
-     }
+
      previewGeometry.forEach((g,i)=>assertGeometry(printedGeometry[i],g,id+' preview/print'));
      record.geometryParity=true;
      record.images=await popup.locator('img').evaluateAll(images=>images.map(im=>({complete:im.complete,width:im.naturalWidth,display:getComputedStyle(im).display})));
@@ -318,7 +317,7 @@ async function main(){
   const ts=fs.readFileSync(path.join(root,'supabase/functions/school-staff/year-over-year.ts'),'utf8');
   const code=require('esbuild').transformSync(ts,{loader:'ts',format:'cjs'}).code,mod={exports:{}};
   new Function('module','exports',code)(mod,mod.exports);
-  for(const empty of (process.env.AUDIT_CASE?[]:[false,true])){
+  for(const empty of (process.env.AUDIT_CASE&&process.env.AUDIT_CASE!=='year'?[]:[false,true])){
    const ws=fixture(18),prior=fixture(10);prior.settings.academicYear='2025/2026';
    for(const data of [ws,prior]){const original=[...data.rows];for(let i=1;i<=14;i++)data.rows.push(...original.map(x=>({...x,subject:'مادة اختبار '+i,department:'مادة اختبار '+i})));}
    if(empty)ws.rows=[];
@@ -340,12 +339,12 @@ async function main(){
      record.pdf=inspectPDF(file,{landscape:true,vector:true});
     }else assert.match(await page.locator('#audit-mount').innerText(),/لا توجد نتائج/);
     record.status='PASS';
-   }catch(e){record.error=String(e.stack||e);}finally{await context.close();records.push(record);console.log('AUDIT_RESULT '+JSON.stringify(record));}
+   }catch(e){record.error=String(e.stack||e);record.popups=await Promise.all(context.pages().filter(p=>p!==page).map(p=>p.locator('body').innerText()));}finally{await context.close();records.push(record);console.log('AUDIT_RESULT '+JSON.stringify(record));}
   }
  }finally{
   await browser.close();await new Promise(ok=>server.close(ok));
   fs.writeFileSync(path.join(out,'results.json'),JSON.stringify({testedCommit:process.env.GITHUB_SHA||null,records,
-   limits:['No authenticated production test','No physical printer test','No Safari/iPhone test','Direct PDF/ZIP retains the existing raster path; native print PDF is vector','Rendered PNGs require human visual review']},null,2));
+   limits:['No authenticated production test','No physical printer test','No Safari/iPhone test','Direct PDF/ZIP rasterizes the original styled DOM at 300dpi; native print PDF is vector','Rendered PNGs require human visual review']},null,2));
  }
  const failures=records.filter(x=>x.status!=='PASS');
  if(failures.length)throw Error(failures.length+' browser audit cases failed; see audit-artifacts/results.json');

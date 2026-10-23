@@ -26,7 +26,7 @@ jobs:
         run: |
           npm install --prefix /tmp/sr-browser-audit --no-package-lock --no-audit --no-fund playwright@1.64.1
           node /tmp/sr-browser-audit/node_modules/playwright/cli.js install --with-deps chromium
-          sudo apt-get install -y poppler-utils fonts-noto-core
+          sudo apt-get install -y poppler-utils fonts-noto-core python3-pil
       - name: Exercise real preview, print, PDF and ZIP controls
         env:
           NODE_PATH: /tmp/sr-browser-audit/node_modules:${{ github.workspace }}/source/node_modules
