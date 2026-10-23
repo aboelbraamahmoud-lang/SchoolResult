@@ -33,5 +33,6 @@
         }
       ]
     }
-  ]
+  ],
+  "installCommand": "npm --prefix source ci --no-audit --no-fund"
 }
