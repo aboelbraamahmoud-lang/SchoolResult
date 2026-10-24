@@ -27,7 +27,7 @@ SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mod
     if(mode==='struggling'&&!visible.length)return;
     // Comparison has a tall KPI panel and two-row table heading; ten student rows safely fit A4 portrait.
     // Keep every student row and preserve global numbering and per-class totals across continuation pages.
-    const pageSize=mode==='comparison'?10:mode==='levels'?34:36;
+    const pageSize=mode==='comparison'?10:mode==='levels'?16:36;
     chunk(visible,pageSize).forEach((part,index)=>pages.push({key:`${mode}-${scope}-${entity}-${className}-${subject}-${index}`,title:`${className} — ${subject}`,entity,scope,className,teacher,subject,rows:part,allRows:mode==='struggling'?visible:subjectRows,rowOffset:index*pageSize,part:index+1,totalParts:Math.max(1,Math.ceil(Math.max(1,visible.length)/pageSize))}));
   };
   if(dimension==='teacher'){

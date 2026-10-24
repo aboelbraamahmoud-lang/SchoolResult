@@ -53,10 +53,6 @@ SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
     overflow:hidden!important;border-radius:0!important;box-shadow:none!important;
     transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
     break-after:auto!important;page-break-after:auto!important}
-  .sr646-print-document .sr650-sheet>.school-report-page>*{flex-shrink:0!important}
-  .sr646-print-document .school-report-page .report-footer{margin-top:auto!important}
-  .sr646-print-document .school-report-page .report-table{width:100%!important}
-  .sr646-print-document .school-report-page .report-page-number{position:static!important}
    /* Preserve the original student-statement padding and signature/identity geometry. */
    .sr646-print-document .sr650-sheet>.student-result-page{
      padding:12mm 12mm 10mm!important;direction:rtl!important;
@@ -79,55 +75,19 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
    ['overflow','visible'],['margin','0']
  ])style.setProperty(name,value,'important');
- const view=page.ownerDocument?.defaultView;
- const getStyle=view?.getComputedStyle?.bind(view)||(typeof getComputedStyle==='function'?getComputedStyle:null);
  const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official),.student-result-table,.srskill-table');
  const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
- const footer=page.querySelector?.('.report-footer,.student-result-footer,.srskill-footer');
  const measure=()=>{
    const r=page.getBoundingClientRect();let width=Math.max(page.scrollWidth||0,r.width),height=Math.max(page.scrollHeight||0,r.height);
-   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer')||[]){
+   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
      const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
      width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
    }
    return {left:r.left,top:r.top,width,height};
  };
  let box=measure();
- if(table&&rows.length>=2){
-   const t=table.getBoundingClientRect(),f=footer?.getBoundingClientRect?.();
-   // Stretch only the gap AFTER the last actual content before the footer.
-   // Student statements have score summaries and methodology notes AFTER the table.
-   // Counting those as empty space pushes signatures outside the A4 sheet.
-   const trailing=footer?.previousElementSibling?.getBoundingClientRect?.();
-   const occupiedBottom=Math.max(t.bottom,trailing?.height>0?trailing.bottom:t.bottom);
-   const free=f&&f.top>occupiedBottom?f.top-occupiedBottom-14:Math.max(0,targetHeight-box.height-16);
-   if(free>18){
-     const extra=Math.max(0,Math.min(free*.88,rows.length*(rows.length<=12?95:rows.length<=30?50:24)));
-     if(extra>8){
-       const before=t.height;
-       table.style?.setProperty?.('height',(before+extra)+'px','important');
-       const after=table.getBoundingClientRect().height;
-       if(after<before+extra*.55){
-         table.style?.removeProperty?.('height');
-         for(const tr of rows){const h=tr.getBoundingClientRect().height;tr.style?.setProperty?.('height',(h+extra/rows.length)+'px','important');}
-       }
-       box=measure();
-     }
-   }
- }
- if((box.height>targetHeight+2||box.width>targetWidth+2)&&table&&getStyle){
-   const cellNodes=[...(table.querySelectorAll?.('th,td')||[])].filter(el=>el.style);
-   const baseline=cellNodes.map(el=>({el,font:parseFloat(getStyle(el).fontSize)||9,
-     top:parseFloat(getStyle(el).paddingTop)||0,bottom:parseFloat(getStyle(el).paddingBottom)||0}));
-   for(const factor of [.94,.88,.82,.76]){
-     for(const {el,font,top,bottom} of baseline){
-       el.style.setProperty('font-size',(font*factor).toFixed(2)+'px','important');
-       el.style.setProperty('padding-top',(top*factor).toFixed(2)+'px','important');
-       el.style.setProperty('padding-bottom',(bottom*factor).toFixed(2)+'px','important');
-     }
-     box=measure();if(box.height<=targetHeight+2&&box.width<=targetWidth+2)break;
-   }
- }
+ // Preserve preview row heights, typography, spacing and footer position.
+ // Reject overflow instead of silently changing only the printed copy.
  if(box.width>targetWidth+2||box.height>targetHeight+2)throw Error('بيانات التقرير تتجاوز حدود صفحة A4 واحدة بحجم مقروء. اختر نطاقًا أصغر أو قسّم التقرير إلى صفحات مستقلة دون حذف صفوف الطلاب.');
  return {...box,scale:1,zoom:1,fill:Math.min(1,box.width/targetWidth),
    verticalFill:Math.min(1,box.height/targetHeight),rows:rows.length,singleSheet:true};

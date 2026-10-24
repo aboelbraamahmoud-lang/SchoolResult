@@ -15,7 +15,7 @@ assert.match(student,/className:'school-report-page student-result-page'/,'React
 assert.match(printer,/\.sr646-print-document \.sr650-sheet>\.student-result-page/,'student-specific print A4 styles');
 assert.match(printer,/padding:12mm 12mm 10mm!important/,'original report identity spacing is retained');
 assert.match(printer,/\.student-result-footer\{margin-top:auto!important\}/,'signatures stay in their expected position');
-assert.match(printer,/\.report-footer,\.student-result-footer/,'both report kinds are measured');
+assert.match(printer,/\.report-footer/);assert.match(printer,/\.student-result-footer/,'both report kinds are measured');
 assert.match(printer,/\.student-result-table/,'student results table may adjust to A4, not be clipped');
 assert.match(css,/\.student-result-header img\{width:25mm/,'official logo screen template remains intact');
 const original=[{outerHTML:'<section class="student-result-page">one</section>'},{outerHTML:'<section class="student-result-page">two</section>'}];
@@ -64,7 +64,7 @@ vm.runInNewContext(fn,context);
   querySelectorAll:()=>[footer,table,lastNote]};
  const plan=layoutSandbox.SR63.planReportSheet(page,794,1123);
  assert.equal(plan.singleSheet,true,'nine subjects and their report footer fit exactly one A4');
- assert.ok(extra>60&&extra<300,'only actual available space may be distributed to score rows');
+ assert.equal(extra,0,'retain preview row spacing and signature position');
  assert.ok(footer.getBoundingClientRect().bottom<=1123,'student summary and signatures never leave paper');
  console.log('PASS 6.10.57 student results preview/print parity, no clipped main-window report, safe popup closing');
 })().catch(err=>{console.error(err);process.exitCode=1});
