@@ -88,7 +88,7 @@ replace('if(i===`subjects`){let t=e;return(n===`الكل`?P9(t.map(e=>hj(e,a))):
 replace('if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);','if(i===`departmentStats`)return SR63.departmentStatsPages(e,a,r);if(i===`subjects`)return SR63.gradeSubjectPages(e,a,n);');
 // 6.9.14: all ordinary reports are built as single-subject pages; teacher reports are ordered subject -> teacher.
 replace('mde(reportRows,i,o,S,n,T,g,e.settings)','SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings)');
-// Print calls are guarded by data quality. Native pagination is allowed to flow.
+// Print calls are guarded by data quality; report geometry is shared with the preview.
 const reportStart=code.indexOf('function xde('),reportEnd=code.indexOf('function ',reportStart+10);
 let reportCode=code.slice(reportStart,reportEnd);
 // 6.9.14: defensive re-scope before rendering and always resolve the displayed subject from the page data.

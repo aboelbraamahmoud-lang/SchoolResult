@@ -75,10 +75,32 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
    ['overflow','visible'],['margin','0']
  ])style.setProperty(name,value,'important');
+ // The same inner sheet is fitted in the live preview, the print popup and PDF/ZIP.
+ // Scale uniformly, including logos and footer, instead of changing only printed fonts.
+ const content=page.classList?.contains('sr-fitted-report')?page.querySelector(':scope > .sr-report-fit-content'):null;
+ let scale=1;
+ if(content){
+  content.style.transform='none';
+  const computed=page.ownerDocument.defaultView.getComputedStyle(page);
+  const number=name=>parseFloat(computed[name])||0;
+  const available=targetHeight-number('paddingTop')-number('paddingBottom')-number('borderTopWidth')-number('borderBottomWidth')-1;
+  const width=targetWidth-number('paddingLeft')-number('paddingRight')-number('borderLeftWidth')-number('borderRightWidth');
+  const fits=value=>{content.style.width=(width/value)+'px';return content.getBoundingClientRect().height*value<=available;};
+  if(!fits(1)){
+   // Keep the full printable width while proportionally shrinking a dense class sheet.
+   let low=.35,high=1;
+   if(!fits(low))throw Error('بيانات التقرير تتجاوز حدود صفحة A4 بحجم مقروء؛ اختر نطاقًا أصغر.');
+   for(let i=0;i<14;i++){const middle=(low+high)/2;if(fits(middle))low=middle;else high=middle;}
+   scale=low;fits(scale);
+  }
+  content.style.transform='scale('+scale+')';
+  page.dataset.reportScale=String(scale);
+ }
+
  const table=page.querySelector?.('.report-table:not(.grade-subject-matrix-all):not(.department-subject-matrix-official),.student-result-table,.srskill-table');
  const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
  const measure=()=>{
-   const r=page.getBoundingClientRect();let width=Math.max(page.scrollWidth||0,r.width),height=Math.max(page.scrollHeight||0,r.height);
+   const r=page.getBoundingClientRect();let width=content?r.width:Math.max(page.scrollWidth||0,r.width),height=content?r.height:Math.max(page.scrollHeight||0,r.height);
    for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
      const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
      width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
@@ -86,11 +108,20 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    return {left:r.left,top:r.top,width,height};
  };
  let box=measure();
- // Preserve preview row heights, typography, spacing and footer position.
- // Reject overflow instead of silently changing only the printed copy.
+ // Validate the final visible bounds after the shared preview fit; never clip rows.
  if(box.width>targetWidth+2||box.height>targetHeight+2)throw Error('بيانات التقرير تتجاوز حدود صفحة A4 واحدة بحجم مقروء. اختر نطاقًا أصغر أو قسّم التقرير إلى صفحات مستقلة دون حذف صفوف الطلاب.');
- return {...box,scale:1,zoom:1,fill:Math.min(1,box.width/targetWidth),
+ return {...box,scale,zoom:scale,fill:Math.min(1,box.width/targetWidth),
    verticalFill:Math.min(1,box.height/targetHeight),rows:rows.length,singleSheet:true};
+};
+SR63.prepareReportPreview=function(page){
+ if(!page)return;
+ const fit=()=>{if(!page.isConnected)return;try{
+  const landscape=page.dataset.orientation==='landscape';
+  SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+  delete page.dataset.fitError;
+ }catch(error){page.dataset.fitError=String(error.message||error);}};
+ fit();
+ Promise.all([page.ownerDocument.fonts?.ready||Promise.resolve(),...Array.from(page.querySelectorAll('img'),img=>img.decode().catch(()=>{}))]).then(fit);
 };
 SR63.fitReportPagesForPrint=function fitReportPagesForPrint(doc,landscape=false){
  const factor=96/25.4,width=(landscape?297:210)*factor,height=(landscape?210:297)*factor,results=[];

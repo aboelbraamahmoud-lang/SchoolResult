@@ -1,3 +1,13 @@
+/* Fetch only the authorized school payload; do not run unused coordinator analytics. */
+SR63.LeadershipLoader=function({profile}){
+ const [payload,setPayload]=(0,v.useState)(null),[loading,setLoading]=(0,v.useState)(true),[error,setError]=(0,v.useState)(''),request=(0,v.useRef)(0);
+ const reload=async(exam='')=>{const id=++request.current;setLoading(true);setError('');try{
+  const next=await SR63.staff.coordinatorLoad(exam);if(id===request.current)setPayload(next);
+ }catch(e){if(id===request.current)setError(e.message||'تعذر تحميل بيانات المدرسة.');}
+ finally{if(id===request.current)setLoading(false);}};
+ (0,v.useEffect)(()=>{setPayload(null);void reload();return()=>{request.current++;};},[profile.ownerId,profile.username]);
+ return (0,q.jsx)(SR63.LeadershipPortal,{profile,payload,loading,error,reload});
+};
 /* School leadership uses the original admin dashboard, analysis renderers and sidebar components. */
 SR63.leadershipNavigation=function(profile){
  const p=profile.permissions||{},allowed=new Set(['dashboard']);
@@ -14,12 +24,12 @@ SR63.LeadershipPortal=function({profile,payload,loading,error,reload}){
  const [page,setPage]=(0,v.useState)('dashboard'),[query,setQuery]=(0,v.useState)(''),[overrides,setOverrides]=(0,v.useState)({});
  const raw=payload?.workspace,perms=profile.permissions||{},items=SR63.leadershipNavigation(profile);
  const workspace=(0,v.useMemo)(()=>raw?SR63.staffReportWorkspace({...raw,activeExam:overrides.activeExam||raw.activeExam,settings:{...raw.settings,...overrides.settings}},overrides.activeExam||raw.activeExam,profile):null,[raw,overrides,profile]);
- (0,v.useEffect)(()=>{setOverrides({});},[profile.ownerId,profile.username,payload?.revision]);
+ (0,v.useEffect)(()=>{setOverrides(previous=>Object.keys(previous).length?{}:previous);},[profile.ownerId,profile.username,payload?.revision]);
  (0,v.useEffect)(()=>{if(!workspace)return;SR63.currentWorkspace=workspace;return()=>{if(SR63.currentWorkspace===workspace)SR63.currentWorkspace=null;};},[workspace]);
  const navigate=id=>{const target=id==='reports'?'reportCenter':id;if(items.some(x=>x.id===target)||target==='studentProfile'){setPage(target);return;}eb.info('هذه الوظيفة تتطلب صلاحية إدارة بيانات المدرسة من حساب الأدمن.');};
  const setViewWorkspace=change=>{const next=typeof change==='function'?change(workspace):change;setOverrides({activeExam:next.activeExam,settings:{dashboardSubjects:next.settings.dashboardSubjects}});};
  const h=(tag,props,...children)=>(0,v.createElement)(tag,props,...children);
- if(!workspace)return h('section',{className:'srstaff-panel',dir:'rtl'},error||'جارٍ تحميل بيانات المدرسة…');
+ if(!workspace)return h('section',{className:'srstaff-panel',dir:'rtl','aria-busy':loading},h('p',{role:error?'alert':'status'},error||'جارٍ تحميل بيانات المدرسة…'),error?h('button',{disabled:loading,onClick:()=>reload()},'إعادة المحاولة'):null);
  const cloudStatus={revision:payload.revision,savedAt:payload.savedAt,blocked:false,pending:false,error:''};
  const visiblePage=items.some(x=>x.id===page)||page==='studentProfile'?page:'dashboard';
  const content=visiblePage==='dashboard'?h(SR63.Dashboard,{workspace,setWorkspace:setViewWorkspace,onNavigate:navigate,cloudStatus}):
