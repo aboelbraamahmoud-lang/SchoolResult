@@ -143,11 +143,13 @@ async function main(){
   }
   return {context,page,errors};
  }
- async function caseReport(mode,count,{role='owner',classes=1,zip=false}={}){
-  const id=role+'-'+mode+'-'+count+'-'+classes,ws=fixture(count,classes);
+ async function caseReport(mode,count,{role='owner',classes=1,zip=false,mobile=false,longNames=false}={}){
+  const id=role+'-'+mode+'-'+count+'-'+classes+(mobile?'-mobile':'')+(longNames?'-longnames':''),ws=fixture(count,classes);
+  if(longNames)for(const row of ws.rows)row.studentName='عبد الرحمن محمد عبد الله أحمد إبراهيم السيد عبد العزيز '+row.studentId;
   if(process.env.AUDIT_CASE&&!id.includes(process.env.AUDIT_CASE))return;
   if(role!=='owner'){const projected=projections[role](ws,[subject]).workspace;Object.assign(ws,projected);ws.subjects=[];ws.teachers=ws.teachers.map(t=>({...t,coordinator:''}));}
   const state=await open(ws,role),{page,context,errors}=state;
+  if(mobile)await page.setViewportSize({width:390,height:844});
   const record={case:id,role,authentication:'synthetic boundary only',mode,count,status:'FAIL',downloads:[]};
   try{
    const titles={levels:'مستويات الطلاب',teachers:'تحصيل المعلمين',comparison:'مقارنة الاختبارين',subjects:role==='coordinator'?'مقارنة مادة القسم':'مقارنة جميع المواد'};
@@ -165,8 +167,8 @@ async function main(){
    const footerTokens=['FOOTER61070','VISION61070','PREPARED61070',...(role==='coordinator'?['COORDINATOR61070']:[])];
    for(const footer of previewFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'preview footer includes '+token);
    const landscape=['subjects','departmentStats'].includes(mode);
-   let expectedPages=mode==='comparison'?classes*Math.ceil(Math.ceil(count/classes)/10):
-    mode==='levels'?classes*Math.ceil(Math.ceil(count/classes)/16):undefined;
+   let expectedPages=mode==='comparison'?classes*Math.ceil(Math.ceil(count/classes)/40):
+    mode==='levels'?classes*Math.ceil(Math.ceil(count/classes)/40):undefined;
    const previewCount=await page.locator('#printable-reports .school-report-page').count();
    if(expectedPages)assert.equal(previewCount,Math.min(8,expectedPages));
    const fullIds=['comparison','levels'].includes(mode)?ws.rows.map(r=>r.studentId):[];
@@ -174,9 +176,11 @@ async function main(){
    await page.getByRole('button',{name:'طباعة التقرير الحالي',exact:true}).click();
    const popup=await popupPromise;
    await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
+   if(mobile)await popup.setViewportSize({width:480,height:800});
    const printedFooters=await popup.locator('.report-footer').allTextContents();
    for(const footer of printedFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'print footer includes '+token);
    assert.deepEqual(printedFooters.slice(0,previewFooters.length),previewFooters,'print footer equals preview');
+   await popup.emulateMedia({media:'print'});
    const printGeometry=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
 
    previewGeometry.forEach((g,i)=>assertGeometry(printGeometry[i],g,id+' preview/print '+i));
@@ -274,7 +278,7 @@ async function main(){
      await popup.waitForFunction(()=>window.__auditPrinted===true,{},{timeout:60000});
      const printedGeometry=await popup.locator('.school-report-page').evaluateAll(reportGeometry);
 
-     previewGeometry.forEach((g,i)=>assertGeometry(printedGeometry[i],g,id+' preview/print'));
+   previewGeometry.forEach((g,i)=>assertGeometry(printedGeometry[i],g,id+' preview/print'));
      record.geometryParity=true;
      record.images=await popup.locator('img').evaluateAll(images=>images.map(im=>({complete:im.complete,width:im.naturalWidth,display:getComputedStyle(im).display})));
      assert.ok(record.images.every(im=>im.complete&&im.width>0&&im.display!=='none'),'all official logos/images loaded before printing');
@@ -309,6 +313,8 @@ async function main(){
  try{
   if(!process.env.AUDIT_CASE||process.env.AUDIT_CASE==='custom')await customReports();
   if(!process.env.AUDIT_CASE||process.env.AUDIT_CASE==='extras')await extraReports();
+  await caseReport('levels',40,{zip:true,mobile:true,longNames:true});
+  await caseReport('comparison',28,{mobile:true,longNames:true});
   for(const count of [10,18,28,40,80,90])await caseReport('comparison',count,{zip:count===18});
   for(const mode of ['summary','levels','struggling','teachers','subjects','departmentStats','executive'])await caseReport(mode,18,{zip:mode==='summary'});
   await caseReport('comparison',40,{classes:2,zip:true});

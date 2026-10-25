@@ -27,11 +27,12 @@ assert.ok(scaled.some(([n])=>n==='zoom'));
  // Model a delayed React commit; rendering is not synchronous in concurrent roots.
  ctx.y={createRoot:()=>({render:x=>{rendered.push(x);setTimeout(()=>{const ref=x.props?.ref||x.ref;if(typeof ref==='function')ref({});},25);},unmount:()=>{}})};
  ctx.requestAnimationFrame=cb=>setTimeout(cb,0);
- const stage={style:{cssText:''},querySelector:()=>({}),remove:()=>{}};
+ const stage={style:{cssText:''},querySelector:()=>({querySelectorAll:()=>[]}),remove:()=>{}};
  ctx.document={createElement:()=>stage,body:{appendChild:()=>{}},fonts:{ready:Promise.resolve()}};
  ctx.SR63.getReportStyleText=async()=>'.school-report-page{color:#123}';
  ctx.SR63.buildReportPages=()=>[{key:'p1',totalParts:1,part:1,rows:[],className:'7/1',entity:'7/1',subject:'رياضيات'}];
  ctx.SR63.groupReportPages=pages=>[{name:'الصف 7-1',pages}];
+ ctx.SR63.planReportSheet=()=>({singleSheet:true}); // Geometry is covered by the real browser audit.
  ctx.SR63.reportPageJPEG=async()=>({dataUrl:'data:image/jpeg;base64,YQ==',landscape:false,width:3,height:3});
  ctx.SR63.reportPdfFromJpegs=a=>new Blob(['pdf '+a.length],{type:'application/pdf'});
  ctx.SR63.reportZipFromPdfs=async a=>new Blob(['zip '+a.length],{type:'application/zip'});

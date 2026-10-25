@@ -59,5 +59,5 @@
     "test:year-over-year": "node --expose-internals tests/year-over-year-report-6-10-68.cjs",
     "test:report-scope-audit": "node --expose-internals tests/report-scope-multiple-teachers.cjs"
   },
-  "version": "6.10.72"
+  "version": "6.10.73"
 }

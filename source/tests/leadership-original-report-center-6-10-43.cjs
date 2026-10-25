@@ -38,7 +38,8 @@ const runPortal=(role,permissions,page='reportCenter')=>{
   let index=0;ctx.v.useState=initial=>[index++===0?page:typeof initial==='function'?initial():initial,()=>{}];
   return SR63.LeadershipPortal({profile,payload,loading:false,error:'',reload:()=>{}});
  }
- return SR63.CoordinatorPortal({profile});
+ const route=SR63.CoordinatorPortal({profile});
+ return route.type(route.props);
 };
 const permissions={reports:true,export:true,studentLevels:true,teacherAnalysis:true,failedStudents:true,compare:true};
 for(const role of ['vice_principal','principal']){

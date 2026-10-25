@@ -1611,3 +1611,20 @@
 /* Shared custom report paper geometry for preview and the isolated print engine. */
 .custom-report-page.landscape{height:210mm!important;min-height:210mm!important;max-height:210mm!important}
 .custom-report-page>*{flex-shrink:0}
+
+/* 6.10.73 — physical report geometry never follows the popup/mobile viewport. */
+.school-report-page .report-head-compact{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)!important;direction:rtl!important}
+.school-report-page .report-school-lockup{justify-content:flex-end!important}
+.school-report-page .report-identity-compact{width:min(100%,54mm)!important}
+.school-report-page.grade-subjects-landscape .report-identity-compact{width:min(100%,43mm)!important}
+.school-report-page.sr-fitted-report{height:297mm!important;min-height:297mm!important;max-height:297mm!important;overflow:hidden!important}
+.school-report-page.sr-fitted-report.report-landscape{height:210mm!important;min-height:210mm!important;max-height:210mm!important}
+.sr-report-fit-content{display:flex;flex-direction:column;position:relative;width:100%;flex:none;align-self:flex-start;transform-origin:top right}
+.sr-report-fit-content>*{flex-shrink:0}
+.school-report-page .level-analysis-table,.school-report-page .comparison-table,.school-report-page .target-student-table{table-layout:fixed!important;width:100%!important}
+.school-report-page .level-analysis-table th,.school-report-page .level-analysis-table td,
+.school-report-page .comparison-table th,.school-report-page .comparison-table td,
+.school-report-page .target-student-table th,.school-report-page .target-student-table td{width:auto!important;min-width:0!important;overflow-wrap:anywhere;white-space:normal}
+.school-report-page .level-student-name{font-size:9.5px!important;line-height:1.3!important}
+.school-report-page .report-ministry-emblem-official{width:49mm!important;max-width:49mm!important;height:10.3mm!important;max-height:10.3mm!important}
+.school-report-page.grade-subjects-landscape .report-ministry-emblem-official{width:40mm!important;max-width:40mm!important;height:8.4mm!important;max-height:8.4mm!important}

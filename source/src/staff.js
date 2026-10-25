@@ -140,7 +140,11 @@ SR63.getReportCenterSafeBoundary=function(){
  }
 };
 };
+// Route leadership before mounting coordinator hooks and school-wide calculations.
 SR63.CoordinatorPortal=function({profile}){
+ return (0,q.jsx)(['principal','vice_principal'].includes(profile.role)?SR63.LeadershipLoader:SR63.CoordinatorDashboard,{profile});
+};
+SR63.CoordinatorDashboard=function({profile}){
  const [payload,setPayload]=(0,v.useState)(null),[error,setError]=(0,v.useState)(''),[loading,setLoading]=(0,v.useState)(true),
  [page,setPage]=(0,v.useState)('dashboard'),[chosenExam,setChosenExam]=(0,v.useState)(''),[showLegend,setShowLegend]=(0,v.useState)(true),[levelClass,setLevelClass]=(0,v.useState)('الكل'),[levelSubject,setLevelSubject]=(0,v.useState)('الكل'),[previousExam,setPreviousExam]=(0,v.useState)('');
  const reload=async(requestedExam=chosenExam)=>{setLoading(true);setError('');try{const next=await SR63.staff.coordinatorLoad(requestedExam);setPayload(next);}catch(e){setError(e.message||'تعذر تحديث النتائج');}finally{setLoading(false);}};
