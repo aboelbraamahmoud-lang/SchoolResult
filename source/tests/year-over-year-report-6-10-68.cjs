@@ -60,8 +60,13 @@ assert.match(server,/eq\('owner_id',ownerId\)/,'year archive scoped by owner');
 assert.match(server,/is\('deleted_at',null\)/,'ignore deleted archives');
 assert.match(server,/yearExamCompare\(/,'same shared aggregate calculator');
 assert.match(build,/year-over-year-ui\.js/,'UI source included in bundle');
-assert.match(build,/SR63\.YearComparisonCenter,\{workspace:e/,'owner report center');
-assert.match(staff,/h\(SR63\.YearComparisonCenter,\{workspace:active/,'school leaders and coordinator center');
+const reportCards=fs.readFileSync(path.join(sourceRoot,'src/patches/ui.js'),'utf8');
+assert.match(reportCards,/yearComparisonCard=\{id:`yearComparison`/,'annual comparison has a regular report card');
+assert.match(reportCards,/n===`yearComparison`\?\(0,q.jsx\)\(SR63\.YearComparisonCenter,\{workspace:e,canPrint\}\)/,'annual report mounts only on selected card');
+assert.match(reportCards,/n===`yearComparison`\|\|!prepared/,'yearly card bypasses heavy ordinary report page generation');
+assert.match(reportCards,/n===`yearComparison`\?null:\(0,q.jsxs\)\(m9/,'ordinary configuration hidden for annual report');
+assert.doesNotMatch(build,/replace\('o===`reports`\?Je\(\):/,'no automatic owner report mount');
+assert.doesNotMatch(staff,/h\(SR63\.YearComparisonCenter/,'no automatic staff report mount');
 assert.match(ui,/staffPrintHtml\(documentReport\(\)/,'uses audited A4 native print route');
 assert.match(ui,/!r\.noCurrentResults&&!r\.noPreviousResults/,'no misleading empty-year print');
 const v={createElement:(type,props,...children)=>({type,props,children}),
