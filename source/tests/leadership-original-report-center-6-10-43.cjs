@@ -13,7 +13,7 @@ assert.ok(portalSrc.includes('SR63.currentWorkspace=reportWorkspace'),'official 
 assert.match(portalSrc,/\['reportCenter','مركز التقارير والطباعة',!!perms\.reports\]/);
 assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'-'\+payload\?\.revision\+'-'\+exam,workspace:active,readOnly:true,canPrint:!!perms\.export,onSchoolSummary:/);
 assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null,reportScope='school'\}\)/);
-assert.match(reportSrc,/!readOnly&&n!==`yearComparison`&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
+assert.match(reportSrc,/!readOnly&&!specialMode&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2,'only print controls require a prepared preview');
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,3,'vector PDF, raster PDF and ZIP use the same export permission and work without preview');
 assert.match(reportSrc,/const saveVectorPDF=async\(\)=>/,'vector PDF remains available to authorized school leaders');
