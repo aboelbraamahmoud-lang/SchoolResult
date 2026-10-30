@@ -36,7 +36,7 @@ SR63.studentTopRankings=function(workspace,options={}){
  }
  const output=[];
  for(const group of groups.values()){
-  const required=[...group.required.keys()],eligible=[];let excluded=0,incompleteCount=0,unscoredCount=0,conflictCount=0;
+  const required=[...group.required.keys()],eligible=[];let excluded=0,incompleteCount=0,unscoredCount=0,conflictCount=0,filteredIncompleteCount=0;
   // Keep a grade/class visible even when it has no graded results yet.
   for(const student of group.students.values()){
    const records=required.map(key=>student.bySubject.get(key));
@@ -46,7 +46,7 @@ SR63.studentTopRankings=function(workspace,options={}){
    if(!measured.length){excluded++;unscoredCount++;continue;}
    const complete=measured.length===required.length;
    if(!complete)incompleteCount++;
-   if(!complete&&onlyComplete){excluded++;continue;}
+   if(!complete&&onlyComplete){excluded++;filteredIncompleteCount++;continue;}
    const score=measured.reduce((sum,record)=>sum+record.score,0),total=measured.reduce((sum,record)=>sum+record.total,0);
    if(total<=0){excluded++;unscoredCount++;continue;}
    eligible.push({studentId:student.studentId,studentName:student.studentName,className:student.className,score,total,
@@ -65,7 +65,7 @@ SR63.studentTopRankings=function(workspace,options={}){
   const subjectTitle=mode==="subject"?" — "+SR63.reportSubjectLabel(group.subject,settings):"";
   output.push({grade:group.grade,className:group.className,subject:group.subject,title:groupTitle+subjectTitle,rows:winners,
    eligible:eligible.length,excluded,requiredCount:required.length,totalStudents:group.students.size,
-   incompleteCount,unscoredCount,conflictCount});
+   incompleteCount,unscoredCount,conflictCount,filteredIncompleteCount});
  }
  output.sort((a,b)=>SR63.gradeOrder(a.grade)-SR63.gradeOrder(b.grade)||String(a.grade).localeCompare(String(b.grade),"ar",{numeric:true})||String(a.className).localeCompare(String(b.className),"ar",{numeric:true})||SR63.reportSubjectCompare(a.subject,b.subject,settings));
  return output;
@@ -103,7 +103,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
  const heading=mode==="grade"?"المراكز العشرة الأولى للطلاب حسب الصف":"المراكز العشرة الأولى للطلاب حسب المادة";
  const esc=SR63.staffReportEsc||SR63.escape;
  const method=mode==="grade"?"يشمل الترتيب جميع طلاب الصف عبر جميع شُعَبه، حسب مجموع الدرجات المحصّلة مقسومًا على مجموع الدرجات القصوى للمواد المرصودة فعليًا لكل طالب. تظهر النتائج الجزئية بوضوح ولا تُعامل المادة غير المرصودة على أنها صفر.":"الترتيب حسب نسبة الدرجة المرصودة إلى الدرجة القصوى في المادة والاختبار المختارين داخل الصف الدراسي بجميع شُعَبه أو داخل الشعبة المختارة.";
- const note="المراكز العشرة تعني عشرة مراكز ترتيبية متميزة، وقد يزيد عدد الطلاب عند التعادل. تظهر كلمة «مكرر» لجميع المتعادلين، ويأتي المركز التالي بعدهم بالتسلسل. لا تُستخدم النسبة المعروضة بعد التقريب لتحديد التعادل.";
+ const note="المراكز العشرة تعني عشرة مراكز ترتيبية متميزة، وقد يزيد عدد الطلاب عند التعادل. تظهر كلمة «مكرر» لجميع المتعادلين، ويأتي المركز التالي بعدهم بالتسلسل. لا تُستخدم النسبة المعروضة بعد التقريب لتحديد التعادل. تنبيه: نسبة 100% في نتيجة جزئية تعني 100% من المواد المرصودة فقط، ولا تعني اكتمال جميع درجات الطالب.";
  const columns=["المركز","اسم الطالب","الشعبة","الدرجة المحصّلة","الدرجة الكلية","النسبة","رصد المواد"];
  const cells=person=>[person.position,person.studentName,person.className,num(person.score),num(person.total),percentage(person.percentage),
   person.recordedCount+" / "+person.expectedCount+(person.complete?" · مكتمل":" · جزئي")];
@@ -111,7 +111,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
   if(!canPrint||!prepared||!count)return;
   const body=groups.map((group,index)=>{
    const rows=group.rows.map(person=>"<tr>"+cells(person).map(value=>"<td>"+esc(value)+"</td>").join("")+"</tr>").join("");
-   return '<section class="sr640-section"'+(index?' style="break-before:page;page-break-before:always"':"")+"><h3>"+esc(group.title)+"</h3><p>"+group.eligible+" طالب محسوب · "+group.incompleteCount+" نتيجة جزئية · "+group.excluded+" بلا درجة صالحة أو لديه تعارض (أو غير مكتمل عند تفعيل المرشح) · "+group.rows.length+" اسمًا ضمن المراكز العشرة</p><table class=\"sr640-table\"><thead><tr>"+columns.map(label=>"<th>"+esc(label)+"</th>").join("")+"</tr></thead><tbody>"+rows+"</tbody></table></section>";
+   return '<section class="sr640-section"'+(index?' style="break-before:page;page-break-before:always"':"")+"><h3>"+esc(group.title)+"</h3><p>"+group.eligible+" طالب محسوب · "+group.incompleteCount+" نتيجة جزئية · "+group.unscoredCount+" بلا درجات صالحة · "+group.conflictCount+" سجل متعارض · "+group.filteredIncompleteCount+" مستبعد بمرشح المكتمل فقط · "+group.rows.length+" اسمًا ضمن المراكز العشرة</p><table class=\"sr640-table\"><thead><tr>"+columns.map(label=>"<th>"+esc(label)+"</th>").join("")+"</tr></thead><tbody>"+rows+"</tbody></table></section>";
   }).join("");
   SR63.staffPrintHtml({title:heading,subtitle:(exams.find(item=>item.key===exam)?.name||exam)+" · "+groups.length+" مجموعات",body:body+'<p class="sr640-note">'+esc(method+" "+note)+"</p>"},{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace});
  }
@@ -136,7 +136,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
   prepared&&!groups.length?h("p",{className:"sr67-year-alert",role:"status"},"لا توجد درجات مرصودة صالحة ضمن النطاق والاختبار المختارين."):null,
   prepared?groups.map((group,index)=>h("section",{key:index,style:{padding:"15px 0",borderTop:"1px solid #d1dfe5"}},
     h("h3",{style:{fontSize:"17px",fontWeight:800,marginBottom:"6px"}},group.title),
-    h("p",{style:{fontSize:"12px",color:"#4e6876",marginBottom:"10px"}},group.eligible+" طالب محسوب من "+group.totalStudents+" · "+group.incompleteCount+" نتيجة جزئية · "+group.excluded+" غير مدرج · "+group.rows.length+" اسمًا ضمن المراكز"),
+    h("p",{style:{fontSize:"12px",color:"#4e6876",marginBottom:"10px"}},group.eligible+" طالب محسوب من "+group.totalStudents+" · "+group.incompleteCount+" نتيجة جزئية · "+group.unscoredCount+" بلا درجة · "+group.conflictCount+" سجل متعارض · "+group.filteredIncompleteCount+" مستبعد بالمرشح · "+group.rows.length+" اسمًا ضمن المراكز"),
     group.rows.length?h("div",{className:"sr67-year-scroll",style:{overflowX:"auto"}},h("table",{className:"sr67-year-table",style:{width:"100%",minWidth:"650px"}},
       h("thead",{},h("tr",{},columns.map((c,i)=>h("th",{key:i},c)))),
       h("tbody",{},group.rows.map((student,i)=>h("tr",{key:student.studentId+"-"+i},cells(student).map((x,j)=>h(j===0?"th":"td",{key:j},x))))))):h("p",{},"لا توجد درجات مرصودة صالحة للترتيب في هذه المجموعة.")
