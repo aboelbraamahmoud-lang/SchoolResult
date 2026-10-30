@@ -35,7 +35,7 @@ SR63.LeadershipPortal=function({profile,payload,loading,error,reload}){
  const content=visiblePage==='dashboard'?h(SR63.Dashboard,{workspace,setWorkspace:setViewWorkspace,onNavigate:navigate,cloudStatus}):
  visiblePage==='studentProfile'?h(SR63.StudentProfile,{workspace,onNavigate:navigate}):
  visiblePage==='schoolQuantitative'?h(SR63.SchoolQuantitativePage,{workspace,canExport:!!perms.export}):
- visiblePage==='reportCenter'?h('div',{className:'space-y-6'},h(SR63.YearComparisonCenter,{workspace,canPrint:!!perms.export}),h(SR63.getReportCenterSafeBoundary(),{onReset:()=>setPage('dashboard')},h(xde,{workspace,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage('schoolQuantitative'),reportScope:'school'}))):
+ visiblePage==='reportCenter'?h(SR63.getReportCenterSafeBoundary(),{onReset:()=>setPage('dashboard')},h(xde,{workspace,readOnly:true,canPrint:!!perms.export,onSchoolSummary:()=>setPage('schoolQuantitative'),reportScope:'school'})):
  h(SR63.OriginalAnalytics,{workspace,page:visiblePage,onNavigate:navigate});
  return h(LA,{style:{'--sidebar-width':'19rem'},dir:'rtl'},
   h(RA,{side:'right',collapsible:'icon',className:'results-sidebar border-l-0 text-white'},

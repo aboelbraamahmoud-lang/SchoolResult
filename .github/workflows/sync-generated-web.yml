@@ -28,6 +28,7 @@ jobs:
           # Build from the current remote main, not a stale queued workflow commit.
           git fetch origin main
           git checkout -B main origin/main
+          npm --prefix source ci --no-audit --no-fund
           node --expose-internals source/build.cjs
           node source/release.cjs
       - name: Commit generated files without changing source data

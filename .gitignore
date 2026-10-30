@@ -10,6 +10,8 @@ desktop/dist/
 desktop/web/
 
 public/
+qa_*/
+audit-artifacts/
 
 # Never commit credentials used by AI provider or Edge Functions
 .env
