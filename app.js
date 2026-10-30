@@ -4560,11 +4560,16 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
  const [className,setClassName]=(0,v.useState)("الكل"),[subject,setSubject]=(0,v.useState)("الكل"),
   [onlyComplete,setOnlyComplete]=(0,v.useState)(false),[prepared,setPrepared]=(0,v.useState)(false);
  const raw=(0,v.useMemo)(()=>SR63.generalRows(workspace.rows||[],exam),[workspace,exam]);
- const grades=(0,v.useMemo)(()=>[...new Set(raw.map(row=>gj(row,exam)).filter(Boolean))].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||String(a).localeCompare(String(b),"ar",{numeric:true})),[raw,exam]);
- const classes=(0,v.useMemo)(()=>[...new Set(raw.filter(row=>grade==="الكل"||ij(gj(row,exam))===ij(grade)).map(row=>hj(row,exam)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"ar",{numeric:true})),[raw,exam,grade]);
+ const gradeIdentity=value=>{const order=SR63.gradeOrder(value);return Number.isInteger(order)&&order>0&&order<999?"grade:"+order:ij(value);};
+ const grades=(0,v.useMemo)(()=>{
+  const unique=new Map();
+  for(const row of raw){const label=gj(row,exam)||row.grade;if(label&&!unique.has(gradeIdentity(label)))unique.set(gradeIdentity(label),label);}
+  return [...unique.values()].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||String(a).localeCompare(String(b),"ar",{numeric:true}));
+ },[raw,exam]);
+ const classes=(0,v.useMemo)(()=>[...new Set(raw.filter(row=>grade==="الكل"||gradeIdentity(gj(row,exam)||row.grade)===gradeIdentity(grade)).map(row=>hj(row,exam)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),"ar",{numeric:true})),[raw,exam,grade]);
  const subjects=(0,v.useMemo)(()=>{
   const found=new Map();
-  for(const row of raw){if(grade!=="الكل"&&ij(gj(row,exam))!==ij(grade))continue;
+  for(const row of raw){if(grade!=="الكل"&&gradeIdentity(gj(row,exam)||row.grade)!==gradeIdentity(grade))continue;
    const key=SR63.subjectAliasKey(row.subject);if(key&&!found.has(key))found.set(key,row.subject);
   }
   return [...found.values()].sort((a,b)=>SR63.reportSubjectCompare(a,b,settings));
