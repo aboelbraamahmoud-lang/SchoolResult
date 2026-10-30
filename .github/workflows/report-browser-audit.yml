@@ -30,7 +30,7 @@ jobs:
       - name: Exercise real preview, print, PDF and ZIP controls
         env:
           NODE_PATH: /tmp/sr-browser-audit/node_modules:${{ github.workspace }}/source/node_modules
-        run: node --expose-internals source/tests/browser-print-audit.cjs && node --expose-internals source/tests/leadership-admin-parity.cjs
+        run: node --expose-internals source/tests/startup-performance.cjs && node --expose-internals source/tests/browser-print-audit.cjs && node --expose-internals source/tests/leadership-admin-parity.cjs
       - name: Retain synthetic print and download evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

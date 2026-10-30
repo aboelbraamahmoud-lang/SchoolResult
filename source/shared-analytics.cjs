@@ -5,7 +5,7 @@ module.exports=function(code,acorn){
  const names=['He','Ue','We','Ge','Ke','qe'],functions=names.map(name=>{const n=admin.body.body.find(n=>n.type==='FunctionDeclaration'&&n.id.name===name);if(!n)throw Error('Missing original analysis '+name);return code.slice(n.start,n.end);}).join('\n');
  const begin=code.indexOf('let ye=(0,v.useMemo)',admin.start),end=code.indexOf('function Oe()',begin);
  if(begin<0||end<0)throw Error('Original analytics context missing');
- const context=code.slice(begin,end);
+ const context=require('./clean-runtime.cjs').context(code.slice(begin,end),acorn,true);
  const routeStart=code.indexOf('o===`classes`?He(',admin.start),routeEnd=code.indexOf('o===`reports`?',routeStart);
  if(routeStart<0||routeEnd<0)throw Error('Original analysis routes missing');
  const routes=code.slice(routeStart,routeEnd),pages=['classes','teachers','departments','school','comparison','value','levels','struggling'];

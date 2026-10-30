@@ -151,7 +151,7 @@ SR63.CoordinatorDashboard=function({profile}){
  (0,v.useEffect)(()=>{void reload();},[profile.ownerId,profile.username]);
  const workspace=payload?.workspace||null,perms=profile.permissions||{},settings=workspace?.settings||{},exams=settings.exams||[],
  exam=exams.some(x=>x.key===chosenExam)?chosenExam:(workspace?.activeExam||exams[0]?.key||'exam1');
- const currentExam=exams.find(x=>x.key===exam),examName=currentExam?.name||'التقييم المحدد',active=SR63.staffReportWorkspace(workspace,exam,profile);
+ const currentExam=exams.find(x=>x.key===exam),examName=currentExam?.name||'التقييم المحدد',active=(0,v.useMemo)(()=>SR63.staffReportWorkspace(workspace,exam,profile),[workspace,exam,profile]);
  const benchmarks=(payload?.comparisonExam===exam||!payload?.comparisonExam&&exam===workspace?.activeExam)?(payload?.benchmarks||[]):[];
  const data=(0,v.useMemo)(()=>workspace?SR63.coordinatorDashboardData(workspace,exam,benchmarks):null,[workspace,exam,payload]);
  // Original admin reports consult SR63.currentWorkspace for report-scope auditing
@@ -161,10 +161,10 @@ SR63.CoordinatorDashboard=function({profile}){
  const isLeadership=['vice_principal','principal'].includes(profile.role),scopeLabel=isLeadership?'المدرسة':'القسم';
  const scopedClasses=[...new Set((workspace?.rows||[]).map(r=>String(r.examClasses?.[exam]||r.className||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
  const scopedSubjects=[...new Set((workspace?.rows||[]).map(r=>String(r.subject||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
- const levelGroups=(0,v.useMemo)(()=>workspace?SR63.staffStudentLevels(workspace,exam,levelClass,levelSubject):[],[workspace,exam,levelClass,levelSubject]);
+ const levelGroups=(0,v.useMemo)(()=>workspace&&page==='levels'?SR63.staffStudentLevels(workspace,exam,levelClass,levelSubject):[],[workspace,exam,levelClass,levelSubject,page]);
  const otherExam=exams.some(x=>x.key===previousExam&&x.key!==exam)?previousExam:(exams.find(x=>x.key!==exam&&exams.indexOf(x)<exams.findIndex(y=>y.key===exam))?.key||exams.find(x=>x.key!==exam)?.key||'');
  const chronological=SR63.staffExamChronology(settings,exam,otherExam),canCompare=!!chronological;
- const compared=(0,v.useMemo)(()=>workspace&&chronological?SR63.staffExamComparison(workspace,chronological.older,chronological.later):[],[workspace,chronological?.older,chronological?.later]);
+ const compared=(0,v.useMemo)(()=>workspace&&chronological&&page==='comparison'?SR63.staffExamComparison(workspace,chronological.older,chronological.later):[],[workspace,chronological?.older,chronological?.later,page]);
  const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace:active,subject:isLeadership?'':(profile.departments||[])[0]||''});}catch(error){setError(error.message||'تعذرت الطباعة.');}};
  const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
  const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});

@@ -51,7 +51,13 @@ SR63.ensureCatalog=function(workspace){
   for(const c of source.classes??[]){const value=typeof c==='string'?c:c?.className??c?.name;if(!SR63.isSupportClass(value))addClass(value,c?.grade,c&&typeof c==='object'?c:{});}
   for(const s of source.subjects??[])addSubject(typeof s==='string'?s:s?.name,s?.department,s&&typeof s==='object'?s:{});
   for(const teacher of oldTeachers){const subject=addSubject(teacher.subject,teacher.department,{coordinatorName:teacher.coordinator||''});for(const className of teacher.classes??[]){const cls=addClass(className,uj(className)),grade=cls?gradeMap.get(ij(cls.grade)):null;if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);}}
-  if(!detached)for(const row of rows){const support=SR63.isSupportClass(row.className),grade=addGrade(row.grade||uj(row.className)),cls=support?null:addClass(row.className,grade?.name),subject=addSubject(row.subject,support?row.subject:row.department);if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);if(cls&&grade){cls.gradeId=grade.id;cls.grade=grade.name;}}
+  // Academic structure depends on distinct class/subject combinations, not on
+  // the number of students. Keep this cache local so edits are never stale.
+  if(!detached){const seen=new Set();for(const row of rows){
+    const signature=JSON.stringify([row.grade,row.className,row.subject,row.department]);
+    if(seen.has(signature))continue;seen.add(signature);
+    const support=SR63.isSupportClass(row.className),grade=addGrade(row.grade||uj(row.className)),cls=support?null:addClass(row.className,grade?.name),subject=addSubject(row.subject,support?row.subject:row.department);if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);if(cls&&grade){cls.gradeId=grade.id;cls.grade=grade.name;}
+  }}
   for(const a of oldAssignments){if(SR63.isSupportClass(a.className))continue;const grade=addGrade(a.grade||uj(a.className)),cls=addClass(a.className,grade?.name),subject=addSubject(a.subject,a.department);if(subject&&grade&&!subject.gradeIds.includes(grade.id))subject.gradeIds.push(grade.id);if(cls&&grade){cls.gradeId=grade.id;cls.grade=grade.name;}}
   const teachers=oldTeachers.map((t,index)=>({...t,id:t.id||`profile-${crypto.randomUUID()}`,teacherId:String(t.teacherId??'').trim()||`T-${String(index+1).padStart(3,'0')}`,teacher:String(t.teacher??'').trim(),active:t.active!==false,subjects:Array.isArray(t.subjects)?[...new Set(t.subjects.filter(Boolean))]:t.subject?[t.subject]:[],classes:Array.isArray(t.classes)?[...new Set(t.classes.map(lj).filter(Boolean))]:[]}));
   const teacherById=new Map(teachers.map(t=>[t.id,t]));
@@ -62,8 +68,8 @@ SR63.ensureCatalog=function(workspace){
   const subjects=[...subjectMap.values()].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name,'ar'));
   return {grades,classes,subjects,teachers:normalizedTeachers,teacherAssignments:assignments};
 };
-SR63.subjectCoordinator=function(workspace,subjectName){const c=SR63.ensureCatalog(workspace),subject=c.subjects.find(s=>SR63.subjectEquivalent(s.name,subjectName));if(!subject)return '';if(subject.coordinatorId){const teacher=c.teachers.find(t=>t.id===subject.coordinatorId);if(teacher?.teacher)return teacher.teacher;}return String(subject.coordinatorName??'').trim();};
-SR63.subjectCoordinatorMap=function(workspace){const c=SR63.ensureCatalog(workspace);return Object.fromEntries(c.subjects.map(subject=>[subject.name,SR63.subjectCoordinator({...workspace,...c},subject.name)]));};
+SR63.subjectCoordinator=function(workspace,subjectName,precalculatedCatalog){const c=precalculatedCatalog||SR63.ensureCatalog(workspace),subject=c.subjects.find(s=>SR63.subjectEquivalent(s.name,subjectName));if(!subject)return '';if(subject.coordinatorId){const teacher=c.teachers.find(t=>t.id===subject.coordinatorId);if(teacher?.teacher)return teacher.teacher;}return String(subject.coordinatorName??'').trim();};
+SR63.subjectCoordinatorMap=function(workspace,precalculatedCatalog){const c=precalculatedCatalog||SR63.ensureCatalog(workspace);return Object.fromEntries(c.subjects.map(subject=>[subject.name,SR63.subjectCoordinator(workspace,subject.name,c)]));};
 SR63.withCatalog=function(workspace){const rows=SR63.normalizeSupportRows(SR63.reconcileStudentRows(workspace?.rows??[])),c=SR63.ensureCatalog({...workspace,rows});return {...workspace,version:7,catalogDetached:workspace?.catalogDetached===true,rows,students:SR63.studentRegistry({rows}),...c};};
 SR63.clearAcademicStructure=function(workspace){return SR63.withCatalog({...workspace,catalogDetached:true,grades:[],classes:[],subjects:[],teachers:[],teacherAssignments:[]});};
 SR63.assignmentMatches=function(workspace,subject,className){const c=SR63.ensureCatalog(workspace),classKey=lj(className);return c.teacherAssignments.filter(a=>a.active!==false&&lj(a.className)===classKey&&SR63.subjectEquivalent(a.subject,subject)&&c.teachers.some(t=>t.id===a.profileId&&t.active!==false));};
