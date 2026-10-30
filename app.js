@@ -4519,7 +4519,7 @@ SR63.studentTopRankings=function(workspace,options={}){
  const output=[];
  for(const group of groups.values()){
   const required=[...group.required.keys()],eligible=[];let excluded=0,incompleteCount=0,unscoredCount=0,conflictCount=0;
-  if(!required.length)continue;
+  // Keep a grade/class visible even when it has no graded results yet.
   for(const student of group.students.values()){
    const records=required.map(key=>student.bySubject.get(key));
    const conflict=records.some(record=>record?.conflict===true);
@@ -4616,7 +4616,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
     h("p",{style:{fontSize:"12px",color:"#4e6876",marginBottom:"10px"}},group.eligible+" طالب محسوب من "+group.totalStudents+" · "+group.incompleteCount+" نتيجة جزئية · "+group.excluded+" غير مدرج · "+group.rows.length+" اسمًا ضمن المراكز"),
     group.rows.length?h("div",{className:"sr67-year-scroll",style:{overflowX:"auto"}},h("table",{className:"sr67-year-table",style:{width:"100%",minWidth:"650px"}},
       h("thead",{},h("tr",{},columns.map((c,i)=>h("th",{key:i},c)))),
-      h("tbody",{},group.rows.map((student,i)=>h("tr",{key:student.studentId+"-"+i},cells(student).map((x,j)=>h(j===0?"th":"td",{key:j},x))))))):h("p",{},"لا توجد نتائج مكتملة مؤهلة للترتيب.")
+      h("tbody",{},group.rows.map((student,i)=>h("tr",{key:student.studentId+"-"+i},cells(student).map((x,j)=>h(j===0?"th":"td",{key:j},x))))))):h("p",{},"لا توجد درجات مرصودة صالحة للترتيب في هذه المجموعة.")
    )):null
  );
 };
