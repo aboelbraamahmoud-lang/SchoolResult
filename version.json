@@ -1,8 +1,8 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.74",
-  "released": "2026-10-30",
+  "version": "6.10.75",
+  "released": "2026-10-31",
   "updateFiles": [
     "app.js",
     "style.css",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تسريع فتح لوحات القيادة بإزالة التحليلات المكررة، وتحجيم تقارير الصف في المعاينة والطباعة وPDF وZIP، وتثبيت الترويسة وتوسيع عمود اسم الطالب."
+  "notes": "تسريع الخطط الذكية بتجميع حسابات المواد، وتجهيز التقارير المخصصة عند الطلب، وتحديث وصف الحساب إلى الأدمن."
 }
