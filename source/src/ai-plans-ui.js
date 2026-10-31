@@ -13,7 +13,7 @@ SR63.AIPlans=function({workspace,setWorkspace,coordinator=false,canSave=true,can
     [connect,setConnect]=(0,v.useState)({state:'loading',configured:false,connected:null,message:'جارٍ التحقق من إعدادات Gemini…'}),
     [connectBusy,setConnectBusy]=(0,v.useState)(false);
   const plans=workspace.aiPlans||[],active=plans.find(p=>p.id===selectedId)||plans[0]||null;
-  const wordMeta=active?SR63.aiPlanWordMeta(workspace,active,wordEdit?.id===active.id?wordEdit.values:null):null;
+  const wordMeta=(0,v.useMemo)(()=>tab==='library'&&active?SR63.aiPlanWordMeta(workspace,active,wordEdit?.id===active.id?wordEdit.values:null):null,[workspace,active,wordEdit,tab]);
   const changeWord=(key,value)=>setWordEdit(prev=>({id:active.id,values:{...(prev?.id===active.id?prev.values:{}),[key]:value}}));
   const saveWord=async()=>{if(!active)return;const keys=['schoolName','academicYear','teacherName','academicViceName','principalName'];if(await edit(active.id,{wordMeta:Object.fromEntries(keys.map(key=>[key,wordMeta[key]]))},'قبل حفظ بيانات ملف Word'))setWordEdit(null);};
   const exportWord=()=>{if(!active||!canExport)return;setError('');try{const name=SR63.aiPlanWordDownload(workspace,active,wordMeta);eb.success('تم إعداد ملف Word: '+name);}catch(err){setError(err.message||'تعذر إنشاء ملف Word.');}};
@@ -61,7 +61,7 @@ SR63.AIPlans=function({workspace,setWorkspace,coordinator=false,canSave=true,can
     }catch(e){setConnect({state:'error',configured:false,connected:null,message:e.message||'تعذر الاتصال.'});}
     finally{setConnectBusy(false);}
   };
-  (0,v.useEffect)(()=>{if(!coordinator)void refreshConnection();},[coordinator]);
+  (0,v.useEffect)(()=>{if(!coordinator&&tab==='connection')void refreshConnection();},[coordinator,tab]);
   const saveConnection=async()=>{
     if(connectBusy)return;
     if(!apiKey.trim()){setConnect(c=>({...c,state:'error',connected:null,message:'أدخل مفتاح Gemini الجديد أولًا.'}));return;}

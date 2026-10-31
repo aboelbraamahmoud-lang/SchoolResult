@@ -236,6 +236,7 @@ async function main(){
    const record={case:'custom-'+orientation,status:'FAIL',downloads:[]};
    const {page,context,errors}=await open(fixture(18),'custom',orientation);
    try{
+    await page.getByRole('button',{name:'عرض التقرير',exact:true}).click();
     await page.locator('#custom-printable-reports .school-report-page').first().waitFor();
     await page.evaluate(()=>document.fonts.ready);
     const before=await page.locator('#custom-printable-reports .school-report-page').evaluateAll(reportGeometry);

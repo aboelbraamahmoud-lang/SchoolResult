@@ -16,16 +16,17 @@ SR63.aiPlanStudentPages=function(workspace,exam){
 SR63.aiPlanCandidateSet=function(workspace,filters){
   const exam=filters.exam||workspace.activeExam,subject=filters.subject,cohort=filters.cohort||'general';
   if(!XA.includes(exam)||!subject)SR63.fail('اختر الاختبار والمادة أولًا.');
-  const pages=SR63.aiPlanStudentPages(workspace,exam),chosen=[],type=filters.level||'below60';
+  const pages=SR63.aiPlanStudentPages(workspace,exam),chosen=[],type=filters.level||'below60',subjectKey=SR63.subjectAliasKey(subject);
+  const rowsById=new Map();if(filters.teacher&&filters.teacher!=='الكل')for(const row of workspace.rows)if(!rowsById.has(row.id))rowsById.set(row.id,row);
   for(const page of pages){
     if((cohort==='support')!==SR63.isSupportClass(page.className))continue;
     if(filters.grade&&filters.grade!=='الكل'&&ij(page.grade)!==ij(filters.grade))continue;
     if(filters.className&&filters.className!=='الكل'&&lj(page.className)!==lj(filters.className))continue;
     if(filters.studentId&&filters.studentId!=='الكل'&&page.studentId!==filters.studentId)continue;
-    const item=page.results.find(item=>SR63.subjectAliasKey(item.rawSubject)===SR63.subjectAliasKey(subject));
+    const item=page.results.find(item=>SR63.subjectAliasKey(item.rawSubject)===subjectKey);
     if(!item)continue;
     if(filters.teacher&&filters.teacher!=='الكل'){
-      const original=workspace.rows.find(r=>r.id===item.rowId);
+      const original=rowsById.get(item.rowId);
       const teacher=original?.examTeachers?.[exam]||original?.teacher||'';
       if(ij(teacher)!==ij(filters.teacher))continue;
     }

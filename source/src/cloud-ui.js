@@ -137,7 +137,7 @@ SR63.CloudApp=function(){
   authorized&&el('div',{key:mounted,children:null},['coordinator','vice_principal','principal'].includes(role.role)?el(SR63.CoordinatorPortal,{profile:role}):el(Nde,{})),
   authorized&&el('aside',{className:'sr-cloud-account',dir:'rtl','aria-label':'الحساب السحابي'},[
    el('span',{},role.displayName||role.username||user.email),
-   el('strong',{role:'status'},role.role==='coordinator'?'منسق · '+(role.departments||[]).join('، '):role.role==='vice_principal'?'النائب الأكاديمي · تقارير المدرسة':role.role==='principal'?'مدير المدرسة · تقارير المدرسة':SR63.storage.busy?'جارٍ الحفظ السحابي…':SR63.storage.pending?'تغييرات لم تُحفظ':SR63.storage.error?'تعذر الاتصال':role.role==='admin'?'أدمن · حفظ سحابي محمي':'مالك المدرسة · متصل'),
+   el('strong',{role:'status'},role.role==='coordinator'?'منسق · '+(role.departments||[]).join('، '):role.role==='vice_principal'?'النائب الأكاديمي · تقارير المدرسة':role.role==='principal'?'مدير المدرسة · تقارير المدرسة':SR63.storage.busy?'جارٍ الحفظ السحابي…':SR63.storage.pending?'تغييرات لم تُحفظ':SR63.storage.error?'تعذر الاتصال':role.role==='admin'?'الأدمن · حفظ سحابي محمي':'الأدمن · متصل'),
    el('button',{type:'button',disabled:busy,onClick:logout},'تسجيل الخروج'),error&&el('p',{role:'alert'},error)]),
   !authorized&&el('main',{className:'sr-cloud-login'+(mounted?' sr-cloud-overlay':''),dir:'rtl'},el('section',{className:'sr-cloud-card'},[
    el('span',{className:'sr63-kicker'},`مرصد النتائج المدرسية · الإصدار ${SR63.version}`),
