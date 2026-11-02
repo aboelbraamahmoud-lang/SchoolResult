@@ -60,6 +60,16 @@ SR63.gradeOrder=function(value){
 };
 SR63.displayClass=value=>SR63.supportClassInfo?.(value)?.label||String(value??'').replace(/\s*\/\s*/g,' - ').replace(/\s+/g,' ').trim();
 SR63.metricTone=function(value){if(value===null||value===undefined||!Number.isFinite(Number(value)))return 'na';const n=Number(value);return n<21?'very-low':n<50?'low':n<71?'mid':n<91?'good':'excellent';};
+/* Use exactly the configured dashboard level boundaries and color, not fixed cutoffs. */
+SR63.reportBandColor=function(value,settings=SR63.currentWorkspace?.settings){
+ if(typeof value!=='number'||!Number.isFinite(value))return null;
+ const bands=settings?.bands;if(!Array.isArray(bands)||!bands.length)return null;
+ const color=yj(value,bands)?.color;
+ return typeof color==='string'&&/^#[0-9a-fA-F]{6}$/.test(color)?color:null;
+};
+SR63.reportBandStyle=function(value,settings=SR63.currentWorkspace?.settings){
+ const color=SR63.reportBandColor(value,settings);return color?{'--sr-band-color':color}:undefined;
+};
 SR63.clampPercent=value=>value===null||value===undefined||!Number.isFinite(Number(value))?0:Math.max(0,Math.min(100,Number(value)));
 SR63.reportWestern=value=>String(value??'').replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)).replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/٫/g,'.').replace(/٬/g,',');
 SR63.renderReportValue=function(value,key=''){
@@ -69,8 +79,8 @@ SR63.renderReportValue=function(value,key=''){
     return (0,q.jsxs)(`span`,{className:`report-delta-chip delta-${tone}`,title:n>0?'قيمة مضافة':n<0?'قيمة منقوصة':'لا تغير',children:[(0,q.jsx)(`i`,{children:arrow}),(0,q.jsx)(`b`,{children:SR63.reportWestern(`${sign}${n.toFixed(1)}`)})]});
   }
   if(isPercent&&Number.isFinite(numeric)){
-    let pct=/%$/.test(text)?numeric:(numeric>=0&&numeric<=1?numeric*100:numeric);pct=SR63.clampPercent(pct);const tone=SR63.metricTone(pct);
-    return (0,q.jsxs)(`span`,{className:`report-meter report-cell-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:SR63.reportWestern(/%$/.test(text)?text:wj(pct))})]});
+    let pct=/%$/.test(text)?numeric:(numeric>=0&&numeric<=1?numeric*100:numeric);pct=SR63.clampPercent(pct);const tone=SR63.metricTone(pct),bandStyle=SR63.reportBandStyle(pct);
+    return (0,q.jsxs)(`span`,{className:`report-meter report-cell-meter tone-${tone} sr-band-linked`,style:bandStyle,children:[(0,q.jsx)(`i`,{style:{width:`${pct}%`}}),(0,q.jsx)(`b`,{children:SR63.reportWestern(/%$/.test(text)?text:wj(pct))})]});
   }
   return raw;
 };
@@ -339,8 +349,8 @@ function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
         (0,q.jsx)(`td`,{children:e.rowOffset+index+1}),
         (0,q.jsxs)(`td`,{className:`target-student-name`,children:[(0,q.jsx)(`b`,{children:row.studentName}),(0,q.jsx)(`small`,{children:row.studentId})]}),
         (0,q.jsx)(`td`,{children:SR63.displayClass(hj(row,t)||row.className)}),
-        (0,q.jsx)(`td`,{className:`target-score`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:F9(row,t)})]})}),
-        (0,q.jsx)(`td`,{className:`target-percent`,children:(0,q.jsxs)(`div`,{className:`report-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:SR63.rangePercentLabel(value,range)})]})}),
+        (0,q.jsx)(`td`,{className:`target-score`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(value,r.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:F9(row,t)})]})}),
+        (0,q.jsx)(`td`,{className:`target-percent`,children:(0,q.jsxs)(`div`,{className:`report-meter tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(value,r.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:SR63.rangePercentLabel(value,range)})]})}),
         (0,q.jsx)(`td`,{children:(0,q.jsx)(`span`,{className:`target-status ${state}`,children:label})}),
         (0,q.jsx)(`td`,{className:`target-plan`,children:plan}),
         (0,q.jsx)(`td`,{className:`target-followup-owner`,children:mj(row,t)||row.teacher||`معلم المادة`}),
@@ -363,9 +373,9 @@ function SRComparisonReport({page:e,from:t,to:n,workspace:r}){
         (0,q.jsx)(`td`,{children:e.rowOffset+index+1}),
         (0,q.jsx)(`td`,{className:`comparison-student`,children:row.studentName}),
         (0,q.jsx)(`td`,{children:F9(row,t)}),
-        (0,q.jsx)(`td`,{children:a===null?'—':(0,q.jsxs)(`div`,{className:`report-meter compact tone-${toneA}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(a)}%`}}),(0,q.jsx)(`b`,{children:wj(a,0)})]})}),
+        (0,q.jsx)(`td`,{children:a===null?'—':(0,q.jsxs)(`div`,{className:`report-meter compact tone-${toneA} sr-band-linked`,style:SR63.reportBandStyle(a,r.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(a)}%`}}),(0,q.jsx)(`b`,{children:wj(a,0)})]})}),
         (0,q.jsx)(`td`,{children:F9(row,n)}),
-        (0,q.jsx)(`td`,{children:b===null?'—':(0,q.jsxs)(`div`,{className:`report-meter compact tone-${toneB}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(b)}%`}}),(0,q.jsx)(`b`,{children:wj(b,0)})]})}),
+        (0,q.jsx)(`td`,{children:b===null?'—':(0,q.jsxs)(`div`,{className:`report-meter compact tone-${toneB} sr-band-linked`,style:SR63.reportBandStyle(b,r.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(b)}%`}}),(0,q.jsx)(`b`,{children:wj(b,0)})]})}),
         (0,q.jsx)(`td`,{className:`comparison-delta-cell`,children:delta===null?'—':SR63.renderReportValue(delta,'valueAdded')}),
         (0,q.jsx)(`td`,{className:`comparison-trend-cell`,children:delta===null?'—':(0,q.jsxs)(`span`,{className:`comparison-trend trend-${state}`,children:[(0,q.jsx)(`i`,{children:arrow}),(0,q.jsx)(`b`,{children:label})]})}),
         (0,q.jsx)(`td`,{})
@@ -389,9 +399,9 @@ function SRLevelAnalysisReport({page:e,exam:t,workspace:n}){
       ...rows.map((row,index)=>{const pct=vj(row,t,n.settings),band=pct===null?null:yj(pct,n.settings.bands),tone=SR63.metricTone(pct),scoreText=F9(row,t);return(0,q.jsxs)(`tr`,{className:`level-row macro-${macro}`,children:[
         (0,q.jsx)(`td`,{children:e.rowOffset+index+1}),
         (0,q.jsx)(`td`,{className:`level-student-name`,children:row.studentName}),
-        (0,q.jsx)(`td`,{className:`level-score-visual`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(pct)}%`}}),(0,q.jsx)(`b`,{children:scoreText})]})}),
-        (0,q.jsx)(`td`,{className:`level-percent-visual`,children:pct===null?'—':(0,q.jsxs)(`div`,{className:`report-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(pct)}%`}}),(0,q.jsx)(`b`,{children:wj(pct,0)})]})}),
-        (0,q.jsx)(`td`,{children:(0,q.jsxs)(`span`,{className:`level-macro-badge macro-${macro}`,children:[SR63.macroLabel(macro),band?.label?(0,q.jsx)(`small`,{children:band.label}):null]})}),
+        (0,q.jsx)(`td`,{className:`level-score-visual`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(pct,n.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(pct)}%`}}),(0,q.jsx)(`b`,{children:scoreText})]})}),
+        (0,q.jsx)(`td`,{className:`level-percent-visual`,children:pct===null?'—':(0,q.jsxs)(`div`,{className:`report-meter tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(pct,n.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(pct)}%`}}),(0,q.jsx)(`b`,{children:wj(pct,0)})]})}),
+        (0,q.jsx)(`td`,{children:(0,q.jsxs)(`span`,{className:`level-macro-badge macro-${macro} sr-band-linked`,style:SR63.reportBandStyle(pct,n.settings),children:[SR63.macroLabel(macro),band?.label?(0,q.jsx)(`small`,{children:band.label}):null]})}),
         (0,q.jsx)(`td`,{colSpan:2,children:``})
       ]},`${macro}-${row.id}`);})
     ]},macro));

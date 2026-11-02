@@ -110,7 +110,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
  function print(){
   if(!canPrint||!prepared||!count)return;
   const body=groups.map((group,index)=>{
-   const rows=group.rows.map(person=>"<tr>"+cells(person).map(value=>"<td>"+esc(value)+"</td>").join("")+"</tr>").join("");
+   const rows=group.rows.map(person=>{const color=SR63.reportBandColor(person.percentage,settings);return "<tr>"+cells(person).map((value,column)=>{const tint=color&&(column===3||column===5)?' style="background:color-mix(in srgb,'+color+' 40%,white);font-weight:900"':"";return "<td"+tint+">"+esc(value)+"</td>"}).join("")+"</tr>"}).join("");
    return '<section class="sr640-section"'+(index?' style="break-before:page;page-break-before:always"':"")+"><h3>"+esc(group.title)+"</h3><p>"+group.eligible+" طالب محسوب · "+group.incompleteCount+" نتيجة جزئية · "+group.unscoredCount+" بلا درجات صالحة · "+group.conflictCount+" سجل متعارض · "+group.filteredIncompleteCount+" مستبعد بمرشح المكتمل فقط · "+group.rows.length+" اسمًا ضمن المراكز العشرة</p><table class=\"sr640-table\"><thead><tr>"+columns.map(label=>"<th>"+esc(label)+"</th>").join("")+"</tr></thead><tbody>"+rows+"</tbody></table></section>";
   }).join("");
   SR63.staffPrintHtml({title:heading,subtitle:(exams.find(item=>item.key===exam)?.name||exam)+" · "+groups.length+" مجموعات",body:body+'<p class="sr640-note">'+esc(method+" "+note)+"</p>"},{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace});
@@ -139,7 +139,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
     h("p",{style:{fontSize:"12px",color:"#4e6876",marginBottom:"10px"}},group.eligible+" طالب محسوب من "+group.totalStudents+" · "+group.incompleteCount+" نتيجة جزئية · "+group.unscoredCount+" بلا درجة · "+group.conflictCount+" سجل متعارض · "+group.filteredIncompleteCount+" مستبعد بالمرشح · "+group.rows.length+" اسمًا ضمن المراكز"),
     group.rows.length?h("div",{className:"sr67-year-scroll",style:{overflowX:"auto"}},h("table",{className:"sr67-year-table",style:{width:"100%",minWidth:"650px"}},
       h("thead",{},h("tr",{},columns.map((c,i)=>h("th",{key:i},c)))),
-      h("tbody",{},group.rows.map((student,i)=>h("tr",{key:student.studentId+"-"+i},cells(student).map((x,j)=>h(j===0?"th":"td",{key:j},x))))))):h("p",{},"لا توجد درجات مرصودة صالحة للترتيب في هذه المجموعة.")
+      h("tbody",{},group.rows.map((student,i)=>h("tr",{key:student.studentId+"-"+i},cells(student).map((x,j)=>h(j===0?"th":"td",{key:j},j===3||j===5?h("span",{className:"sr681-band-value",style:SR63.reportBandStyle(student.percentage,settings)},x):x))))))):h("p",{},"لا توجد درجات مرصودة صالحة للترتيب في هذه المجموعة.")
    )):null
  );
 };
