@@ -1679,3 +1679,30 @@
 .school-report-page .sr680-table td,.school-report-page .sr680-table th{padding:4px 6px}
 .school-report-page .sr680-method{font-size:10px;margin:5px 0 9px}
 @media(max-width:800px){.sr680-overview-grid{grid-template-columns:1fr}.sr680-stat-grid{grid-template-columns:1fr}.sr680-stat-grid{gap:7px}}
+
+
+/* 6.10.81 — The exact school dashboard band color is passed on each metric. */
+.report-meter.sr-band-linked[style*="--sr-band-color"] > i{
+ background:var(--sr-band-color)!important;opacity:.7!important;
+ -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+}
+.sr681-band-value[style*="--sr-band-color"]{
+ display:inline-block;padding:.15em .5em;border-radius:5px;
+ background:color-mix(in srgb,var(--sr-band-color) 34%,white)!important;
+ border:1px solid color-mix(in srgb,var(--sr-band-color) 70%,white)!important;
+ color:#122f3d!important;font-weight:850;
+ -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+}
+.level-macro-badge.sr-band-linked[style*="--sr-band-color"]{
+ background:color-mix(in srgb,var(--sr-band-color) 26%,white)!important;
+ border:1px solid var(--sr-band-color)!important;color:#142e3d!important;
+ -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+}
+.sr681-statistics-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.sr681-statistics-heading h2{font-size:1.15rem;font-weight:800;color:#173b4c;margin:0}
+.sr681-print-button{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+.sr681-statistics-report .sr680-overview-grid{grid-template-columns:minmax(0,1fr) minmax(0,.8fr)}
+.sr681-statistics-report .sr680-table td,.sr681-statistics-report .sr680-table th{padding:3.2px 6px!important}
+.sr681-statistics-report .sr680-stat{padding:6px!important}
+@media(max-width:760px){.sr681-statistics-heading{align-items:stretch}.sr681-print-button{width:100%;justify-content:center}}
+@media print{.sr681-band-value,.report-meter.sr-band-linked>i,.level-macro-badge.sr-band-linked{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
