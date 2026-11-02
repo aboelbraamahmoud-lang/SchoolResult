@@ -1,3 +1,13 @@
+/* Inclusive lower bound, exclusive upper bound. Empty input is invalid, not zero. */
+SR63.studentPercentRange=function(value){
+ const raw=typeof value==='object'&&value!==null?value:{min:0,max:value};
+ const min=SR63.number(raw.min),max=SR63.number(raw.max);
+ const error=min===null||max===null?'أدخل الحد الأدنى والحد الأعلى للنسبة.':
+  min<0||max>100||max<0||min>100?'يجب أن تكون النسب بين 0 و100.':
+  min>=max?'يجب أن يكون الحد الأدنى أقل من الحد الأعلى.':'';
+ return {min,max,error};
+};
+SR63.percentInRange=(value,range)=>!range.error&&typeof value==='number'&&Number.isFinite(value)&&value>=range.min&&value<range.max;
 /* 6.9.14 — every ordinary report page owns one subject; subjects comparison is the only all-subject page. */
 SR63.reportSubjectOrder=function(rows,settings){
   return [...new Set((rows||[]).map(row=>row.subject||'').filter(Boolean))].sort((a,b)=>SR63.reportSubjectCompare(a,b,settings));
@@ -9,7 +19,8 @@ SR63.reportClassOrder=function(rows,exam){
   return [...new Set((rows||[]).map(row=>hj(row,exam)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
 };
 SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mode,exam,threshold,settings){
-  const sourceRows=Array.isArray(rows)?rows:[];
+  const sourceRows=Array.isArray(rows)?rows:[],range=mode==='struggling'?SR63.studentPercentRange(threshold):null;
+  if(range?.error)throw Error(range.error);
   if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل');
   const allRows=SR63.generalRows(sourceRows,exam);
   if(mode==='executive')return [{key:`executive-${exam}`,title:'الملخص التنفيذي',entity:'المدرسة',scope:'school',grade:'',className:'',teacher:'',subject:'كل المواد',rows:allRows,allRows,rowOffset:0,part:1,totalParts:1}];
@@ -22,7 +33,7 @@ SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mod
   const chunk=(items,size)=>items.length?Array.from({length:Math.ceil(items.length/size)},(_,i)=>items.slice(i*size,(i+1)*size)):[[]];
   const addDetail=(entity,scope,className,teacher,subject,subjectRows)=>{
     let visible=subjectRows;
-    if(mode==='struggling')visible=subjectRows.filter(row=>{const value=vj(row,exam,settings);return value!==null&&value<threshold}).sort((a,b)=>(vj(a,exam,settings)??0)-(vj(b,exam,settings)??0));
+    if(mode==='struggling')visible=subjectRows.filter(row=>{const value=vj(row,exam,settings);return SR63.percentInRange(value,range)}).sort((a,b)=>(vj(a,exam,settings)??0)-(vj(b,exam,settings)??0));
     else if(mode==='levels')visible=[...subjectRows].sort((a,b)=>(vj(b,exam,settings)??-1)-(vj(a,exam,settings)??-1));
     if(mode==='struggling'&&!visible.length)return;
     // Ordinary class lists stay together; the shared preview/print fitter scales the whole sheet.

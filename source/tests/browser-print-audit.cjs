@@ -12,6 +12,8 @@ const edgeSandbox={exports:{},require:()=>({createClient:()=>({})}),Deno:{serve:
 const edgeSource=fs.readFileSync(path.join(root,'supabase/functions/school-staff/index.ts'),'utf8');
 vm.runInNewContext(esbuild.transformSync(edgeSource+'\nexports.projection={coordinator:cleanCoordinator,principal:cleanLeadership,vice_principal:cleanLeadership};',{loader:'ts',format:'cjs',target:'es2022'}).code,edgeSandbox);
 const projections=edgeSandbox.exports.projection;
+const subjectModule={module:{exports:{}}};vm.runInNewContext(esbuild.transformSync(fs.readFileSync(path.join(root,'supabase/functions/school-staff/subject-comparison.ts'),'utf8'),{loader:'ts',format:'cjs'}).code,subjectModule);
+const subjectComparison=subjectModule.module.exports.subjectComparison;
 const {ctx}=loadApp(),demo=JSON.parse(JSON.stringify(ctx.zj())),records=[];
 const subject='اللغة العربية',baseRow=demo.rows.find(r=>r.subject===subject&&r.className==='7/1');
 assert.ok(baseRow);
@@ -102,7 +104,7 @@ async function main(){
   await page.goto(origin,{waitUntil:'load'});
   await page.waitForFunction(()=>typeof xde==='function'&&typeof SR63!=='undefined');
   await page.evaluate('window.reportGeometry='+reportGeometry.toString());
-  await page.evaluate(({ws,role,yearReport})=>{
+  await page.evaluate(({ws,role,yearReport,subjectReports})=>{
    document.getElementById('root').style.display='none';
    const mount=document.createElement('div');mount.id='audit-mount';document.body.appendChild(mount);
    window.auditRoot=y.createRoot(mount);SR63.currentWorkspace=ws;
@@ -129,10 +131,10 @@ async function main(){
     const profile={role,ownerId:'synthetic-owner',username:'synthetic-'+role,displayName:'COORDINATOR61070',departments:['اللغة العربية'],
      permissions:{reports:true,compare:true,export:true,studentLevels:true,failedStudents:true,teacherAnalysis:true},skillsWrite:false};
     SR63.staff.coordinatorLoad=async()=>({workspace:ws,profile,revision:1,benchmarks:[],comparisonExam:ws.activeExam});
-    SR63.staff.call=async()=>({report:null});
+    SR63.staff.call=async body=>({report:subjectReports[body.exam]});
     auditRoot.render(v.createElement(SR63.CoordinatorPortal,{profile}));
    }
-  },{ws,role,yearReport});
+  },{ws,role,yearReport,subjectReports:Object.fromEntries(ws.settings.exams.map(e=>[e.key,subjectComparison(ws,e.key)]))});
   if(!['owner','year','student','skills','custom'].includes(role)){
    assert.equal(await page.getByRole('button',{name:'تحليل مهارات المواد',exact:true}).count(),role==='coordinator'?1:0);
    await page.getByRole('button',{name:'مركز التقارير والطباعة',exact:true}).click();
@@ -152,9 +154,9 @@ async function main(){
   if(mobile)await page.setViewportSize({width:390,height:844});
   const record={case:id,role,authentication:'synthetic boundary only',mode,count,status:'FAIL',downloads:[]};
   try{
-   const titles={levels:'مستويات الطلاب',teachers:'تحصيل المعلمين',comparison:'مقارنة الاختبارين',subjects:role==='coordinator'?'مقارنة مادة القسم':'مقارنة جميع المواد'};
+   const titles={levels:'مستويات الطلاب',teachers:'تحصيل المعلمين',comparison:'مقارنة الاختبارين',subjects:'تقرير مقارنة المواد',struggling:'الطلاب ضمن نسبة'};
    if(mode!=='summary'){
-    const title=role==='owner'?await page.evaluate(mode=>SR63.currentWorkspace.settings.reportDesign.reportNames[mode]||pde.find(x=>x.id===mode)?.title,mode):titles[mode];
+    const title=mode==='struggling'?'الطلاب ضمن نسبة':role==='owner'?await page.evaluate(mode=>SR63.currentWorkspace.settings.reportDesign.reportNames[mode]||pde.find(x=>x.id===mode)?.title,mode):titles[mode];
     assert.ok(title,'report title '+mode);
     const reportArea=['principal','vice_principal'].includes(role)?page.locator('#audit-mount main').last():page.locator('#audit-mount');
     await reportArea.locator('button').filter({has:page.getByText(title,{exact:true})}).first().click();
@@ -319,7 +321,7 @@ async function main(){
   for(const count of [10,18,28,40,80,90])await caseReport('comparison',count,{zip:count===18});
   for(const mode of ['summary','levels','struggling','teachers','subjects','departmentStats','executive'])await caseReport(mode,18,{zip:mode==='summary'});
   await caseReport('comparison',40,{classes:2,zip:true});
-  for(const role of ['coordinator','principal','vice_principal'])for(const mode of ['summary','levels','teachers','comparison','subjects'])await caseReport(mode,18,{role,zip:true});
+  for(const role of ['coordinator','principal','vice_principal'])for(const mode of ['summary','levels','struggling','teachers','comparison','subjects'])await caseReport(mode,18,{role,zip:true});
   // Real annual-report UI/print button with actual calculator output and synthetic cohorts.
   const ts=fs.readFileSync(path.join(root,'supabase/functions/school-staff/year-over-year.ts'),'utf8');
   const code=require('esbuild').transformSync(ts,{loader:'ts',format:'cjs'}).code,mod={exports:{}};

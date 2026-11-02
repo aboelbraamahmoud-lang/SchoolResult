@@ -1,6 +1,7 @@
 /** SchoolResult staff authentication, account management and server-scoped coordinator read, 6.10.26. */
 import { createClient } from 'npm:@supabase/supabase-js@2.117.2';
 import { yearExamCompare, yearExamDataset, previousAcademicYear } from './year-over-year.ts';
+import { subjectComparison } from './subject-comparison.ts';
 const reply=(body:unknown,status=200,origin='*')=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Headers':'authorization, apikey, content-type, x-client-info','Access-Control-Allow-Methods':'POST, OPTIONS','Vary':'Origin'}});
 const normalize=(v:unknown)=>String(v??'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
 const safeUsername=(s:string)=>s.length>=3&&s.length<=42&&/^[\p{L}\p{N}_. \-]+$/u.test(s);
@@ -52,6 +53,7 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  // Whitelist settings. Never send whole workspace or backups, imports, other-subject records, auth metadata.
  const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','academicViceName','principalName','signatures','footerText','reportTitle','schoolVision','programmerDesignerName','reportSystemName','preparedByName','reviewedByName','showGeneratedAt','statusAliases'];
  const publicSettings=Object.fromEntries(fields.filter(k=>Object.prototype.hasOwnProperty.call(settings,k)).map(k=>[k,settings[k]]));
+ if(Array.isArray(settings.subjectReportOrder))publicSettings.subjectReportOrder=settings.subjectReportOrder.filter((x:any)=>x&&typeof x.key==='string').map((x:any)=>({key:x.key,label:String(x.label??'')}));
  if(typeof publicSettings.coordinatorName!=='string')publicSettings.coordinatorName='';
  if(!Number.isFinite(Number(publicSettings.stable)))publicSettings.stable=3;
  // Only authorized subject presentation metadata; never forward arbitrary catalog fields.
@@ -128,6 +130,17 @@ Deno.serve(async(req:Request)=>{
   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
   if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
+ }
+ if(action==='subject_comparison'){
+  // Authenticate with the server-owned role and school. Never accept an owner ID or rows from the caller.
+  if(!readRoles.includes(role)||profile.permissions.reports!==true||
+     (role==='coordinator'&&profile.permissions.compare!==true))return reply({error:'PERMISSION_DENIED'},403,origin);
+  const exam=String(body.exam||'');
+  if(!/^exam[1-4]$/.test(exam))return reply({error:'INVALID_EXAM'},400,origin);
+  const {data,error}=await admin.from('school_workspaces').select('workspace,revision').eq('owner_id',ownerId).maybeSingle();
+  if(error||!data?.workspace)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
+  try{return reply({report:subjectComparison(data.workspace,exam),revision:data.revision},200,origin);}
+  catch{return reply({error:'INVALID_EXAM'},400,origin);}
  }
  if(action==='year_comparison'){
   // Authenticated report-only endpoint. Returns only per-grade and school aggregates, not old-year pupils.

@@ -1,0 +1,50 @@
+'use strict';
+// Browser boundary verification with synthetic rows and real preview/print controls.
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),http=require('node:http'),vm=require('node:vm');
+const {chromium}=require('playwright'),{transformSync}=require('esbuild'),{loadApp}=require('./harness.cjs');
+const root=path.resolve(__dirname,'../..'),out=path.join(root,'audit-artifacts');fs.mkdirSync(out,{recursive:true});
+const {ctx}=loadApp(),ws=JSON.parse(JSON.stringify(ctx.zj()));ws.activeExam='exam1';ws.settings.schoolName='مدرسة اختبار نطاق النسب';ws.settings.exams.forEach(e=>e.total=100);
+ws.rows=[0,49.9,50,59.9,60,69.9,70,79.9,80,89.9,90,99.9,100].map((pct,i)=>({id:'range-'+i,studentId:'RANGE'+i,studentName:'طالب النطاق '+i,className:'7/1',grade:'السابع',subject:'الرياضيات',department:'الرياضيات',teacher:'معلم الرياضيات',scores:{exam1:pct,exam2:pct},totals:{exam1:100,exam2:100},statuses:{exam1:'present',exam2:'present'}}));
+const full={...ws,rows:[...ws.rows,...ws.rows.map(r=>({...r,id:r.id+'-ar',studentId:r.studentId+'-ar',studentName:'اسم خارج القسم',subject:'اللغة العربية',department:'اللغة العربية',teacher:'معلم العربية',scores:{exam1:100,exam2:50}}))]};
+const edge={module:{exports:{}}};vm.runInNewContext(transformSync(fs.readFileSync(path.join(root,'supabase/functions/school-staff/subject-comparison.ts'),'utf8'),{loader:'ts',format:'cjs'}).code,edge);
+const aggregates=Object.fromEntries(['exam1','exam2'].map(e=>[e,edge.module.exports.subjectComparison(full,e)]));
+async function main(){
+ const server=http.createServer((req,res)=>{const name=decodeURIComponent(new URL(req.url,'http://localhost').pathname).slice(1)||'index.html',file=path.resolve(root,name);if(!file.startsWith(root+path.sep)||!fs.existsSync(file))return res.writeHead(404).end();res.setHeader('content-type',name.endsWith('.js')?'text/javascript':name.endsWith('.css')?'text/css':name.endsWith('.html')?'text/html':'application/octet-stream');fs.createReadStream(file).pipe(res);});
+ await new Promise(r=>server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+server.address().port,browser=await chromium.launch({headless:true}),results=[];
+ try{for(const role of ['admin','principal','vice_principal','coordinator']){
+  const context=await browser.newContext({viewport:{width:1440,height:1050}});await context.route('**/*',r=>new URL(r.request().url()).origin===origin?r.continue():r.abort());await context.addInitScript(()=>{window.print=()=>window.__rangePrinted=true;});
+  const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(origin);await page.waitForFunction(()=>typeof xde==='function');
+  await page.evaluate(({ws,role,aggregates})=>{
+   document.getElementById('root').style.display='none';const mount=document.createElement('div');mount.id='range-test';document.body.append(mount);window.rangeRoot=y.createRoot(mount);SR63.currentWorkspace=ws;window.subjectCalls=[];
+   SR63.staff.call=async body=>{subjectCalls.push(body);await new Promise(r=>setTimeout(r,60));return {report:aggregates[body.exam]};};
+   rangeRoot.render(v.createElement(xde,{workspace:ws,onExportExcel:()=>{},readOnly:role!=='admin',onSchoolSummary:role==='admin'?null:()=>{},reportScope:role==='coordinator'?'department':'school',canCompareSubjects:true,canPrint:true}));
+  },{ws,role,aggregates});
+  const host=page.locator('#range-test');await host.locator('button').filter({has:page.getByText('الطلاب ضمن نسبة',{exact:true})}).first().click();
+  for(const [min,max,indices] of [[90,100,[10,11]],[50,60,[2,3]],[0,60,[0,1,2,3]],[70,80,[6,7]]]){
+   await host.locator('#sr-range-min').fill(String(min));await host.locator('#sr-range-max').fill(String(max));
+   assert.equal(await host.locator('.school-report-page').count(),0,'bound change clears preview');
+   await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.school-report-page').first().waitFor();
+   const ids=await host.locator('.target-student-name small').allTextContents();assert.deepEqual(ids,indices.map(i=>'RANGE'+i));
+   assert.match(await host.locator('.target-range-hero').innerText(),new RegExp('من '+min+'% إلى أقل من '+max+'%'));
+  }
+  await host.locator('#sr-range-min').fill('80');assert.equal(await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).isDisabled(),true);
+  assert.equal(await host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true}).isDisabled(),true);
+  await host.locator('#sr-range-min').fill('90');await host.locator('#sr-range-max').fill('100');await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
+  await host.locator('.target-student-name small').first().waitFor();
+  const popupPromise=page.waitForEvent('popup');await host.getByRole('button',{name:'طباعة التقرير الحالي',exact:true}).click();const popup=await popupPromise;await popup.waitForFunction(()=>window.__rangePrinted===true);
+  assert.deepEqual(await popup.locator('.target-student-name small').allTextContents(),['RANGE10','RANGE11']);await popup.pdf({path:path.join(out,'range-'+role+'.pdf'),preferCSSPageSize:true,printBackground:true});await popup.close();
+  await page.screenshot({path:path.join(out,'range-'+role+'.png'),fullPage:true});
+  assert.equal(await page.evaluate(()=>subjectCalls.length),0,'range report never loads school-wide aggregates');
+  await host.locator('button').filter({has:page.getByText(role==='admin'?ws.settings.reportDesign.reportNames.subjects:'تقرير مقارنة المواد',{exact:true})}).first().click();
+  assert.equal(await page.evaluate(()=>subjectCalls.length),0,'comparison card is lazy');
+  await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.grade-subject-matrix').first().waitFor();
+  assert.equal(await host.locator('.grade-subject-matrix').count(),2,'same success and achievement pages');
+  if(role==='coordinator'){
+   assert.equal(await page.evaluate(()=>subjectCalls.length),1);assert.ok((await host.locator('.grade-subject-matrix').first().innerText()).includes('معلم العربية'));
+   assert.ok(!(await host.innerText()).includes('اسم خارج القسم'));assert.equal(await host.getByRole('textbox',{name:'المادة الثابتة لقسم المنسق'}).count(),0);
+  }
+  assert.deepEqual(errors,[]);results.push({role,boundaries:4,printedRange:'90 <= p < 100',subjectPages:2,status:'PASS'});await context.close();
+ }}finally{await browser.close();await new Promise(r=>server.close(r));fs.writeFileSync(path.join(out,'report-ranges-browser.json'),JSON.stringify(results,null,2));}
+ console.log('PASS browser ranges and original comparison reports across all four roles');
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});
