@@ -237,7 +237,7 @@ try{
  canvasBundle=require('esbuild').buildSync({entryPoints:[path.join(canvasTemp,'index.js')],bundle:true,format:'iife',globalName:'SR72Canvas',write:false,minify:true,target:'es2020'}).outputFiles[0].text;
 }finally{fs.rmSync(canvasTemp,{recursive:true,force:true});}
 
-const sr680AnalyticsWrapper="const sr680OriginalAnalytics=SR63.OriginalAnalytics;SR63.OriginalAnalytics=function(props){return props.page==='struggling'?v.createElement('div',{className:'sr680-struggling-page'},v.createElement(SR63.StrugglingStatsPanel,{workspace:props.workspace}),v.createElement(sr680OriginalAnalytics,props)):v.createElement(sr680OriginalAnalytics,props);};\n";
+const sr680AnalyticsWrapper="const sr680OriginalAnalytics=SR63.OriginalAnalytics;SR63.OriginalAnalytics=function(props){return props.page==='struggling'?v.createElement('div',{className:'sr680-struggling-page'},v.createElement(SR63.StrugglingStatsPanel,{workspace:props.workspace,canPrint:props.canPrint!==false}),v.createElement(sr680OriginalAnalytics,props)):v.createElement(sr680OriginalAnalytics,props);};\n";
 code=canvasBundle+'\n'+services+'\n' +sharedAnalytics.generated+'\n'+sr680AnalyticsWrapper+'\n'+importOld+'\n'+qualityOld+'\n'+code;
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);
