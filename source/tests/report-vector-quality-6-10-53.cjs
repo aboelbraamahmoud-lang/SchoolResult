@@ -13,7 +13,7 @@ assert.doesNotMatch(pdf,/canvas\.width=w\*2;canvas\.height=h\*2/);
 assert.doesNotMatch(pdf,/measureText|fillText/,'Arabic shaping is performed by the browser');
 assert.match(ui,/const saveVectorPDF=async\(\)=>/);
 assert.match(ui,/const printWindow=window\.open\('','_blank'\)/,'reserve native dialog synchronously in click handler');
-assert.match(ui,/const exportPages=prepared\?D:\(departmentMode&&!fixedSubject\?\[\]:SR63\.buildReportPages\(reportRows/,'vector path must render only authorized selected subject, not 8-preview only');
+assert.match(ui,/const exportPages=subjectMode\?await loadSubjectPages\(\)/,'vector path must render only authorized selected subject, not 8-preview only');
 assert.match(ui,/pageHTML\.push\(capture\?await capture\(node,page,pIndex\):node\.outerHTML\)/,'original DOM and selectable text in vector print');
 assert.match(ui,/SR63\.printReportBatch\(pageHTML,.*isLandscape,printWindow\)/,'vector print must share tested A4 engine');
 assert.match(ui,/حفظ PDF متجهي — بدون بكسلة عند التكبير/);

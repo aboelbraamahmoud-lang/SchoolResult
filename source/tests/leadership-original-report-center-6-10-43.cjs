@@ -12,12 +12,12 @@ const reportSrc=fs.readFileSync(path.join(__dirname,'../src/patches/ui.js'),'utf
 assert.ok(portalSrc.includes('SR63.currentWorkspace=reportWorkspace'),'official report audit must use authenticated leader scope');
 assert.match(portalSrc,/\['reportCenter','مركز التقارير والطباعة',!!perms\.reports\]/);
 assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'-'\+payload\?\.revision\+'-'\+exam,workspace:active,readOnly:true,canPrint:!!perms\.export,onSchoolSummary:/);
-assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null,reportScope='school'\}\)/);
+assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null,reportScope='school',canCompareSubjects=false\}\)/);
 assert.match(reportSrc,/!readOnly&&!specialMode&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2,'only print controls require a prepared preview');
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,3,'vector PDF, raster PDF and ZIP use the same export permission and work without preview');
 assert.match(reportSrc,/const saveVectorPDF=async\(\)=>/,'vector PDF remains available to authorized school leaders');
-assert.match(reportSrc,/printBatch=async\(\)=>\{\s*if\(!canPrint\|\|!prepared\|\|!D.length\|\|departmentMode&&!fixedSubject\)return;/,'guard printing only when a coordinator has an assigned subject');
+assert.match(reportSrc,/printBatch=async\(\)=>\{\s*if\(!canPrint\|\|!prepared\|\|!D.length\|\|!!rangeError\|\|subjectBlocked\|\|subjectBusy\|\|departmentMode&&!subjectMode&&!fixedSubject\)return;/,'guard printing only when a coordinator has an assigned subject');
 assert.match(reportSrc,/renderReportHTML\(D,isLandscape/,'print must render every selected page for the authorized leader');
 assert.match(reportSrc,/const exportPDF=async\(split=false\)=>/);
 assert.match(reportSrc,/SR63\.groupReportPages\(exportPages,i,n\)/);
@@ -69,10 +69,10 @@ const renderCenter=readOnly=>{
  let index=0;ctx.v={...ctx.v,useState:initial=>{index++;return [typeof initial==='function'?initial():initial,()=>{}]},useMemo:fn=>fn(),useEffect:()=>{},useCallback:fn=>fn(),useRef:x=>({current:x})};
  return ctx.xde({workspace,onExportExcel:()=>{},readOnly,canPrint:true,onSchoolSummary:readOnly?()=>{}:null});
 };
-const labels=['ملخص النتائج','تحليل المستويات','الطلاب المتعثرون','متوسطات المعلمين','مقارنة اختبارين','مقارنة المواد'];
+const labels=['ملخص النتائج','تحليل المستويات','الطلاب ضمن نسبة','متوسطات المعلمين','مقارنة اختبارين','مقارنة المواد'];
 const admin=renderCenter(false),leader=renderCenter(true);
 for(const label of labels)assert.ok(read(admin,n=>n.props?.children===label).length>0,'admin official model '+label);
-for(const label of ['مستويات الطلاب','تحصيل الصفوف والشعب','تحصيل المعلمين','مقارنة الاختبارين','مقارنة جميع المواد'])assert.ok(read(leader,n=>n.props?.children===label).length>0,'leader focused report '+label);
+for(const label of ['مستويات الطلاب','تحصيل الصفوف والشعب','تحصيل المعلمين','مقارنة الاختبارين','تقرير مقارنة المواد','الطلاب ضمن نسبة'])assert.ok(read(leader,n=>n.props?.children===label).length>0,'leader focused report '+label);
 assert.equal(read(leader,n=>n.props?.children==='ملخص المدرسة').length,0,'dashboard/overview have their own dedicated navigation, no duplicate report-card link');
 assert.equal(read(leader,n=>n.props?.children==='الطلاب المتعثرون').length,0,'hidden from leader report-card hub; still available in original dedicated tab');
 
