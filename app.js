@@ -6165,9 +6165,6 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
  const saveVectorPDF=async()=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تجهيز PDF المتجهي.');return;}
-  const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
-  if(!exportPages.length){eb.error('لا توجد تقارير ضمن الاختيارات الحالية.');return;}
-  if(exportPages.length>250){eb.error('عدد الصفحات كبير جدًا؛ اختر نطاقًا أصغر.');return;}
   // Reserve the native print dialog during the user's original click.
   // Chrome's Save as PDF preserves vector Arabic fonts at unlimited zoom.
   const printWindow=window.open('','_blank');
@@ -6175,6 +6172,10 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   printWindow.document.open();
   printWindow.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>PDF متجهي — جارٍ التجهيز</title></head><body style="font:16px Tahoma,Arial;padding:30px;direction:rtl">جارٍ إنشاء التقرير المتجهي بالنصوص الأصلية…</body></html>');
   printWindow.document.close();
+  const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
+  if(!exportPages.length){printWindow.close();eb.error('لا توجد تقارير ضمن الاختيارات الحالية.');return;}
+  if(exportPages.length>250){printWindow.close();eb.error('عدد الصفحات كبير جدًا؛ اختر نطاقًا أصغر.');return;}
+
   let stage=null,root=null;
   try{
    const isLandscape=SR63.reportPageIsLandscape(n);

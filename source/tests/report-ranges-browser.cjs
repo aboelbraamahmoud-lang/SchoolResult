@@ -37,7 +37,13 @@ async function main(){
   assert.equal(await page.evaluate(()=>subjectCalls.length),0,'range report never loads school-wide aggregates');
   await host.locator('button').filter({has:page.getByText(role==='admin'?ws.settings.reportDesign.reportNames.subjects:'تقرير مقارنة المواد',{exact:true})}).first().click();
   assert.equal(await page.evaluate(()=>subjectCalls.length),0,'comparison card is lazy');
-  await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.grade-subject-matrix').first().waitFor();
+  if(role==='coordinator'){
+   const popupPromise=page.waitForEvent('popup');
+   await host.getByRole('button',{name:'حفظ PDF متجهي — بدون بكسلة عند التكبير',exact:true}).click();
+   const comparisonPopup=await popupPromise;await comparisonPopup.waitForFunction(()=>window.__rangePrinted===true);
+   assert.equal(await comparisonPopup.locator('.grade-subject-matrix').count(),2);await comparisonPopup.close();
+  }else await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
+  await host.locator('.grade-subject-matrix').first().waitFor();
   assert.equal(await host.locator('.grade-subject-matrix').count(),2,'same success and achievement pages');
   if(role==='coordinator'){
    assert.equal(await page.evaluate(()=>subjectCalls.length),1);assert.ok((await host.locator('.grade-subject-matrix').first().innerText()).includes('معلم العربية'));
