@@ -30,6 +30,7 @@ SR63.reportClassOrder=function(rows,exam){
 SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mode,exam,threshold,settings){
   const sourceRows=Array.isArray(rows)?rows:[],range=mode==='struggling'?SR63.studentPercentRange(threshold):null;
   if(range?.error)throw Error(range.error);
+  if(mode==='strugglingStats')return SR63.strugglingStatsPages(sourceRows,exam,settings);
   if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل');
   const allRows=SR63.generalRows(sourceRows,exam);
   if(mode==='executive')return [{key:`executive-${exam}`,title:'الملخص التنفيذي',entity:'المدرسة',scope:'school',grade:'',className:'',teacher:'',subject:'كل المواد',rows:allRows,allRows,rowOffset:0,part:1,totalParts:1}];

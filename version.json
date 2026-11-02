@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.79",
+  "version": "6.10.80",
   "released": "2026-11-02",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إظهار اسم الطالب فقط في تقرير المتعثرين دون الرقم الشخصي أو الأكاديمي، مع بقاء الصف ومواد الرسوب والمعلمين والإجراءات كما هي."
+  "notes": "إضافة إحصاء مدرسي للراسبين حسب المواد والصفوف والشعب، مع احتساب الطالب مرة واحدة في إجمالي المدرسة، وإظهاره في مركز التقارير وصفحة المتعثرين."
 }

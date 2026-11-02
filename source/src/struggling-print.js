@@ -74,3 +74,82 @@ SR63.StrugglingPrintButton=function({workspace,minimum,maximum,canPrint=true}){
  };
  return v.createElement('div',{className:'sr678-print-action'},v.createElement(dA,{onClick:print,disabled:busy||!!model.error||!model.pages.length,title:'طباعة كل الطلاب المطابقين للنطاق وجميع مواد رسوبهم، وليس صفحة القائمة الحالية فقط'},v.createElement(Fy,{}),busy?'جارٍ تجهيز التقرير…':'طباعة تقرير المتعثرين'),v.createElement('small',{role:model.error?'alert':undefined},model.error||(!model.students.length?'لا توجد مواد رسوب ضمن النطاق المحدد.':Q(model.students.length)+' طالب · '+Q(model.subjectCount)+' مادة راسبة · طباعة / حفظ PDF')));
 };
+
+
+/* 6.10.80 — school-wide failed-student statistics. Each student is counted once,
+   even when several subjects are failed. All data stays within the supplied workspace. */
+SR63.strugglingStatistics=function(workspace,exam=workspace.activeExam){
+ const settings=workspace.settings,pass=settings.pass,students=new Map(),subjectMap=new Map(),classMap=new Map();
+ const order=grade=>[7,8,9].includes(grade)?grade:0;
+ const classKey=(grade,name)=>grade+'|'+lj(name);
+ for(const row of workspace.rows||[]){
+  const percent=vj(row,exam,settings);
+  if(percent===null)continue;
+  const className=hj(row,exam)||row.className||'غير محدد';
+  const grade=order(SR63.gradeOrder(gj(row,exam)||className));
+  const ck=classKey(grade,className);
+  if(!classMap.has(ck))classMap.set(ck,{grade,className,ids:new Set()});
+  const subjectKey=SR63.subjectAliasKey(row.subject)||ij(row.subject||'');
+  if(subjectKey&&!subjectMap.has(subjectKey))subjectMap.set(subjectKey,{subject:row.subject,key:subjectKey,ids:new Set()});
+  if(percent>=pass)continue;
+  const studentKey=SR63.studentEntityKey(row,exam);
+  if(!studentKey)continue;
+  // A student's official academic ID wins over any repetition across subjects.
+  // In inconsistent cross-class imports the first observed failing class owns the count.
+  if(!students.has(studentKey))students.set(studentKey,{grade,className,ck,subjects:new Set()});
+  const student=students.get(studentKey);
+  if(subjectKey){subjectMap.get(subjectKey).ids.add(studentKey);student.subjects.add(subjectKey);}
+ }
+ const gradeMap=new Map([[7,new Set()],[8,new Set()],[9,new Set()],[0,new Set()]]);
+ for(const [key,student] of students){gradeMap.get(student.grade).add(key);classMap.get(student.ck)?.ids.add(key);}
+ const gradeLabels={7:'السابع',8:'الثامن',9:'التاسع',0:'غير محدد'};
+ const gradeRows=[7,8,9,0].filter(g=>g!==0||gradeMap.get(g).size).map(g=>({grade:g,label:gradeLabels[g],count:gradeMap.get(g).size}));
+ const subjectRows=[...subjectMap.values()].map(item=>({subject:item.subject,key:item.key,count:item.ids.size}))
+  .sort((a,b)=>SR63.reportSubjectCompare(a.subject,b.subject,settings)||a.key.localeCompare(b.key,'ar'));
+ const classRows=[...classMap.values()].map(item=>({grade:item.grade,gradeLabel:gradeLabels[item.grade],className:item.className,count:item.ids.size}))
+  .filter(item=>item.grade!==0||item.count).sort((a,b)=>(a.grade||999)-(b.grade||999)||String(a.className).localeCompare(String(b.className),'ar',{numeric:true}));
+ return {exam,pass,totalStudents:students.size,failedSubjectRecords:subjectRows.reduce((sum,item)=>sum+item.count,0),subjectRows,gradeRows,classRows};
+};
+SR63.StrugglingStatsContent=function({model,workspace,part='all',classChunk}){
+ const h=v.createElement,number=n=>Q(n);
+ const note='الأرقام لجميع النتائج الراسبة في '+tj(workspace.settings,model.exam).name+' (أقل من '+model.pass+'%) ضمن البيانات المصرح بها. الطالب يُحسب مرة واحدة في إجمالي المدرسة والصف والشعبة، ومرة واحدة في كل مادة رسب فيها. لا تُجمع أعداد المواد لاستخراج إجمالي الطلاب.';
+ const stat=(label,value,key)=>h('div',{className:'sr680-stat',key},h('span',{},label),h('strong',{},number(value)));
+ const gradeTable=h('table',{className:'report-table sr680-table sr680-grade-table'},
+  h('thead',{},h('tr',{},h('th',{},'الصف الدراسي'),h('th',{},'طلاب متعثرون دون تكرار'))),
+  h('tbody',{},...model.gradeRows.map(r=>h('tr',{key:r.grade},h('td',{},r.label),h('td',{},number(r.count))))),
+  h('tfoot',{},h('tr',{},h('th',{},'إجمالي المدرسة — طلاب دون تكرار'),h('th',{},number(model.totalStudents)))));
+ const subjectTable=h('table',{className:'report-table sr680-table sr680-subject-table'},
+  h('thead',{},h('tr',{},h('th',{},'المادة الدراسية'),h('th',{},'عدد الطلاب الراسبين في المادة'))),
+  h('tbody',{},...model.subjectRows.map(r=>h('tr',{key:r.key},h('td',{},SR63.reportSubjectLabel(r.subject,workspace.settings)),h('td',{},number(r.count))))),
+  h('tfoot',{},h('tr',{},h('th',{},'مجموع حالات الرسوب بالمواد (قد يتكرر الطالب بين المواد)'),h('th',{},number(model.failedSubjectRecords)))));
+ const classes=classChunk||model.classRows;
+ const classTable=h('table',{className:'report-table sr680-table sr680-class-table'},
+  h('thead',{},h('tr',{},h('th',{},'الصف الدراسي'),h('th',{},'الشعبة'),h('th',{},'الطلاب المتعثرون دون تكرار'))),
+  h('tbody',{},...classes.map((r,index)=>h('tr',{key:r.className+'-'+index},h('td',{},r.gradeLabel),h('td',{},SR63.displayClass(r.className)),h('td',{},number(r.count))))));
+ return h('div',{className:'sr680-statistics',dir:'rtl'},
+  h('div',{className:'sr680-stat-grid'},stat('الطلاب المتعثرون في المدرسة',model.totalStudents,'students'),stat('مجموع حالات الرسوب بالمواد',model.failedSubjectRecords,'subjects'),stat('المواد في الإحصاء',model.subjectRows.length,'count')),
+  h('p',{className:'report-method-note sr680-method'},note),
+  part!=='classes'?h('div',{className:'sr680-overview-grid'},
+   h('section',{},h('h3',{},'عدد الراسبين في كل مادة'),subjectTable),
+   h('section',{},h('h3',{},'الإجمالي حسب الصف الدراسي'),gradeTable)):null,
+  part==='all'?h('details',{className:'sr680-class-details'},h('summary',{},'تفصيل الطلاب المتعثرين حسب كل شعبة ('+number(model.classRows.length)+' شعبة)'),classTable):null,
+  part==='classes'?h('section',{className:'sr680-classes-only'},h('h3',{},'توزيع المتعثرين حسب الشعبة'),classTable):null,
+  !model.totalStudents?h('p',{className:'report-method-note'},'لا يوجد طلاب راسبون في التقييم المحدد ضمن البيانات المتاحة.'):null);
+};
+SR63.StrugglingStatsPanel=function({workspace}){
+ const model=v.useMemo(()=>SR63.strugglingStatistics(workspace),[workspace]);
+ return v.createElement('section',{className:'sr680-analytics-panel'},
+  v.createElement('h2',{},'إحصاء الطلاب المتعثرين — المدرسة والمواد والشعب'),
+  v.createElement(SR63.StrugglingStatsContent,{model,workspace,part:'all'}));
+};
+SR63.strugglingStatsPages=function(rows,exam,settings){
+ const workspace={rows,activeExam:exam,settings},stats=SR63.strugglingStatistics(workspace,exam),size=16;
+ const common={entity:'المدرسة',scope:'school',className:'',teacher:'',subject:'كل المواد',rows,allRows:rows,grade:'',rowOffset:0};
+ const pages=[{...common,key:'struggling-stats-overview-'+exam,title:'إحصاء المتعثرين حسب المواد والصفوف',statsPart:'overview'}];
+ for(let i=0;i<stats.classRows.length;i+=size)pages.push({...common,key:'struggling-stats-classes-'+i,title:'إحصاء المتعثرين حسب الشعب',statsPart:'classes',classChunk:stats.classRows.slice(i,i+size)});
+ return pages.map((page,index)=>({...page,part:index+1,totalParts:pages.length}));
+};
+SR63.StrugglingStatsReport=function({page,exam,workspace}){
+ const model=SR63.strugglingStatistics(workspace,exam);
+ return v.createElement(SR63.StrugglingStatsContent,{model,workspace,part:page.statsPart,classChunk:page.classChunk});
+};
