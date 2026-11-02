@@ -30,8 +30,8 @@ SR63.strugglingPrintModel=function(workspace,minimum,maximum){
 };
 SR63.StrugglingReportPage=function({workspace,model,page,pageIndex,generatedAt,pageRef}){
  const h=v.createElement,exam=model.exam,title='تقرير الطلاب المتعثرين ومواد الرسوب',assessment=tj(workspace.settings,exam).name;
- const rows=page.groups.flatMap(student=>student.subjects.map((item,index)=>h('tr',{key:student.key+'-'+index,'data-student-id':student.studentId},
-  index===0?h('td',{rowSpan:student.subjects.length,className:'sr678-student'},h('b',{},student.studentName),h('small',{},student.studentId),student.continued?h('small',{},'تابع'):null):null,
+ const rows=page.groups.flatMap(student=>student.subjects.map((item,index)=>h('tr',{key:student.key+'-'+index},
+  index===0?h('td',{rowSpan:student.subjects.length,className:'sr678-student'},h('b',{},student.studentName),student.continued?h('small',{},'تابع'):null):null,
   index===0?h('td',{rowSpan:student.subjects.length},SR63.displayClass(student.className)):null,
   h('td',{},SR63.reportSubjectLabel(item.subject,workspace.settings)),h('td',{},item.teacher),
   h('td',{className:'sr678-number'},item.score+' / '+item.total),
@@ -44,7 +44,7 @@ SR63.StrugglingReportPage=function({workspace,model,page,pageIndex,generatedAt,p
    h('p',{className:'report-method-note'},'اختيار الطلاب: لديهم مادة راسبة بين '+model.min+'% و'+model.max+'% (شاملًا الحدين). يُعرض لكل طالب جميع مواد رسوبه في الاختبار المحدد. حد النجاح: '+workspace.settings.pass+'%.'),
    h('table',{className:'report-table sr678-struggling-table'},
     h('colgroup',{},...[23,8,14,18,8,7,22].map((width,index)=>h('col',{key:index,style:{width:width+'%'}}))),
-    h('thead',{},h('tr',{},...['الطالب / الرقم الأكاديمي','الصف','المادة الراسب فيها','المعلم','الدرجة / الكلية','النسبة','الإجراء المطلوب'].map(label=>h('th',{key:label},label)))),h('tbody',{},...rows)),
+    h('thead',{},h('tr',{},...['اسم الطالب','الصف','المادة الراسب فيها','المعلم','الدرجة / الكلية','النسبة','الإجراء المطلوب'].map(label=>h('th',{key:label},label)))),h('tbody',{},...rows)),
    h(N9,{workspace:{...workspace,reportGeneratedAt:generatedAt},subject:'',teacher:''}),
    h('span',{className:'report-page-number'},'صفحة '+(pageIndex+1)+' من '+model.pages.length)));
 };
