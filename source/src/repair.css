@@ -1649,3 +1649,30 @@
 .sr678-student b,.sr678-student small{display:block}
 .sr678-student small{font-size:8pt;color:#64748b}
 .sr678-struggling-table .sr678-number{direction:ltr;white-space:nowrap!important;text-align:center!important}
+
+
+/* 6.10.80 — unique struggling students: readable dashboards and printable statistics. */
+.sr680-analytics-panel{margin:12px 0 20px;padding:20px;border:1px solid #d7e4ec;border-radius:18px;background:linear-gradient(135deg,#f1f8fb,#fff);box-shadow:0 5px 18px #173b4c0a}
+.sr680-analytics-panel>h2{font-size:1.15rem;font-weight:800;color:#173b4c;margin:0 0 12px}
+.sr680-statistics{width:100%;color:#173b4c;min-width:0}
+.sr680-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.sr680-stat{background:#edf5f8;border:1px solid #dce9ef;padding:12px;border-radius:12px;display:flex;flex-direction:column;gap:7px}
+.sr680-stat span{font-size:.82rem;font-weight:600;color:#49677b}
+.sr680-stat strong{font-size:1.55rem;line-height:1.2;font-weight:850;color:#143d55}
+.sr680-overview-grid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:18px;align-items:start}
+.sr680-statistics h3{font-weight:800;font-size:1rem;margin:12px 0 8px}
+.sr680-table{width:100%;border-collapse:collapse;font-size:.85rem}
+.sr680-table td,.sr680-table th{padding:7px 9px;text-align:right;vertical-align:middle;overflow-wrap:break-word}
+.sr680-table td:last-child,.sr680-table th:last-child{text-align:center;font-variant-numeric:tabular-nums}
+.sr680-table tfoot th{background:#eaf3f7;font-weight:800}
+.sr680-class-details{margin-top:14px;border-top:1px solid #d8e4eb;padding-top:10px}
+.sr680-class-details summary{cursor:pointer;font-weight:800;color:#195c76;margin-bottom:8px}
+.sr680-classes-only{margin-top:12px}
+.sr680-method{margin:8px 0 14px;font-size:.78rem;line-height:1.6}
+.school-report-page .sr680-stat-grid{gap:8px;margin-bottom:8px}
+.school-report-page .sr680-stat{padding:8px}
+.school-report-page .sr680-stat strong{font-size:1.25rem}
+.school-report-page .sr680-table{font-size:10px}
+.school-report-page .sr680-table td,.school-report-page .sr680-table th{padding:4px 6px}
+.school-report-page .sr680-method{font-size:10px;margin:5px 0 9px}
+@media(max-width:800px){.sr680-overview-grid{grid-template-columns:1fr}.sr680-stat-grid{grid-template-columns:1fr}.sr680-stat-grid{gap:7px}}
