@@ -125,7 +125,7 @@ SR63.StrugglingStatsContent=function({model,workspace,part='all',classChunk}){
  const classes=classChunk||model.classRows;
  const classTable=h('table',{className:'report-table sr680-table sr680-class-table'},
   h('thead',{},h('tr',{},h('th',{},'الصف الدراسي'),h('th',{},'الشعبة'),h('th',{},'الطلاب المتعثرون دون تكرار'))),
-  h('tbody',{},...classes.map((r,index)=>h('tr',{key:r.className+'-'+index},h('td',{},r.gradeLabel),h('td',{},SR63.displayClass(r.className)),h('td',{},number(r.count)))));
+  h('tbody',{},...classes.map((r,index)=>h('tr',{key:r.className+'-'+index},h('td',{},r.gradeLabel),h('td',{},SR63.displayClass(r.className)),h('td',{},number(r.count))))));
  return h('div',{className:'sr680-statistics',dir:'rtl'},
   h('div',{className:'sr680-stat-grid'},stat('الطلاب المتعثرون في المدرسة',model.totalStudents,'students'),stat('مجموع حالات الرسوب بالمواد',model.failedSubjectRecords,'subjects'),stat('المواد في الإحصاء',model.subjectRows.length,'count')),
   h('p',{className:'report-method-note sr680-method'},note),
