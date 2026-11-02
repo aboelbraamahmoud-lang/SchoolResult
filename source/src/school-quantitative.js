@@ -5,16 +5,35 @@
  const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
  const diff=n=>typeof n==='number'&&Number.isFinite(n)?(n>0?'+':'')+n.toFixed(1)+' نقطة':'—';
  const gradeName={'7':'السابع','8':'الثامن','9':'التاسع'};
- SR63.schoolQuantitativeAnalyze=function(workspace,exam){
+ /* Match the dashboard's canonical subject catalogue; selection is report-only. */
+ SR63.schoolQuantitativeSubjectChoices=function(workspace,exam=workspace.activeExam){
+  const seen=new Map(),settings=workspace?.settings||{};
+  for(const row of workspace?.rows||[]){
+   if(SR63.isSupportRow(row,exam)||!gradeName[SR63.departmentGradeKey(row,exam)])continue;
+   const subject=String(row.subject||'').trim(),key=SR63.subjectAliasKey(subject);
+   if(key&&!seen.has(key))seen.set(key,{key,name:SR63.reportSubjectLabel(subject,settings)});
+  }
+  return [...seen.values()].sort((a,b)=>SR63.reportSubjectCompare(a.name,b.name,settings));
+ };
+ SR63.schoolQuantitativeDashboardSubjects=function(workspace,exam=workspace.activeExam){
+  const choices=SR63.schoolQuantitativeSubjectChoices(workspace,exam),active=SR63.dashboardIncludedSubjects(workspace);
+  return choices.filter(item=>active.some(name=>SR63.subjectEquivalent(name,item.name)||SR63.subjectAliasKey(name)===item.key)).map(item=>item.key);
+ };
+ SR63.schoolQuantitativeAnalyze=function(workspace,exam,subjectSelection=null){
   const settings=workspace?.settings||{},examIds=(settings.exams||[]).map(x=>x.key),index=examIds.indexOf(exam),previous=index>0?examIds[index-1]:null;
-  const exams=settings.exams||[],totalFor=(row,e)=>Number(row.totals?.[e]??exams.find(x=>x.key===e)?.total),scoreFor=(row,e)=>{
+  const availableSubjects=SR63.schoolQuantitativeSubjectChoices(workspace,exam),
+    selection=subjectSelection===null||subjectSelection===undefined?null:new Set((Array.isArray(subjectSelection)?subjectSelection:[]).map(x=>SR63.subjectAliasKey(String(x))).filter(Boolean)),
+    includedSubjects=availableSubjects.filter(item=>!selection||selection.has(item.key)),
+    excludedSubjects=availableSubjects.filter(item=>selection&&!selection.has(item.key)),
+    subjectScopeLabel=selection?'المواد المختارة: '+(includedSubjects.map(item=>item.name).join('، ')||'لا توجد مواد محددة'):'جميع مواد المدرسة';
+   const exams=settings.exams||[],totalFor=(row,e)=>Number(row.totals?.[e]??exams.find(x=>x.key===e)?.total),scoreFor=(row,e)=>{
    if(!e||row.statuses?.[e]!=='present')return null;
    const score=row.scores?.[e],max=totalFor(row,e);
    return typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(max)&&max>0?{score,max,percent:100*score/max}:null;
   };
   const entries=new Map();
   for(const r of workspace?.rows||[]){
-   if(SR63.isSupportRow(r,exam))continue;
+   if(SR63.isSupportRow(r,exam)||selection&&!selection.has(SR63.subjectAliasKey(r.subject)))continue;
    const grade=SR63.departmentGradeKey(r,exam);if(!gradeName[grade])continue;
    const id=String(r.studentId||r.studentName||'').trim(),subject=String(r.subject||'').trim(),klass=String(r.examClasses?.[exam]||r.className||'').trim();
    if(!id||!subject)continue;
@@ -32,7 +51,9 @@
     valueAdded:paired.length?round(paired.reduce((n,x)=>n+x.current.percent-x.previous.percent,0)/paired.length):null,
     high90:current.length?round(100*current.filter(x=>x.current.percent>=90).length/current.length):null};
   };
-  return {schoolName:settings.schoolName||'',academicYear:settings.academicYear||'',principalName:settings.principalName||'',academicViceName:settings.academicViceName||'',exam,examName:exams.find(x=>x.key===exam)?.name||exam,
+  return {scopeMode:selection?'selected':'all',availableSubjects,includedSubjects,excludedSubjects,
+    subjectScopeLabel,subjectCount:includedSubjects.length,excludedCount:excludedSubjects.length,
+    schoolName:settings.schoolName||'',academicYear:settings.academicYear||'',principalName:settings.principalName||'',academicViceName:settings.academicViceName||'',exam,examName:exams.find(x=>x.key===exam)?.name||exam,
    previousExam:previous,previousExamName:exams.find(x=>x.key===previous)?.name||null,grades:Object.fromEntries(['7','8','9'].map(g=>[g,{grade:g,label:gradeName[g],...summarize(list.filter(x=>x.grade===g))}])),...summarize(list)};
  };
  SR63.schoolReportRecommendations=function(report){
