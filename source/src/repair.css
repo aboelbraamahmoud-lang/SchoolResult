@@ -1703,3 +1703,19 @@
 .sr681-statistics-report .sr680-stat{padding:6px!important}
 @media(max-width:760px){.sr681-statistics-heading{align-items:stretch}.sr681-print-button{width:100%;justify-content:center}}
 @media print{.sr681-band-value,.report-meter.sr-band-linked>i,.level-macro-badge.sr-band-linked{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}}
+
+
+/* 6.10.82 — school-wide success/achievement report subject scope. */
+.sr682-subject-selector{margin-block:14px!important;display:grid;gap:10px}
+.sr682-subject-selector>h2{margin:0;color:#163f50;font-size:1.12rem;font-weight:850}
+.sr682-subject-selector>p{margin:0;line-height:1.65;color:#496777}
+.sr682-scope-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.sr682-scope-actions button{border:1px solid #afc9d1;background:#f7fbfb;color:#164456;border-radius:10px;padding:9px 13px;cursor:pointer;font-size:13px;font-weight:800}
+.sr682-scope-actions button.is-active{color:#fff;border-color:#0b6c6d;background:#0c7272}
+.sr682-subject-choices{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:8px;max-height:320px;overflow:auto}
+.sr682-subject-choices label{display:flex;align-items:center;gap:8px;min-width:0;cursor:pointer;padding:10px 12px;border:1px solid #d9e5eb;border-radius:10px;background:#fff;color:#25465b;font-weight:750;font-size:13px}
+.sr682-subject-choices label.is-selected{border-color:#83bfb5;background:#eaf8f4}
+.sr682-subject-choices label input{width:17px;height:17px;flex:0 0 auto;accent-color:#0e807b}
+.sr682-subject-choices label span{overflow-wrap:anywhere}
+.sr682-selection-info,.sr682-report-scope{background:#f0f7f9;border-right:4px solid #0c8180;padding:9px 12px!important;border-radius:8px;font-weight:800;font-size:13px;color:#19516b!important;overflow-wrap:anywhere}
+@media(max-width:720px){.sr682-subject-choices{grid-template-columns:1fr}.sr682-scope-actions button{flex:1 1 130px}}
