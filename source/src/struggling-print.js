@@ -34,8 +34,8 @@ SR63.StrugglingReportPage=function({workspace,model,page,pageIndex,generatedAt,p
   index===0?h('td',{rowSpan:student.subjects.length,className:'sr678-student'},h('b',{},student.studentName),student.continued?h('small',{},'تابع'):null):null,
   index===0?h('td',{rowSpan:student.subjects.length},SR63.displayClass(student.className)):null,
   h('td',{},SR63.reportSubjectLabel(item.subject,workspace.settings)),h('td',{},item.teacher),
-  h('td',{className:'sr678-number'},item.score+' / '+item.total),
-  h('td',{className:'sr678-number'},SR63.rangePercentLabel(item.percent,{min:0,max:workspace.settings.pass,error:''})),
+  h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.percent,workspace.settings)},item.score+' / '+item.total)),
+  h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.percent,workspace.settings)},SR63.rangePercentLabel(item.percent,{min:0,max:workspace.settings.pass,error:''}))),
   h('td',{},item.action))));
  return h('section',{ref:pageRef,className:'school-report-page sr-fitted-report grade-subjects-landscape report-landscape sr678-struggling-report','data-orientation':'landscape',style:j9(workspace)},
   h('div',{className:'sr-report-fit-content'},
@@ -136,10 +136,10 @@ SR63.StrugglingStatsContent=function({model,workspace,part='all',classChunk}){
   part==='classes'?h('section',{className:'sr680-classes-only'},h('h3',{},'توزيع المتعثرين حسب الشعبة'),classTable):null,
   !model.totalStudents?h('p',{className:'report-method-note'},'لا يوجد طلاب راسبون في التقييم المحدد ضمن البيانات المتاحة.'):null);
 };
-SR63.StrugglingStatsPanel=function({workspace}){
+SR63.StrugglingStatsPanel=function({workspace,canPrint=true}){
  const model=v.useMemo(()=>SR63.strugglingStatistics(workspace),[workspace]);
  return v.createElement('section',{className:'sr680-analytics-panel'},
-  v.createElement('h2',{},'إحصاء الطلاب المتعثرين — المدرسة والمواد والشعب'),
+  v.createElement('div',{className:'sr681-statistics-heading'},v.createElement('h2',{},'إحصاء الطلاب المتعثرين — المدرسة والمواد والشعب'),v.createElement(SR63.StrugglingStatsPrintButton,{workspace,canPrint})),
   v.createElement(SR63.StrugglingStatsContent,{model,workspace,part:'all'}));
 };
 SR63.strugglingStatsPages=function(rows,exam,settings){
@@ -152,4 +152,56 @@ SR63.strugglingStatsPages=function(rows,exam,settings){
 SR63.StrugglingStatsReport=function({page,exam,workspace}){
  const model=SR63.strugglingStatistics(workspace,exam);
  return v.createElement(SR63.StrugglingStatsContent,{model,workspace,part:page.statsPart,classChunk:page.classChunk});
+};
+
+
+/* The on-screen statistics panel prints the same full-school aggregation through
+   the official A4 print engine; it never prints only the browser-visible detail. */
+SR63.StrugglingStatisticsPrintPage=function({workspace,model,page,pageIndex,generatedAt,pageRef}){
+ const h=v.createElement;
+ return h('section',{ref:pageRef,className:'school-report-page sr-fitted-report grade-subjects-landscape report-landscape sr681-statistics-report','data-orientation':'landscape',style:j9(workspace)},
+  h('div',{className:'sr-report-fit-content'},
+   h(M9,{workspace,title:'التقرير الإحصائي المجمع للطلاب المتعثرين',subject:'جميع المواد والصفوف والشعب',assessment:tj(workspace.settings,model.exam).name}),
+   h(SR63.StrugglingStatsContent,{model,workspace,part:page.statsPart,classChunk:page.classChunk}),
+   h(N9,{workspace:{...workspace,reportGeneratedAt:generatedAt},subject:'',teacher:''}),
+   h('span',{className:'report-page-number'},'صفحة '+(pageIndex+1)+' من '+(page.totalParts||1))));
+};
+SR63.printStrugglingStatistics=async function(workspace,preparedWindow){
+ let stage=null,root=null;
+ try{
+  const model=SR63.strugglingStatistics(workspace),pages=SR63.strugglingStatsPages(workspace.rows||[],model.exam,workspace.settings);
+  const generatedAt=new Date().toLocaleString('ar-EG'),html=[];
+  stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:297mm;pointer-events:none;';
+  document.body.append(stage);root=y.createRoot(stage);
+  for(let pageIndex=0;pageIndex<pages.length;pageIndex++){
+   if(preparedWindow.closed)return 0;
+   await new Promise((resolve,reject)=>{
+    const timer=setTimeout(()=>reject(Error('تعذر تجهيز الإحصاء المجمع للطباعة.')),15000);
+    root.render(v.createElement(SR63.StrugglingStatisticsPrintPage,{
+     key:pageIndex,workspace,model,page:pages[pageIndex],pageIndex,generatedAt,
+     pageRef:node=>{if(node){clearTimeout(timer);resolve();}}
+    }));
+   });
+   const pageNode=stage.querySelector('.school-report-page');
+   if(!pageNode)throw Error('تعذر إنشاء صفحة الإحصاء للطباعة.');
+   html.push(pageNode.outerHTML);
+  }
+  return await SR63.printReportBatch(html,'إحصاء الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow);
+ }catch(error){if(preparedWindow&&!preparedWindow.closed)preparedWindow.close();throw error;}
+ finally{root?.unmount();stage?.remove();}
+};
+SR63.StrugglingStatsPrintButton=function({workspace,canPrint=true}){
+ const [busy,setBusy]=v.useState(false);
+ if(!canPrint)return null;
+ const print=async()=>{
+  if(busy)return;
+  const popup=window.open('','_blank');
+  if(!popup){eb.error('فعّل السماح بالنوافذ المنبثقة للطباعة.');return;}
+  popup.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>تجهيز الإحصاء المجمع</title><body>جارٍ تجهيز صفحات التقرير الإحصائي…</body></html>');
+  popup.document.close();setBusy(true);
+  try{await SR63.printStrugglingStatistics(workspace,popup);}
+  catch(error){eb.error(error.message||'تعذر طباعة الإحصاء المجمع.');}
+  finally{setBusy(false);}
+ };
+ return v.createElement(dA,{onClick:print,disabled:busy,className:'sr681-print-button',title:'طباعة الإحصاء المجمع لكامل المدرسة والمواد والشعب بصيغة A4 وحفظه PDF'},v.createElement(Fy,{}),busy?'جارٍ تجهيز الطباعة…':'طباعة الإحصاء المجمع');
 };
