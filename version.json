@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.77",
+  "version": "6.10.78",
   "released": "2026-11-02",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "إصلاح ظهور نسب النجاح والتحصيل وأشرطتهما في بطاقة أداء الصفوف على الشاشات المختلفة، مع الحفاظ على حسابات المؤشرات والتقارير."
+  "notes": "زر طباعة تقرير الطلاب المتعثرين من صفحتهم، يجمع الطالب وصفه وجميع مواد رسوبه ومعلم كل مادة والإجراء المطلوب، بتنسيق مركز التقارير."
 }

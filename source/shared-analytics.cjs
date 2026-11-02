@@ -9,7 +9,7 @@ module.exports=function(code,acorn){
  const routeStart=code.indexOf('o===`classes`?He(',admin.start),routeEnd=code.indexOf('o===`reports`?',routeStart);
  if(routeStart<0||routeEnd<0)throw Error('Original analysis routes missing');
  const routes=code.slice(routeStart,routeEnd),pages=['classes','teachers','departments','school','comparison','value','levels','struggling'];
- const generated=`SR63.OriginalAnalytics=function({workspace:e,page:o,onNavigate:s}){
+ const generated=`SR63.OriginalAnalytics=function({workspace:e,page:o,onNavigate:s,canPrint=true}){
  const [y,b]=(0,v.useState)('الكل'),[x,S]=(0,v.useState)('الكل'),[C,w]=(0,v.useState)('الكل'),[T,E]=(0,v.useState)('الكل'),[D,O]=(0,v.useState)('exam3'),[k,A]=(0,v.useState)('exam4'),[j,M]=(0,v.useState)(0),[N,P]=(0,v.useState)(50),[L,ee]=(0,v.useState)(1),te='',R='الكل',re='الكل';
  (0,v.useEffect)(()=>E('الكل'),[o]);
  ${context}\n${functions}\nreturn ${routes}null;};\n`;
