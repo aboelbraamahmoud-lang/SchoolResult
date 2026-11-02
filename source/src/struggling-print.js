@@ -117,7 +117,7 @@ SR63.StrugglingStatsContent=function({model,workspace,part='all',classChunk}){
  const gradeTable=h('table',{className:'report-table sr680-table sr680-grade-table'},
   h('thead',{},h('tr',{},h('th',{},'الصف الدراسي'),h('th',{},'طلاب متعثرون دون تكرار'))),
   h('tbody',{},...model.gradeRows.map(r=>h('tr',{key:r.grade},h('td',{},r.label),h('td',{},number(r.count))))),
-  h('tfoot',{},h('tr',{},h('th',{},'إجمالي المدرسة — طلاب فريدون'),h('th',{},number(model.totalStudents)))));
+  h('tfoot',{},h('tr',{},h('th',{},'إجمالي المدرسة — طلاب دون تكرار'),h('th',{},number(model.totalStudents)))));
  const subjectTable=h('table',{className:'report-table sr680-table sr680-subject-table'},
   h('thead',{},h('tr',{},h('th',{},'المادة الدراسية'),h('th',{},'عدد الطلاب الراسبين في المادة'))),
   h('tbody',{},...model.subjectRows.map(r=>h('tr',{key:r.key},h('td',{},SR63.reportSubjectLabel(r.subject,workspace.settings)),h('td',{},number(r.count))))),
