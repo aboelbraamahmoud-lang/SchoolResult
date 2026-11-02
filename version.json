@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.81",
+  "version": "6.10.82",
   "released": "2026-11-02",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "توحيد ألوان الدرجات والنسب والتقديرات في تقارير المدرسة مع ألوان مستويات لوحة التحكم حسب إعدادات المدرسة، وإضافة طباعة الإحصاء المجمع من صفحة الطلاب المتعثرين."
+  "notes": "اختيار المواد المحتسبة في التقرير الكمي والوصفي لنجاح وتحصيل المدرسة، جميع المواد أو مجموعة مختارة أو مواد لوحة التحكم، مع توضيح المواد المستبعدة في طباعة PDF وWord."
 }
