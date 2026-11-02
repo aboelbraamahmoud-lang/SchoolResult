@@ -42,7 +42,7 @@ assert.equal(pages[0].part,1);assert.equal(pages[1].totalParts,pages.length);
 const long={...ws,rows:Array.from({length:39},(_,i)=>row('Q'+i,'الرياضيات',20,'7/'+(i+1)))};
 const many=S.strugglingStatsPages(long.rows,'exam1',ws.settings);
 assert.equal(many.length,4,'one overview + three 16-class continuation pages');
-assert.deepEqual(many.slice(1).map(p=>p.classChunk.length),[16,16,7]);
+assert.deepEqual(Array.from(many.slice(1),p=>p.classChunk.length),[16,16,7]);
 const source=require('node:fs').readFileSync(require('node:path').join(__dirname,'../build.cjs'),'utf8');
 assert.ok(source.includes("id:\`strugglingStats\`"),'new report center card is wired');
 assert.ok(source.includes("SR63.StrugglingStatsPanel"),'struggling page overview is wired');
