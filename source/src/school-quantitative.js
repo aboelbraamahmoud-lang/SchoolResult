@@ -130,24 +130,53 @@
  };
  SR63.SchoolQuantitativePage=function({workspace,canExport=true}){
   const [interpretation,setInterpretation]=(0,v.useState)(''),[recommendations,setRecommendations]=(0,v.useState)(''),[targets,setTargets]=(0,v.useState)({success:'',achievement:'',valueAdded:'',high90:''}),[problem,setProblem]=(0,v.useState)(''),[exporting,setExporting]=(0,v.useState)(false);
-  const exam=workspace.activeExam;const report=(0,v.useMemo)(()=>SR63.schoolQuantitativeAnalyze(workspace,exam),[workspace,exam]);
+  const [selectedSubjects,setSelectedSubjects]=(0,v.useState)(null);
+   const exam=workspace.activeExam;
+   const subjectChoices=(0,v.useMemo)(()=>SR63.schoolQuantitativeSubjectChoices(workspace,exam),[workspace,exam]);
+   const includedKeys=selectedSubjects===null?subjectChoices.map(x=>x.key):subjectChoices.filter(x=>selectedSubjects.includes(x.key)).map(x=>x.key);
+   const dashboardPreset=SR63.schoolQuantitativeDashboardSubjects(workspace,exam);
+   const toggleSubject=key=>setSelectedSubjects(current=>{
+    const prior=current===null?subjectChoices.map(x=>x.key):current;
+    return prior.includes(key)?prior.filter(x=>x!==key):[...prior,key];
+   });
+   const report=(0,v.useMemo)(()=>SR63.schoolQuantitativeAnalyze(workspace,exam,selectedSubjects),[workspace,exam,selectedSubjects]);
   const suggestion=recommendations||SR63.schoolReportRecommendations(report),narrative=interpretation||SR63.schoolReportNarrative(report);
   const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});
   const chart=SR63.staffReportBarChart('مقارنة تحصيل الصفوف على مستوى المدرسة',['7','8','9'].map(g=>({name:'الصف '+gradeName[g],value:report.grades[g].achievement,second:report.grades[g].success})),{two:true,color:'#1b8d80',secondColor:'#c39130'});
   const print=()=>{try{
+     if(!canExport)throw Error('ليس لديك صلاحية طباعة هذا التقرير.');
+     if(!report.subjectCount)throw Error('اختر مادة واحدة على الأقل قبل الطباعة.');
     SR63.staffPrintHtml(SR63.schoolQuantitativePrintBuild(report,{targets,interpretation:narrative,recommendations:suggestion}),{schoolName:report.schoolName,academicYear:report.academicYear,principalName:report.principalName});
     setProblem('');
    }catch(e){setProblem(e.message||'تعذر طباعة التقرير.');}};
   const download=async()=>{if(exporting)return;setExporting(true);setProblem('');try{
     if(!canExport)throw Error('ليس لديك صلاحية تصدير التقرير.');
+     if(!report.subjectCount)throw Error('اختر مادة واحدة على الأقل قبل التصدير.');
     await SR63.loadWordTemplate('reference');
     const doc=SR63.schoolQuantitativeWordBuild(report,{interpretation,recommendations,targets});
     SR63.teacherWordDownload(doc);
    }catch(e){setProblem(e.message||'تعذر تصدير التقرير الرسمي.');}finally{setExporting(false);}};
   const rows=metrics.filter(([_,key])=>report.previousExam||!['previousAchievement','valueAdded'].includes(key));
   return h('main',{className:'sr619-teacher-center sr640-school-report',dir:'rtl'},[
-   h('header',{className:'sr616-title'},[h('h1',{},'التقرير الكمي والوصفي'),h('p',{},'تقرير كمي ووصفي للمدرسة بالكامل، وفق نموذج الأقسام الرسمي المعتمد. يرفعه النائب الأكاديمي إلى مدير المدرسة، دون اختيار أقسام أو معلمين.')]),
-   h('section',{className:'sr619-card'},[h('div',{className:'sr641-report-address'},[h('p',{},'إلى: مدير المدرسة / '+(report.principalName||'........................')),h('p',{},'من: النائب الأكاديمي / '+(report.academicViceName||'........................'))]),h('h2',{},'مؤشرات '+report.examName),h('p',{},'التعليم العام · العام الأكاديمي '+report.academicYear+' · عدد الطلاب المختلفين '+report.studentCount),h('div',{className:'srstaff-kpis srcoord-kpis'},[
+   h('header',{className:'sr616-title'},[h('h1',{},'التقرير الكمي والوصفي'),h('p',{},'تقرير نجاح وتحصيل المدرسة للمواد المختارة مع تفصيل الصفوف السابع والثامن والتاسع، وفق النموذج الرسمي. لا تتغير البيانات الأصلية عند اختيار المواد.')]),
+   h('section',{className:'sr619-card sr682-subject-selector'},[
+     h('h2',{},'اختيار المواد الداخلة في نجاح وتحصيل المدرسة'),
+     h('p',{},'يمكنك احتساب جميع المواد، أو المواد الأساسية فقط، أو أي مجموعة محددة. هذا الاختيار خاص بالتقرير ومعاينته وطباعته، ولا يغيّر إعدادات لوحة التحكم.'),
+     h('div',{className:'sr682-scope-actions'},[
+      h('button',{type:'button',onClick:()=>setSelectedSubjects(null),className:selectedSubjects===null?'is-active':''},'كل المواد'),
+      h('button',{type:'button',onClick:()=>setSelectedSubjects(dashboardPreset)},'مواد لوحة التحكم ('+dashboardPreset.length+')'),
+      h('button',{type:'button',onClick:()=>setSelectedSubjects([])},'إلغاء تحديد الكل')
+     ]),
+     h('div',{className:'sr682-subject-choices'},subjectChoices.map(item=>
+      h('label',{key:item.key,className:includedKeys.includes(item.key)?'is-selected':''},[
+       h('input',{type:'checkbox',checked:includedKeys.includes(item.key),onChange:()=>toggleSubject(item.key)}),
+       h('span',{},item.name)
+      ])
+     )),
+     h('p',{className:'sr682-selection-info'},'المواد المحتسبة: '+report.subjectCount+' من '+subjectChoices.length+' · المواد المستبعدة: '+report.excludedCount),
+     !report.subjectCount?h('p',{className:'srstaff-alert',role:'alert'},'اختر مادة واحدة على الأقل لحساب النتائج وإصدار التقرير.'):null
+    ]),
+    h('section',{className:'sr619-card'},[h('div',{className:'sr641-report-address'},[h('p',{},'إلى: مدير المدرسة / '+(report.principalName||'........................')),h('p',{},'من: النائب الأكاديمي / '+(report.academicViceName||'........................'))]),h('h2',{},'مؤشرات '+report.examName),h('p',{},'التعليم العام · العام الأكاديمي '+report.academicYear+' · عدد الطلاب المختلفين '+report.studentCount),h('p',{className:'sr682-report-scope'},'نطاق التقرير: '+report.subjectScopeLabel),h('div',{className:'srstaff-kpis srcoord-kpis'},[
     ...[['نتائج مرصودة',report.evaluated],['نسبة النجاح',fmt(report.success)],['نسبة التحصيل',fmt(report.achievement)],['القيمة المضافة',diff(report.valueAdded)],['الحالات غير المرصودة',report.ungraded],['الطلاب الفريدون',report.studentCount]].map(([a,b])=>h('article',{key:a},[h('span',{},a),h('strong',{},b)]))
    ]),h('div',{className:'sr640-chart-live',dangerouslySetInnerHTML:{__html:chart}}),
    h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['المؤشر','السابع','الثامن','التاسع','إجمالي المدرسة'].map(x=>h('th',{key:x},x)))),
@@ -159,7 +188,7 @@
    h('h3',{},'توصيات النائب الأكاديمي إلى مدير المدرسة'),h('textarea',{rows:6,maxLength:4000,value:recommendations,onChange:e=>setRecommendations(e.target.value),placeholder:SR63.schoolReportRecommendations(report)}),
    h('p',{className:'sr640-note'},'يُصدر ملف Word بنفس نموذج الأقسام الرسمي مع توجيه الخطاب من النائب الأكاديمي إلى مدير المدرسة. يمكن تعديل التفسير والتوصيات قبل التصدير. لا يتضمن التقرير بيانات شخصية للطلاب.'),
    problem?h('p',{className:'srstaff-alert',role:'alert'},problem):null,
-   h('div',{className:'sr640-actions'},[h('button',{type:'button',disabled:!canExport||exporting,onClick:()=>void download()},exporting?'جارٍ تحميل النموذج الرسمي…':'تنزيل التقرير الرسمي Word'),h('button',{type:'button',disabled:!canExport,onClick:print},'طباعة التقرير / حفظ PDF')])
+   h('div',{className:'sr640-actions'},[h('button',{type:'button',disabled:!canExport||exporting||!report.subjectCount,onClick:()=>void download()},exporting?'جارٍ تحميل النموذج الرسمي…':'تنزيل التقرير الرسمي Word'),h('button',{type:'button',disabled:!canExport||!report.subjectCount,onClick:print},'طباعة التقرير / حفظ PDF')])
    ])
   ]);
  };
