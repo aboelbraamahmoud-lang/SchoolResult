@@ -2,6 +2,8 @@
 
 The existing subject-comparison report and student-percentage report are now available in the coordinator, principal and vice-principal report centers. The same admin page templates, print pipeline, PDF and ZIP exporters are reused.
 
+Percentage labels retain enough decimal places to stay inside the selected range; a result just below 100% is never displayed as 100% by rounding.
+
 - **الطلاب ضمن نسبة** accepts a minimum (inclusive) and maximum (exclusive), both between 0 and 100. Examples: 90 ≤ percentage < 100, 50 ≤ percentage < 60, 0 ≤ percentage < 60, and 70 ≤ percentage < 80. Empty, reversed and invalid bounds disable preview/export. The unrounded computed percentage determines inclusion; zero is a valid result. Absent, unentered and additional-support records retain the existing exclusion rules.
 - Changing either bound invalidates the preview. Direct PDF/ZIP exports apply the same bounds even before preview preparation. Existing single-threshold internal callers preserve their zero lower bound.
 - **تقرير مقارنة المواد** keeps the original success and achievement pages, grade/class grouping, subject order, teacher names and A4 layout. Coordinators fetch aggregate matrices only when previewing or exporting. The server requires the existing reports and comparison permissions and resolves school ownership from the authenticated account. No individual student data from other departments is returned.

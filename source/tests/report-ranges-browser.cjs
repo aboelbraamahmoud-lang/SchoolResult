@@ -25,6 +25,7 @@ async function main(){
    assert.equal(await host.locator('.school-report-page').count(),0,'bound change clears preview');
    await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.school-report-page').first().waitFor();
    const ids=await host.locator('.target-student-name small').allTextContents();assert.deepEqual(ids,indices.map(i=>'RANGE'+i));
+   assert.deepEqual(await host.locator('.target-percent b').allTextContents(),indices.map(i=>ws.rows[i].scores.exam1+'%'));
    assert.match(await host.locator('.target-range-hero').innerText(),new RegExp('من '+min+'% إلى أقل من '+max+'%'));
   }
   await host.locator('#sr-range-min').fill('80');assert.equal(await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).isDisabled(),true);

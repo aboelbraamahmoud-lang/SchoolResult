@@ -8,6 +8,15 @@ SR63.studentPercentRange=function(value){
  return {min,max,error};
 };
 SR63.percentInRange=(value,range)=>!range.error&&typeof value==='number'&&Number.isFinite(value)&&value>=range.min&&value<range.max;
+// Keep displayed percentages inside the selected interval, even just below its upper bound.
+SR63.rangePercentLabel=function(value,range){
+ if(typeof value!=='number'||!Number.isFinite(value))return '—';
+ for(let digits=2;digits<=12;digits++){
+  const rounded=Number(value.toFixed(digits));
+  if(SR63.percentInRange(rounded,range))return `${rounded}%`;
+ }
+ return `${value}%`;
+};
 /* 6.9.14 — every ordinary report page owns one subject; subjects comparison is the only all-subject page. */
 SR63.reportSubjectOrder=function(rows,settings){
   return [...new Set((rows||[]).map(row=>row.subject||'').filter(Boolean))].sort((a,b)=>SR63.reportSubjectCompare(a,b,settings));

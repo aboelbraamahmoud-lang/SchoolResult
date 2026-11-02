@@ -329,7 +329,7 @@ function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
       (0,q.jsxs)(`div`,{children:[(0,q.jsx)(`span`,{children:`نطاق الاستهداف`}),(0,q.jsxs)(`strong`,{children:[`من `,range.min,`% إلى أقل من `,range.max,`%`]}),(0,q.jsx)(`small`,{children:tj(r.settings,t).name})]}),
       (0,q.jsxs)(`div`,{className:`target-range-track`,children:[(0,q.jsx)(`i`,{style:{right:`${range.min}%`,width:`${range.max-range.min}%`}}),(0,q.jsx)(`b`,{style:{right:`calc(${range.max}% - 13px)`},children:`${range.max}%`})]})
     ]}),
-    (0,q.jsx)(`div`,{className:`target-range-kpis`,children:[['نتائج ضمن النطاق',targeted.length,'targeted'],['عدد الطلاب',uniqueStudents,'students'],['متوسط المستهدفين',avg===null?'—':wj(avg,0),'average'],['أدنى نسبة',lowest===null?'—':wj(lowest,0),'lowest']].map(([label,value,tone])=>(0,q.jsxs)(`article`,{className:`${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},label))}),
+    (0,q.jsx)(`div`,{className:`target-range-kpis`,children:[['نتائج ضمن النطاق',targeted.length,'targeted'],['عدد الطلاب',uniqueStudents,'students'],['متوسط المستهدفين',SR63.rangePercentLabel(avg,range),'average'],['أدنى نسبة',SR63.rangePercentLabel(lowest,range),'lowest']].map(([label,value,tone])=>(0,q.jsxs)(`article`,{className:`${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},label))}),
     (0,q.jsxs)(`div`,{className:`target-range-split`,children:[(0,q.jsxs)(`span`,{className:`urgent`,children:[`تدخل عاجل `,(0,q.jsx)(`b`,{children:urgent})]}),(0,q.jsxs)(`span`,{className:`support`,children:[`دعم علاجي `,(0,q.jsx)(`b`,{children:support})]}),(0,q.jsxs)(`span`,{className:`reinforce`,children:[`تعزيز `,(0,q.jsx)(`b`,{children:reinforce})]})]}),
     (0,q.jsxs)(`div`,{className:`report-meta-grid target-meta`,children:[(0,q.jsxs)(`b`,{children:[`الصف: `,e.className]}),(0,q.jsxs)(`span`,{children:[`المعلم: `,e.teacher||`غير مربوط`]}),(0,q.jsxs)(`span`,{children:[`المادة: `,SR63.reportSubjectLabel(e.subject||`كل المواد`,r.settings)]})]}),
     (0,q.jsxs)(`table`,{className:`report-table student-table target-student-table`,children:[
@@ -340,7 +340,7 @@ function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
         (0,q.jsxs)(`td`,{className:`target-student-name`,children:[(0,q.jsx)(`b`,{children:row.studentName}),(0,q.jsx)(`small`,{children:row.studentId})]}),
         (0,q.jsx)(`td`,{children:SR63.displayClass(hj(row,t)||row.className)}),
         (0,q.jsx)(`td`,{className:`target-score`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:F9(row,t)})]})}),
-        (0,q.jsx)(`td`,{className:`target-percent`,children:(0,q.jsxs)(`div`,{className:`report-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:wj(value,0)})]})}),
+        (0,q.jsx)(`td`,{className:`target-percent`,children:(0,q.jsxs)(`div`,{className:`report-meter tone-${tone}`,children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(value)}%`}}),(0,q.jsx)(`b`,{children:SR63.rangePercentLabel(value,range)})]})}),
         (0,q.jsx)(`td`,{children:(0,q.jsx)(`span`,{className:`target-status ${state}`,children:label})}),
         (0,q.jsx)(`td`,{className:`target-plan`,children:plan}),
         (0,q.jsx)(`td`,{className:`target-followup-owner`,children:mj(row,t)||row.teacher||`معلم المادة`}),
