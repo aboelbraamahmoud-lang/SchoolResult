@@ -62,5 +62,5 @@
     "test:tab-calculation": "node --expose-internals tests/tab-calculation.cjs",
     "test:report-ranges": "node --expose-internals tests/report-ranges-and-subjects.cjs"
   },
-  "version": "6.10.76"
+  "version": "6.10.77"
 }
