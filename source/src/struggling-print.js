@@ -7,14 +7,14 @@ SR63.strugglingPrintModel=function(workspace,minimum,maximum){
  // Use only this workspace's authorized rows. Never fetch wider school records.
  for(const row of workspace.rows||[]){
   const percent=vj(row,exam,settings);
-  if(percent===null||percent>=settings.pass)continue;
+  const cert=SR63.certificateScore(row,exam,settings);if(percent===null||!cert||cert.passed)continue;
   const className=hj(row,exam)||row.className||'غير محدد',key=SR63.studentEntityKey(row,exam)+'|'+lj(className);
   if(!groups.has(key))groups.set(key,{key,studentId:SR63.studentCanonicalId(row,exam),studentName:row.studentName,className,selected:false,subjects:[],seen:new Set()});
   const student=groups.get(key),teacher=mj(row,exam)||'غير محدد',score=row.scores[exam],total=pj(row,exam,settings);
   if(percent>=min&&percent<=max)student.selected=true;
   const duplicate=JSON.stringify([SR63.subjectAliasKey(row.subject),teacher,score,total]);
   if(student.seen.has(duplicate))continue;student.seen.add(duplicate);
-  student.subjects.push({subject:row.subject,teacher,score,total,percent,action:percent<30?'تدخل عاجل وخطة فردية':'دعم علاجي ومتابعة أسبوعية'});
+  student.subjects.push({subject:row.subject,teacher,score,total,percent,certificateScore:cert.certificateScore,certificateTotal:cert.certificateTotal,certificatePercent:cert.certificatePercent,action:cert.certificatePercent<30?'تدخل عاجل وخطة فردية':'دعم علاجي ومتابعة أسبوعية'});
  }
  const students=[...groups.values()].filter(s=>s.selected).sort((a,b)=>lj(a.className).localeCompare(lj(b.className),'en',{numeric:true})||String(a.studentName).localeCompare(String(b.studentName),'ar')||a.key.localeCompare(b.key));
  students.forEach(s=>{s.subjects.sort((a,b)=>SR63.reportSubjectCompare(a.subject,b.subject,settings)||a.teacher.localeCompare(b.teacher,'ar'));delete s.seen;});
@@ -34,17 +34,18 @@ SR63.StrugglingReportPage=function({workspace,model,page,pageIndex,generatedAt,p
   index===0?h('td',{rowSpan:student.subjects.length,className:'sr678-student'},h('b',{},student.studentName),student.continued?h('small',{},'تابع'):null):null,
   index===0?h('td',{rowSpan:student.subjects.length},SR63.displayClass(student.className)):null,
   h('td',{},SR63.reportSubjectLabel(item.subject,workspace.settings)),h('td',{},item.teacher),
-  h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.percent,workspace.settings)},item.score+' / '+item.total)),
+  h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.certificatePercent,workspace.settings)},item.score+' / '+item.total)),
+   h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.certificatePercent,workspace.settings)},item.certificateScore+' / '+item.certificateTotal)),
   h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.percent,workspace.settings)},SR63.rangePercentLabel(item.percent,{min:0,max:workspace.settings.pass,error:''}))),
   h('td',{},item.action))));
  return h('section',{ref:pageRef,className:'school-report-page sr-fitted-report grade-subjects-landscape report-landscape sr678-struggling-report','data-orientation':'landscape',style:j9(workspace)},
   h('div',{className:'sr-report-fit-content'},
    h(M9,{workspace,title,subject:'كل المواد الراسب فيها',assessment}),
    h('div',{className:'report-meta-grid'},h('b',{},'الصف / الشعبة: '+SR63.displayClass(page.className)),h('span',{},'عدد الطلاب في التقرير: '+Q(model.students.length)),h('span',{},'مواد الرسوب: '+Q(model.subjectCount))),
-   h('p',{className:'report-method-note'},'اختيار الطلاب: لديهم مادة راسبة بين '+model.min+'% و'+model.max+'% (شاملًا الحدين). يُعرض لكل طالب جميع مواد رسوبه في الاختبار المحدد. حد النجاح: '+workspace.settings.pass+'%.'),
+   h('p',{className:'report-method-note'},'اختيار الطلاب: المادة راسبة بعد تحويل درجتها للشهادة وجبرها لأعلى إلى أقرب نصف درجة، مع بقاء النسبة الأصلية معروضة. نطاق النسب الأصلية '+model.min+'% إلى '+model.max+'%؛ ويُعرض لكل طالب جميع مواد رسوبه. حد النجاح: '+workspace.settings.pass+'%.'),
    h('table',{className:'report-table sr678-struggling-table'},
-    h('colgroup',{},...[23,8,14,18,8,7,22].map((width,index)=>h('col',{key:index,style:{width:width+'%'}}))),
-    h('thead',{},h('tr',{},...['اسم الطالب','الصف','المادة الراسب فيها','المعلم','الدرجة / الكلية','النسبة','الإجراء المطلوب'].map(label=>h('th',{key:label},label)))),h('tbody',{},...rows)),
+    h('colgroup',{},...[20,7,13,17,9,9,7,18].map((width,index)=>h('col',{key:index,style:{width:width+'%'}}))),
+    h('thead',{},h('tr',{},...['اسم الطالب','الصف','المادة الراسب فيها','المعلم','درجة الاختبار','الدرجة في الشهادة','النسبة الأصلية','الإجراء المطلوب'].map(label=>h('th',{key:label},label)))),h('tbody',{},...rows)),
    h(N9,{workspace:{...workspace,reportGeneratedAt:generatedAt},subject:'',teacher:''}),
    h('span',{className:'report-page-number'},'صفحة '+(pageIndex+1)+' من '+model.pages.length)));
 };
@@ -91,7 +92,7 @@ SR63.strugglingStatistics=function(workspace,exam=workspace.activeExam){
   if(!classMap.has(ck))classMap.set(ck,{grade,className,ids:new Set()});
   const subjectKey=SR63.subjectAliasKey(row.subject)||ij(row.subject||'');
   if(subjectKey&&!subjectMap.has(subjectKey))subjectMap.set(subjectKey,{subject:row.subject,key:subjectKey,ids:new Set()});
-  if(percent>=pass)continue;
+  if(SR63.certificatePassed(row,exam,settings))continue;
   const studentKey=SR63.studentEntityKey(row,exam);
   if(!studentKey)continue;
   // A student's official academic ID wins over any repetition across subjects.
@@ -112,7 +113,7 @@ SR63.strugglingStatistics=function(workspace,exam=workspace.activeExam){
 };
 SR63.StrugglingStatsContent=function({model,workspace,part='all',classChunk}){
  const h=v.createElement,number=n=>Q(n);
- const note='الأرقام لجميع النتائج الراسبة في '+tj(workspace.settings,model.exam).name+' (أقل من '+model.pass+'%) ضمن البيانات المصرح بها. الطالب يُحسب مرة واحدة في إجمالي المدرسة والصف والشعبة، ومرة واحدة في كل مادة رسب فيها. لا تُجمع أعداد المواد لاستخراج إجمالي الطلاب.';
+ const note='الأرقام لجميع النتائج الراسبة في '+tj(workspace.settings,model.exam).name+' (بعد تحويل درجة الشهادة وجبرها، عند تفعيل ذلك للاختبار) ضمن البيانات المصرح بها. الطالب يُحسب مرة واحدة في إجمالي المدرسة والصف والشعبة، ومرة واحدة في كل مادة رسب فيها. لا تُجمع أعداد المواد لاستخراج إجمالي الطلاب.';
  const stat=(label,value,key)=>h('div',{className:'sr680-stat',key},h('span',{},label),h('strong',{},number(value)));
  const gradeTable=h('table',{className:'report-table sr680-table sr680-grade-table'},
   h('thead',{},h('tr',{},h('th',{},'الصف الدراسي'),h('th',{},'طلاب متعثرون دون تكرار'))),
