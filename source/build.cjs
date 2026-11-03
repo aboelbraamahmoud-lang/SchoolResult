@@ -189,10 +189,8 @@ replace('if(t===`teacher`)return mj(e,r);if(t===`className`)',
         'if(t===`subject`)return SR63.reportSubjectLabel(e.subject,n.settings);if(t===`teacher`)return mj(e,r);if(t===`className`)');
 // 6.10.12 — editable report-only names/order, inside the normal settings save workflow.
 // 6.10.83 — configuration of raw/certificate score conversion lives with school settings.
-replace('(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e})',
-        '(0,q.jsx)(SR63.CertificateExamSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e})');
 replace('(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`',
-        '(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`');
+        '(0,q.jsx)(SR63.CertificateExamSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`');
 // Cloud edition: replace remaining local-only labels and wrap the app with account login.
 code=code.split('تحميل أحدث نسخة محلية').join('تحميل أحدث نسخة سحابية').split('تم تحميل أحدث نسخة محلية.').join('تم تحميل أحدث نسخة سحابية.').split('الحفظ المحلي').join('الحفظ السحابي');
 replace('children:e[t.key]','children:SR63.renderReportValue(e[t.key],t.key)');
