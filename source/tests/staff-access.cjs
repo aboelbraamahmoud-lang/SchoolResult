@@ -7,12 +7,36 @@ catch{const ts=require('/opt/nvm/versions/node/v22.16.0/lib/node_modules/typescr
 const {loadApp}=require('./harness.cjs');const root=path.resolve(__dirname,'../..');
 const checks=[];function test(label,fn){checks.push(Promise.resolve().then(fn).then(()=>console.log('PASS',label)));}
 const src=fs.readFileSync(path.join(root,'supabase/functions/school-staff/index.ts'),'utf8');
-const moduleSrc=transformTS(src+'\nexports.__test={project:cleanCoordinator,leadership:cleanLeadership,scopeSubjects:indexSubjects,benchmarks:summaryBenchmarks,internalEmail:emailForUsername,normalize,safeUsername,boolPermissions};');
+const moduleSrc=transformTS(src+'\nexports.__test={project:cleanCoordinator,leadership:cleanLeadership,scopeSubjects:indexSubjects,benchmarks:summaryBenchmarks,availableDepartments,specialEducationRow,departmentRows,internalEmail:emailForUsername,normalize,safeUsername,boolPermissions};');
 const sandbox={exports:{},require:()=>({createClient:()=>({})}),Deno:{serve:()=>{}},TextEncoder,crypto:crypto.webcrypto,URL,Response,console};vm.runInNewContext(moduleSrc,sandbox,{timeout:10000});
 const api=sandbox.exports.__test,app=loadApp().ctx;
 const mk=(subject,department,name,score,teacher)=>({subject,department,studentId:'id-'+name,studentName:name,teacher,className:'7/1',scores:{exam1:score},statuses:{exam1:'present'},totals:{exam1:100}});
 const workspace={activeExam:'exam1',version:7,settings:{schoolName:'مدرسة الاختبار',academicYear:'2026/2027',pass:50,exams:[{key:'exam1',name:'اختبار تجريبي',total:100}],bands:[{id:'a',min:0,max:50,macro:'below'}],secretTest:'INTERNAL_NOT_EXPOSED'},rows:[mk('الرياضيات','الرياضيات','تلميذ رياضيات',42,'معلم الرياضيات'),mk('اللغة العربية','اللغة العربية','طالب عربي سري',90,'معلم العربية')],teachers:[{teacher:'معلم الرياضيات',subject:'الرياضيات',department:'الرياضيات'},{teacher:'معلم العربية',subject:'اللغة العربية',department:'اللغة العربية'}],teacherAssignments:[{subject:'الرياضيات',department:'الرياضيات',teacher:'معلم الرياضيات'},{subject:'اللغة العربية',department:'اللغة العربية',teacher:'معلم العربية'}],aiPlans:[{subject:'الرياضيات',title:'رياضيات'},{subject:'اللغة العربية',title:'خطة خاصة بالعربية'}],imports:[{filename:'INTERNAL_NOT_EXPOSED'}],auditLog:[{message:'INTERNAL_NOT_EXPOSED'}]};
 test('backend sends coordinator only records of authorized departments',()=>{const out=api.project(workspace,['الرياضيات']);assert.equal(out.workspace.rows.length,1);assert.equal(out.workspace.rows[0].studentName,'تلميذ رياضيات');assert.equal(out.workspace.teachers.length,1);assert.equal(out.workspace.teacherAssignments.length,1);assert.equal(out.workspace.aiPlans.length,1);assert.ok(!JSON.stringify(out.workspace).includes('طالب عربي سري'));assert.ok(!JSON.stringify(out.workspace).includes('INTERNAL_NOT_EXPOSED'));assert.ok(!Object.hasOwn(out.workspace.settings,'secretTest'));assert.equal(out.benchmarks,undefined,'permissioned comparative aggregates must not be included in default scoped payload');const aggregates=api.benchmarks(workspace,'exam1');assert.equal(aggregates.length,2);assert.ok(!JSON.stringify(aggregates).includes('طالب عربي سري'));});
+test('special education is offered to coordinators without teacher assignments and never leaks general pupils',()=>{
+ const ese={...mk('الرياضيات','الدعم الإضافي','طالب دمج','', ''),id:'ese',className:'7/ESE'},
+       special={...mk('اللغة العربية','التربية الخاصة','طالب خاص','', ''),id:'special',className:'7/3'},
+       general={...mk('الرياضيات','الرياضيات','طالب عام لا يظهر','', ''),id:'general'};
+ const source={...workspace,rows:[ese,special,general],
+   subjects:[{name:'مادة خاصة',department:'التربية الخاصة'}],
+   teacherAssignments:[{subject:'الرياضيات',department:'الرياضيات'}]};
+ const allowed=Array.from(api.availableDepartments(source));
+ assert.ok(allowed.includes('التربية الخاصة'),'Users list has Special Education even without ESE teacher assignment');
+ assert.ok(!allowed.includes('الدعم الإضافي'),'no duplicate support checkbox');
+ assert.deepEqual(Array.from(api.departmentRows(source,['التربية الخاصة']),r=>r.id).sort(),['ese','special']);
+ const only=api.project(source,['التربية الخاصة']).workspace;
+ assert.deepEqual(Array.from(only.rows,r=>r.studentName).sort(),['طالب دمج','طالب خاص'].sort());
+ assert.equal(only.teacherAssignments.length,0,'special coordinator does not inherit math teacher assignment');
+ assert.ok(!JSON.stringify(only).includes('طالب عام لا يظهر'));
+ const math=api.project(source,['الرياضيات']).workspace;
+ assert.ok(!math.rows.some(r=>r.studentName==='طالب دمج'||r.studentName==='طالب خاص'));
+ const solo={...source,teacherAssignments:[],subjects:[]};
+ assert.ok(Array.from(api.availableDepartments(solo)).includes('التربية الخاصة'),'ESE records alone enable department');
+ assert.deepEqual(Array.from(api.project(solo,['التربية الخاصة']).workspace.rows,r=>r.id).sort(),['ese','special']);
+ const both=api.project(source,['الرياضيات','التربية الخاصة']).workspace;
+ assert.equal(both.rows.length,3,'multi-department access works only when explicitly assigned');
+});
+
 test('staff print settings and authorized catalog preserve the admin footer',()=>{
  const settings={...workspace.settings,schoolVision:'رؤية المدرسة',programmerDesignerName:'مصمم تجريبي',preparedByName:'إعداد تجريبي',reviewedByName:'مراجع تجريبي',reportSystemName:'النظام',showGeneratedAt:true,reportDesign:{footerText:'التذييل المعتمد',showSignatures:true}};
  const source={...workspace,settings,subjects:[{id:'math',name:'الرياضيات',department:'الرياضيات',coordinatorName:'منسق الرياضيات',secretTest:'INTERNAL_NOT_EXPOSED'},{id:'ar',name:'اللغة العربية',department:'اللغة العربية',coordinatorName:'منسق آخر'}],skillsAssessments:[{subject:'الرياضيات',records:[]}]};
