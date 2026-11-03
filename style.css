@@ -1722,3 +1722,20 @@
 .sr682-subject-choices label span{overflow-wrap:anywhere}
 .sr682-selection-info,.sr682-report-scope{background:#f0f7f9;border-right:4px solid #0c8180;padding:9px 12px!important;border-radius:8px;font-weight:800;font-size:13px;color:#19516b!important;overflow-wrap:anywhere}
 @media(max-width:720px){.sr682-subject-choices{grid-template-columns:1fr}.sr682-scope-actions button{flex:1 1 130px}}
+
+
+/* 6.10.83 — editable per-exam certificate conversion in admin settings. */
+.sr683-certificate-settings{display:grid;gap:14px;padding:18px;border:1px solid #c9dfe3;background:linear-gradient(135deg,#edf8f9,#fff);border-radius:16px;margin:16px 0}
+.sr683-settings-title h2{font-size:1.12rem;color:#174457;font-weight:850;margin:0 0 8px}
+.sr683-settings-title p{font-size:.85rem;color:#456776;line-height:1.7;margin:0}
+.sr683-certificate-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.sr683-certificate-row{min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;padding:14px;border-radius:13px;background:#fff;border:1px solid #d6e5e8}
+.sr683-certificate-row>strong{grid-column:1/-1;color:#173e52;font-weight:850;font-size:1rem}
+.sr683-certificate-row label{min-width:0;display:grid;gap:6px;color:#274e60;font-weight:700;font-size:.81rem}
+.sr683-certificate-row input{width:100%;min-width:0;padding:9px 10px;border-radius:8px;border:1px solid #b7cbd2;direction:ltr;text-align:center;font-variant-numeric:tabular-nums}
+.sr683-rule-note{grid-column:1/-1;font-size:.79rem;color:#436174;line-height:1.65}
+.sr683-example{grid-column:1/-1;font-size:.77rem;color:#087663;font-weight:800}
+.sr683-settings-note{font-size:.8rem;color:#516b78;line-height:1.7;margin:0}
+@media(max-width:900px){.sr683-certificate-grid{grid-template-columns:1fr}}
+@media(max-width:520px){.sr683-certificate-row{grid-template-columns:1fr}}
+.student-result-table .sr681-band-value{white-space:nowrap}
