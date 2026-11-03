@@ -431,7 +431,7 @@ function SRLevelAnalysisReport({page:e,exam:t,workspace:n}){
         (0,q.jsx)(`td`,{children:e.rowOffset+index+1}),
         (0,q.jsx)(`td`,{className:`level-student-name`,children:row.studentName}),
         (0,q.jsx)(`td`,{className:`level-score-visual`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(certified,n.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(pct)}%`}}),(0,q.jsx)(`b`,{children:scoreText})]})}),
-        (0,q.jsx)(`td`,{className:`level-certificate-visual`,children:SR63.certificateScore(row,t,n.settings)?.certificateScore??'—'}),
+        (0,q.jsx)(`td`,{className:`level-certificate-visual`,children:(0,q.jsxs)(`div`,{className:`report-meter score tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(certified,n.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(certified)}%`}}),(0,q.jsx)(`b`,{children:SR63.certificateScore(row,t,n.settings)?.certificateScore??'—'})]})}),
         (0,q.jsx)(`td`,{className:`level-percent-visual`,children:pct===null?'—':(0,q.jsxs)(`div`,{className:`report-meter tone-${tone} sr-band-linked`,style:SR63.reportBandStyle(pct,n.settings),children:[(0,q.jsx)(`i`,{style:{width:`${SR63.clampPercent(pct)}%`}}),(0,q.jsx)(`b`,{children:wj(pct,0)})]})}),
         (0,q.jsx)(`td`,{children:(0,q.jsxs)(`span`,{className:`level-macro-badge macro-${macro} sr-band-linked`,style:SR63.reportBandStyle(pct,n.settings),children:[SR63.macroLabel(macro),band?.label?(0,q.jsx)(`small`,{children:band.label}):null]})}),
         (0,q.jsx)(`td`,{colSpan:2,children:``})
