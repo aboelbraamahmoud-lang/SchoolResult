@@ -46,8 +46,11 @@ assert.ok(math);assert.deepEqual(Array.from(math.allRows,r=>r.studentName).sort(
  ['طالبة سابع رياضيات','طالبة سابع أخرى','طالبة غائبة','طالبة دمج'].sort());
 assert.equal(math.scope,'subject','mixed ESE and structure-driven special department scopes by subject');
 assert.equal(math.allRows.length,4);
-assert.equal(ctx.bj(math.allRows,exam,settings).evaluated,3);
-assert.equal(ctx.bj(math.allRows,exam,settings).passed,1);
+assert.equal(S.specialEducationMetric(math.allRows,exam,settings).evaluated,3,'ESE and structure-defined special grades count together');
+assert.equal(S.specialEducationMetric(math.allRows,exam,settings).passed,1);
+assert.equal(S.specialEducationMetric(math.allRows,exam,settings).failed,2);
+assert.equal(S.specialEducationMetric(math.allRows,exam,settings).students,4);
+assert.ok(Math.abs(S.specialEducationMetric(math.allRows,exam,settings).success-100/3)<1e-9);
 assert.equal(S.certificateScore(math.allRows.find(r=>r.studentId==='S71'),exam,settings).certificateScore,7.5,'ceiling half-mark conversion remains correct');
 assert.equal(S.reportScoreHeaderMax(math.allRows,exam,settings),'30');
 assert.equal(S.reportScoreHeaderMax(math.allRows,exam,settings,'certificate'),'15');
