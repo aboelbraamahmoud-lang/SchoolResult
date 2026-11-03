@@ -1736,3 +1736,15 @@
 @media(max-width:900px){.sr683-certificate-grid{grid-template-columns:1fr}}
 @media(max-width:520px){.sr683-certificate-row{grid-template-columns:1fr}}
 .student-result-table .sr681-band-value{white-space:nowrap}
+
+
+/* 6.10.84 — ESE level reports: one subject at a time, teacher-optional. */
+.sr684-ese-report-heading{display:grid;gap:8px;margin:10px 0 14px;padding:12px 14px;border:1px solid #b7d4d5;border-radius:11px;background:#eff8f8;color:#183e4e;break-inside:avoid}
+.sr684-ese-report-heading h2{font-size:17px;font-weight:900;margin:0;color:#164257;line-height:1.4}
+.sr684-ese-report-heading p{font-size:10px;margin:0;color:#385d69;line-height:1.5}
+.sr684-ese-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.sr684-ese-metrics span{min-width:0;border:1px solid #c9dddc;border-radius:8px;background:#fff;padding:7px 5px;text-align:center;display:grid;gap:4px}
+.sr684-ese-metrics b{font-size:9px;color:#365566;font-weight:750}
+.sr684-ese-metrics strong{font-size:15px;color:#075f69;font-weight:900;font-variant-numeric:tabular-nums}
+@media(max-width:720px){.sr684-ese-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media print{.sr684-ese-report-heading,.sr684-ese-metrics span{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
