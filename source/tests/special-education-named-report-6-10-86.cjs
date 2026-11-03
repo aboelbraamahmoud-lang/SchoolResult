@@ -55,6 +55,28 @@ assert.equal(S.buildReportPages(list,'grade','8/ESE','الكل','support',exam,5
 assert.equal(S.buildReportPages(list,'grade','السابع','الكل','support',exam,50,settings).length,2);
 assert.equal(S.buildReportPages(list,'support','الكل','الرياضيات','levels',exam,50,settings).length,2);
 assert.equal(S.buildReportPages([ordinary],'grade','الكل','الكل','support',exam,50,settings).length,0);
+
+const renderer=ctx.SRSupportDepartmentReport;
+assert.equal(typeof renderer,'function','actual report renderer must exist');
+const rendered=renderer({page:math,exam,workspace:{settings,rows:list,activeExam:exam}});
+const values=[];
+const walk=node=>{
+ if(Array.isArray(node)){node.forEach(walk);return;}
+ if(node==null||typeof node==='boolean')return;
+ if(typeof node==='string'||typeof node==='number'){values.push(String(node));return;}
+ if(typeof node==='object')walk(node.props?.children);
+};
+walk(rendered);
+const visual=values.join(' ');
+for(const name of ['طالبة سابع رياضيات','طالبة سابع أخرى','طالبة دمج','طالبة غائبة'])
+ assert.ok(visual.includes(name),'printed support report must include name: '+name);
+assert.ok(!visual.includes('طالب تعليم عام'),'never show regular pupils in special report');
+assert.ok(!visual.includes('G11'),'no personal IDs printed');
+assert.match(visual,/الدرجة في الشهادة/);
+assert.match(visual,/30/);
+assert.match(visual,/15/);
+assert.match(visual,/7\.5/,'show computed rounded certificate grade in student row');
+
 const departmentWorkspace={settings,rows:special,activeExam:exam};
 const byDepartment=S.buildReportPages(departmentWorkspace.rows,'grade','الكل','الكل','support',exam,50,settings);
 assert.equal(byDepartment.length,4);
