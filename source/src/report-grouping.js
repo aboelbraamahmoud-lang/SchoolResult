@@ -72,8 +72,8 @@ SR63.supportLevelReportPages=function(rows,exam,selectedGrade='الكل',selecte
    for(let part=0;part<parts;part++)pages.push({
     key:'support-level-'+gradeNo+'-'+subjectKey+'-'+part,
     title:info.label+' — '+SR63.reportSubjectLabel(subject,settings),
-    entity:info.className,scope:'className',className:info.className,grade:info.grade,
-    teacher:'',subject,department:SR63.SUPPORT_DEPARTMENT,supportLevel:true,supportInfo:info,
+    entity:info.className,scope:'className',className:info.className,
+    teacher:'',subject,supportLevel:true,supportInfo:info,
     rows:allRows.slice(part*pageSize,(part+1)*pageSize),allRows,rowOffset:part*pageSize,
     part:part+1,totalParts:parts
    });
