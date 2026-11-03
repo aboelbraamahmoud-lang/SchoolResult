@@ -39,6 +39,19 @@ async function main(){
  assert.equal(rejected.status,400);assert.equal(rejected.data.error,'COORDINATOR_NEEDS_DEPARTMENT');
  rejected=await call('create',{username:'coordinator2',displayName:'منسق',password:'securepass123!',role:'coordinator',departments:['قسم غير موجود']});
  assert.equal(rejected.status,400);assert.equal(rejected.data.error,'INVALID_DEPARTMENT');
+ // Special education is a standalone coordinator department, even without teacher assignments.
+ ws.rows.push({id:'ese',studentId:'E7',studentName:'طالبة دمج',className:'7/ESE',subject:'الرياضيات',department:'الدعم الإضافي',scores:{exam1:11},statuses:{exam1:'present'},totals:{exam1:30}});
+ const offered=await call('list');assert.equal(offered.status,200,JSON.stringify(offered));
+ assert.ok(offered.data.departments.includes('التربية الخاصة'),'Users checkbox must offer Special Education');
+ const special=await call('create',{username:'specialcoordinator',displayName:'منسقة التربية الخاصة',password:'securepass123!',role:'coordinator',departments:['التربية الخاصة'],permissions:{reports:true,export:true,studentLevels:true}});
+ assert.equal(special.status,200,JSON.stringify(special));
+ assert.deepEqual(Array.from(created.at(-1).departments),['التربية الخاصة']);
+ assert.equal(created.at(-1).permissions.export,true);
+ roleExisting='coordinator';departmentsExisting=['الرياضيات'];
+ const updateSpecial=await call('update',{userId:staffId,departments:['التربية الخاصة']});
+ assert.equal(updateSpecial.status,200,JSON.stringify(updateSpecial));
+ assert.deepEqual(Array.from(updated.at(-1).departments),['التربية الخاصة']);
+
  const valid=await call('create',{username:'coordinator3',displayName:'منسق',password:'securepass123!',role:'coordinator',departments:['الرياضيات']});
  assert.equal(valid.status,200);assert.deepEqual(Array.from(created.at(-1).departments),['الرياضيات']);
  for(const role of ['vice_principal','principal']){
