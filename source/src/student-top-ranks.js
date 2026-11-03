@@ -29,7 +29,7 @@ SR63.studentTopRankings=function(workspace,options={}){
   const student=group.students.get(studentKey),valid=SR63.validResult(row,exam,settings)&&row.statuses?.[exam]==="present";
   if(valid&&!group.required.has(subjectKey))group.required.set(subjectKey,subject);
   const previous=student.bySubject.get(subjectKey);
-  const score=valid?row.scores[exam]:null,total=valid?pj(row,exam,settings):null;
+  const cert=valid?SR63.certificateScore(row,exam,settings):null,score=cert?.certificateScore??null,total=cert?.certificateTotal??null;
   if(!previous)student.bySubject.set(subjectKey,{valid,score,total,conflict:false});
   else if(valid&&previous.valid&&(previous.score!==score||previous.total!==total))previous.conflict=true;
   else if(valid&&!previous.valid)student.bySubject.set(subjectKey,{valid,score,total,conflict:false});
