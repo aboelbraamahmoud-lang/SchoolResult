@@ -54,8 +54,12 @@ const indexSubjects=(ws:any,deps:string[])=>{
 const departmentRows=(ws:any,deps:string[])=>{
  const special=deps.some(specialEducationName);
  const depts=new Set(deps.filter(name=>!specialEducationName(name)).map(dept)),subjects=indexSubjects(ws,deps);
- return (Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>
-  depts.has(dept(r.department))||subjects.has(dept(r.subject))||(special&&specialEducationRow(r)));
+ return (Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>{
+  // A regular subject coordinator must NEVER see a support pupil merely
+  // because an ESE pupil studied the same subject as the general cohort.
+  if(specialEducationRow(r))return special;
+  return depts.has(dept(r.department))||subjects.has(dept(r.subject));
+ });
 };
 const summaryBenchmarks=(ws:any,examKey?:string)=>{
  const exam=String(['exam1','exam2','exam3','exam4'].includes(examKey||'')?examKey:ws.activeExam||'exam1'),per=new Map<string,{department:string,evaluated:number,passed:number,score:number,total:number}>();
@@ -73,7 +77,7 @@ const summaryBenchmarks=(ws:any,examKey?:string)=>{
 };
 const cleanCoordinator=(ws:any,deps:string[])=>{
  const scoped=departmentRows(ws,deps),authorizedKinds=new Set(deps.map(skillKind).filter(Boolean));
- const rows=(Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>scoped.includes(r)||authorizedKinds.has(skillKind(r.subject))),
+ const rows=(Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>scoped.includes(r)||(!specialEducationRow(r)&&authorizedKinds.has(skillKind(r.subject)))),
   special=deps.some(specialEducationName),
   subjects=indexSubjects(ws,deps),
   depts=new Set(deps.filter(name=>!specialEducationName(name)).map(dept));
