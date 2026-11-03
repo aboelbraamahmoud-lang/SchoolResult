@@ -29,16 +29,16 @@ function Ede(value,key){
 function bj(rows,exam,settings){
   const scopedRows=SR63.metricRows(rows,exam),bandCounts=Object.fromEntries(settings.bands.map(b=>[b.id,0])),macro={above:0,average:0,below:0},students=new Set();
   const metric={rows:scopedRows.length,students:0,evaluated:0,passed:0,failed:0,absent:0,excused:0,unexcused:0,deprived:0,notEnrolled:0,unentered:0,success:null,achievement:null,raw:0,bandCounts,macro};
-  const statusFields={absent:'absent',excused:'excused',unexcused:'unexcused',deprived:'deprived',not_enrolled:'notEnrolled',unentered:'unentered'};let possible=0;
-  for(const row of scopedRows){students.add(SR63.studentEntityKey(row,exam)||ij(row.studentId));const field=statusFields[row.statuses[exam]];if(field)metric[field]++;const pct=vj(row,exam,settings);if(pct===null)continue;
-    metric.evaluated++;metric.raw+=row.scores[exam];possible+=pj(row,exam,settings);if(pct>=settings.pass)metric.passed++;
-    const band=yj(pct,settings.bands);if(band){bandCounts[band.id]++;macro[band.macro]++;}
+  const statusFields={absent:'absent',excused:'excused',unexcused:'unexcused',deprived:'deprived',not_enrolled:'notEnrolled',unentered:'unentered'};let possible=0,certificateEarned=0;
+  for(const row of scopedRows){students.add(SR63.studentEntityKey(row,exam)||ij(row.studentId));const field=statusFields[row.statuses[exam]];if(field)metric[field]++;const certified=SR63.certificateScore(row,exam,settings);if(!certified)continue;
+    metric.evaluated++;metric.raw+=certified.rawScore;certificateEarned+=certified.certificateScore;possible+=certified.certificateTotal;if(certified.passed)metric.passed++;
+    const band=yj(certified.certificatePercent,settings.bands);if(band){bandCounts[band.id]++;macro[band.macro]++;}
   }
-  metric.students=students.size;metric.failed=metric.evaluated-metric.passed;metric.success=metric.evaluated?metric.passed/metric.evaluated*100:null;metric.achievement=possible?metric.raw/possible*100:null;return metric;
+  metric.students=students.size;metric.failed=metric.evaluated-metric.passed;metric.success=metric.evaluated?metric.passed/metric.evaluated*100:null;metric.achievement=possible?certificateEarned/possible*100:null;metric.certificateEarned=certificateEarned;metric.certificatePossible=possible;return metric;
 }
 /* PATCH xj */
 function xj(rows,from,to,settings){
-  const scopedRows=SR63.metricRows(rows,to),pairs=[];for(const row of scopedRows){const a=vj(row,from,settings),b=vj(row,to,settings);if(a!==null&&b!==null)pairs.push({a,b,delta:b-a});}
+  const scopedRows=SR63.metricRows(rows,to),pairs=[];for(const row of scopedRows){const a=SR63.certificatePercentage(row,from,settings),b=SR63.certificatePercentage(row,to,settings);if(a!==null&&b!==null)pairs.push({a,b,delta:b-a});}
   const deltas=pairs.map(p=>p.delta),sorted=[...deltas].sort((a,b)=>a-b),half=Math.floor(sorted.length/2),improved=deltas.filter(d=>d>settings.stable).length,declined=deltas.filter(d=>d<-settings.stable).length;
   return {paired:pairs.length,eligible:scopedRows.length,coverage:scopedRows.length?pairs.length/scopedRows.length*100:0,fromAverage:pairs.length?pairs.reduce((sum,p)=>sum+p.a,0)/pairs.length:null,toAverage:pairs.length?pairs.reduce((sum,p)=>sum+p.b,0)/pairs.length:null,delta:pairs.length?deltas.reduce((sum,d)=>sum+d,0)/pairs.length:null,median:sorted.length?(sorted.length%2?sorted[half]:(sorted[half-1]+sorted[half])/2):null,improved,declined,stable:pairs.length-improved-declined};
 }

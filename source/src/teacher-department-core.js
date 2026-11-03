@@ -28,8 +28,7 @@ SR63.departmentPerformanceAnalyze=function(workspace,options={}){
  const round=n=>Math.round(n*10)/10;
  const rate=(r,x)=>{
   if(!x||r.statuses?.[x]!=='present')return null;
-  const score=r.scores?.[x],total=pj(r,x,settings);
-  return typeof score==='number'&&Number.isFinite(score)&&typeof total==='number'&&Number.isFinite(total)&&total>0?round(100*score/total):null;
+  const cert=SR63.certificateScore(r,x,settings);return cert?round(cert.certificatePercent):null;
  };
  const unique=new Map();
  for(const row of workspace.rows||[]){
@@ -47,10 +46,10 @@ SR63.departmentPerformanceAnalyze=function(workspace,options={}){
  if(!unique.size)SR63.fail('لا توجد نتائج للقسم المختار في الصفوف السابع والثامن والتاسع.');
  const entries=[...unique.values()].map(row=>({
   id:String(row.studentId),name:String(row.studentName||''),grade:SR63.departmentGradeKey(row,exam),className:String(hj(row,exam)||row.className||''),
-  current:rate(row,exam),previous:rate(row,previousExam),score:row.scores?.[exam],total:pj(row,exam,settings),
+  current:rate(row,exam),previous:rate(row,previousExam),score:SR63.certificateScore(row,exam,settings)?.certificateScore??null,total:SR63.certificateScore(row,exam,settings)?.certificateTotal??null,
   status:row.statuses?.[exam]||'unentered',
-  previousScore:previousExam&&row.statuses?.[previousExam]==='present'?row.scores?.[previousExam]:null,
-  previousTotal:previousExam&&row.statuses?.[previousExam]==='present'?pj(row,previousExam,settings):null
+  previousScore:previousExam?SR63.certificateScore(row,previousExam,settings)?.certificateScore??null:null,
+  previousTotal:previousExam?SR63.certificateScore(row,previousExam,settings)?.certificateTotal??null:null
  }));
  const summarize=(arr)=>{
   const graded=arr.filter(s=>s.current!==null),pairs=graded.filter(s=>s.previous!==null);

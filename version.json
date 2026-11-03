@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.82",
+  "version": "6.10.83",
   "released": "2026-11-02",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "اختيار المواد المحتسبة في التقرير الكمي والوصفي لنجاح وتحصيل المدرسة، جميع المواد أو مجموعة مختارة أو مواد لوحة التحكم، مع توضيح المواد المستبعدة في طباعة PDF وWord."
+  "notes": "التحويل الاختياري لكل اختبار من الدرجة الأصلية إلى درجة الشهادة مع جبر الكسر لأعلى إلى نصف درجة؛ احتساب النجاح والرسوب والتحصيل من الشهادة بعد الجبر، والإبقاء على النسبة الأصلية وإظهار عمود درجة الشهادة في الكشوف والتقارير."
 }

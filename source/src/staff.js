@@ -83,7 +83,7 @@ SR63.StaffAdminPage=function(){
 SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
  const rows=Array.isArray(workspace?.rows)?workspace.rows:[],settings=workspace?.settings||{},
  exams=Array.isArray(settings.exams)?settings.exams:[],labels=exams.map(x=>({key:x.key,name:x.name}));
- const value=(r,e)=>{const max=Number(r?.totals?.[e]??exams.find(x=>x.key===e)?.total),num=r?.scores?.[e];return r?.statuses?.[e]==='present'&&typeof num==='number'&&Number.isFinite(num)&&Number.isFinite(max)&&max>0?{percentage:Math.min(100,Math.max(0,num/max*100)),score:num,max}:null;};
+ const value=(r,e)=>{const cert=SR63.certificateScore(r,e,settings);return cert?{percentage:cert.certificatePercent,originalPercentage:cert.originalPercent,score:cert.rawScore,max:cert.rawTotal,certificateScore:cert.certificateScore,certificateTotal:cert.certificateTotal}:null;};
  const key=r=>String(r.studentId||r.studentName||r.id||'غير محدد');
  const evaluated=rows.map(r=>({row:r,result:value(r,exam)})).filter(x=>x.result),
  nonSupport=evaluated.filter(x=>!SR63.isSupportRow(x.row,exam)),
@@ -91,7 +91,7 @@ SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
  const count=(predicate,list=nonSupport)=>list.filter(predicate).length;
  const success=count(x=>x.result.percentage>=Number(settings.pass??50)),achievement=nonSupport.length?nonSupport.reduce((a,b)=>a+b.result.percentage,0)/nonSupport.length:null;
  const levels=[{label:'متدنٍ',color:'#c55664',min:0,max:60},{label:'متوسط',color:'#d5a238',min:60,max:80},{label:'مرتفع',color:'#0a877b',min:80,max:101}].map(l=>({...l,value:count(x=>x.result.percentage>=l.min&&x.result.percentage<l.max)}));
- const failed=evaluated.filter(x=>x.result.percentage<Number(settings.pass??50)).map(x=>({name:x.row.studentName,studentId:x.row.studentId,className:hj(x.row,exam)||x.row.className,subject:x.row.subject,score:x.result.score,total:x.result.max,percentage:x.result.percentage,teacher:mj(x.row,exam)||x.row.teacher}));
+ const failed=evaluated.filter(x=>x.result.percentage<Number(settings.pass??50)).map(x=>({name:x.row.studentName,studentId:x.row.studentId,className:hj(x.row,exam)||x.row.className,subject:x.row.subject,score:x.result.score,total:x.result.max,certificateScore:x.result.certificateScore,certificateTotal:x.result.certificateTotal,percentage:x.result.originalPercentage,certificatePercentage:x.result.percentage,teacher:mj(x.row,exam)||x.row.teacher}));
  const teachers=new Map(),classes=new Map();
  for(const x of nonSupport){const teacher=String(mj(x.row,exam)||x.row.teacher||'غير محدد'),klass=String(hj(x.row,exam)||x.row.className||'غير محدد');
   for(const [m,k] of [[teachers,teacher],[classes,klass]]){const old=m.get(k)||{name:k,results:0,success:0,sum:0};old.results++;old.sum+=x.result.percentage;if(x.result.percentage>=Number(settings.pass??50))old.success++;m.set(k,old);}}

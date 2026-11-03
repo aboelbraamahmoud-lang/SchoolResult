@@ -28,8 +28,8 @@
     subjectScopeLabel=selection?'المواد المختارة: '+(includedSubjects.map(item=>item.name).join('، ')||'لا توجد مواد محددة'):'جميع مواد المدرسة';
    const exams=settings.exams||[],totalFor=(row,e)=>Number(row.totals?.[e]??exams.find(x=>x.key===e)?.total),scoreFor=(row,e)=>{
    if(!e||row.statuses?.[e]!=='present')return null;
-   const score=row.scores?.[e],max=totalFor(row,e);
-   return typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(max)&&max>0?{score,max,percent:100*score/max}:null;
+   const cert=SR63.certificateScore(row,e,settings);
+   return cert?{score:cert.certificateScore,max:cert.certificateTotal,percent:cert.certificatePercent,originalPercent:cert.originalPercent}:null;
   };
   const entries=new Map();
   for(const r of workspace?.rows||[]){
