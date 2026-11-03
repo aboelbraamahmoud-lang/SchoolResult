@@ -123,7 +123,7 @@ SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mod
   if(range?.error)throw Error(range.error);
    if(mode==='struggling'&&['gradeGroup','teacherGroup'].includes(dimension))return SR63.groupedRangePages(sourceRows,exam,settings,range,dimension,selectedEntity,selectedSubject);
   if(mode==='strugglingStats')return SR63.strugglingStatsPages(sourceRows,exam,settings);
-  if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل');
+  if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل',settings);
    if(mode==='levels'&&dimension==='support')return SR63.supportLevelReportPages(sourceRows,exam,selectedEntity,selectedSubject,settings);
   const allRows=SR63.generalRows(sourceRows,exam);
   if(mode==='executive')return [{key:`executive-${exam}`,title:'الملخص التنفيذي',entity:'المدرسة',scope:'school',grade:'',className:'',teacher:'',subject:'كل المواد',rows:allRows,allRows,rowOffset:0,part:1,totalParts:1}];
