@@ -104,11 +104,11 @@ SR63.supportLevelReportPages=function(rows,exam,selectedGrade='الكل',selecte
    const pageSize=22,parts=Math.ceil(allRows.length/pageSize);
    for(let part=0;part<parts;part++)pages.push({
     key:'special-education-'+gradeNo+'-'+subjectKey+'-'+part,
-    title:title+' — '+SR63.reportSubjectLabel(subject,settings),
+    title:onlyEse?info.label:title+' — '+SR63.reportSubjectLabel(subject,settings),
     entity:onlyEse?info.className:subject,
     scope:onlyEse?'className':'subject',
     className:onlyEse?info.className:'',
-    teacher:'',department:'',subject,
+    teacher:'',department:onlyEse?SR63.SUPPORT_DEPARTMENT:'',subject,
     supportLevel:true,supportInfo:{...info,label:title},
     educationDepartment:'التربية الخاصة',gradeNo,
     rows:allRows.slice(part*pageSize,(part+1)*pageSize),allRows,
