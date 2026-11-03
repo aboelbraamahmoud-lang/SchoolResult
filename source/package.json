@@ -70,5 +70,5 @@
     "test:grouped-private-reports": "node --expose-internals tests/grouped-private-reports-6-10-85.cjs",
     "test:special-education-named-report": "node --expose-internals tests/special-education-named-report-6-10-86.cjs"
   },
-  "version": "6.10.86"
+  "version": "6.10.87"
 }
