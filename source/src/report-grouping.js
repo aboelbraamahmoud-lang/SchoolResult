@@ -27,33 +27,60 @@ SR63.reportTeacherOrder=function(rows,exam){
 SR63.reportClassOrder=function(rows,exam){
   return [...new Set((rows||[]).map(row=>hj(row,exam)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
 };
-/* 6.10.84 — ESE pupils' level reports are independent of teacher assignments.
-   Keep general-education reports isolated. Page order: seventh, eighth,
-   ninth; within each grade, school-configured subject order and real pupils. */
+/* 6.10.86 — printed special education is not limited to ESE class codes.
+   User-created academic department «التربية الخاصة» is also supported.
+   Work only on the workspace rows already authorized for this account. */
+SR63.specialEducationRows=function(rows,exam){
+ const aliases=new Set(['التربيه الخاصه','الدعم الاضافي']);
+ return (Array.isArray(rows)?rows:[]).filter(row=>
+  SR63.isSupportRow(row,exam)||aliases.has(ij(row?.department||'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه')));
+};
+SR63.specialEducationGradeNo=function(row,exam){
+ const klass=String(hj(row,exam)||row?.className||'').trim(),
+       info=SR63.supportClassInfo(klass);
+ if(info)return info.gradeNo;
+ const m=/^0?([789])(?=\s*[/\-–]|\s*$)/.exec(klass);
+ if(m)return Number(m[1]);
+ const grade=ij(gj(row,exam)||row?.grade||'');
+ if(grade.includes('السابع'))return 7;
+ if(grade.includes('الثامن'))return 8;
+ if(grade.includes('التاسع'))return 9;
+ return null;
+};
+SR63.specialEducationGradeTitle=function(grade,rows=[],exam){
+ const info=SR63.supportClassInfo(String(grade)+'/ESE'),
+       onlyEse=rows.length>0&&rows.every(row=>SR63.isSupportRow(row,exam));
+ return onlyEse?info.label:'التربية الخاصة — الصف '+info.grade;
+};
 SR63.supportLevelGradeChoices=function(rows,exam){
- const levels=new Set(SR63.supportRows(rows,exam).map(row=>SR63.supportClassInfo(hj(row,exam)||row.className)?.gradeNo).filter(Boolean));
- return [7,8,9].filter(n=>levels.has(n)).map(n=>n+'/ESE');
+ const source=SR63.specialEducationRows(rows,exam),
+       grades=new Set(source.map(row=>SR63.specialEducationGradeNo(row,exam)).filter(Boolean));
+ return [7,8,9].filter(n=>grades.has(n)).map(n=>n+'/ESE');
 };
 SR63.supportLevelSubjectChoices=function(rows,exam,settings=SR63.currentWorkspace?.settings){
  const names=new Map();
- for(const row of SR63.supportRows(rows,exam)){
+ for(const row of SR63.specialEducationRows(rows,exam)){
   const subject=String(row.subject||'').trim(),key=SR63.subjectAliasKey(subject);
   if(key&&!names.has(key))names.set(key,subject);
  }
  return [...names.values()].sort((a,b)=>SR63.reportSubjectCompare(a,b,settings));
 };
 SR63.supportLevelReportPages=function(rows,exam,selectedGrade='الكل',selectedSubject='الكل',settings=SR63.currentWorkspace?.settings){
- const source=SR63.supportRows(rows,exam),pages=[],subjectFilter=SR63.subjectAliasKey(selectedSubject);
- const allSubjects=!selectedSubject||selectedSubject==='الكل'||selectedSubject==='كل المواد';
+ const source=SR63.specialEducationRows(rows,exam),pages=[],
+       subjectFilter=SR63.subjectAliasKey(selectedSubject),
+       allSubjects=!selectedSubject||selectedSubject==='الكل'||selectedSubject==='كل المواد';
  const selectedInfo=SR63.supportClassInfo(selectedGrade);
- const eligibleGrades=[7,8,9].filter(grade=>selectedGrade==='الكل'||selectedInfo?.gradeNo===grade);
+ const selectedNumber=selectedInfo?.gradeNo||({'7':7,'8':8,'9':9,'السابع':7,'الثامن':8,'التاسع':9}[String(selectedGrade).trim()]);
+ const eligibleGrades=[7,8,9].filter(grade=>selectedGrade==='الكل'||selectedNumber===grade);
  for(const gradeNo of eligibleGrades){
   const info=SR63.supportClassInfo(gradeNo+'/ESE');
-  const gradeRows=source.filter(row=>SR63.supportClassInfo(hj(row,exam)||row.className)?.gradeNo===gradeNo);
+  const gradeRows=source.filter(row=>SR63.specialEducationGradeNo(row,exam)===gradeNo);
+  const title=SR63.specialEducationGradeTitle(gradeNo,gradeRows,exam);
   const subjects=new Map();
   for(const row of gradeRows){
    const key=SR63.subjectAliasKey(row.subject);
-   if(key&&(allSubjects||key===subjectFilter)&&!subjects.has(key))subjects.set(key,String(row.subject).trim());
+   if(key&&(allSubjects||key===subjectFilter)&&!subjects.has(key))
+     subjects.set(key,String(row.subject).trim());
   }
   for(const [subjectKey,subject] of [...subjects].sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],settings))){
    const matches=gradeRows.filter(row=>SR63.subjectAliasKey(row.subject)===subjectKey);
@@ -65,17 +92,27 @@ SR63.supportLevelReportPages=function(rows,exam,selectedGrade='الكل',selecte
     const current=students.get(key),evaluated=r=>SR63.validResult(r,exam,settings)&&r.statuses?.[exam]==='present';
     if(!current||!evaluated(current)&&evaluated(row))students.set(key,row);
    }
-   const allRows=[...students.values()].map(row=>({...row,subject,examClasses:{...row.examClasses,[exam]:info.className}}))
-    .sort((a,b)=>String(a.studentName).localeCompare(String(b.studentName),'ar')||String(a.studentId||'').localeCompare(String(b.studentId||'')));
+   const onlyEse=matches.every(row=>SR63.isSupportRow(row,exam));
+   const allRows=[...students.values()].map(row=>({
+     ...row,subject,
+     ...(onlyEse?{examClasses:{...row.examClasses,[exam]:info.className}}:{})
+    })).sort((a,b)=>
+     String(hj(a,exam)||a.className).localeCompare(String(hj(b,exam)||b.className),'ar',{numeric:true})||
+     String(a.studentName).localeCompare(String(b.studentName),'ar')||
+     String(a.studentId||'').localeCompare(String(b.studentId||'')));
    if(!allRows.length)continue;
-   const pageSize=26,parts=Math.ceil(allRows.length/pageSize);
+   const pageSize=22,parts=Math.ceil(allRows.length/pageSize);
    for(let part=0;part<parts;part++)pages.push({
-    key:'support-level-'+gradeNo+'-'+subjectKey+'-'+part,
-    title:info.label+' — '+SR63.reportSubjectLabel(subject,settings),
-    entity:info.className,scope:'className',className:info.className,
-    teacher:'',subject,supportLevel:true,supportInfo:info,
-    rows:allRows.slice(part*pageSize,(part+1)*pageSize),allRows,rowOffset:part*pageSize,
-    part:part+1,totalParts:parts
+    key:'special-education-'+gradeNo+'-'+subjectKey+'-'+part,
+    title:title+' — '+SR63.reportSubjectLabel(subject,settings),
+    entity:onlyEse?info.className:subject,
+    scope:onlyEse?'className':'subject',
+    className:onlyEse?info.className:'',
+    teacher:'',department:'',subject,
+    supportLevel:true,supportInfo:{...info,label:title},
+    educationDepartment:'التربية الخاصة',gradeNo,
+    rows:allRows.slice(part*pageSize,(part+1)*pageSize),allRows,
+    rowOffset:part*pageSize,part:part+1,totalParts:parts
    });
   }
  }
