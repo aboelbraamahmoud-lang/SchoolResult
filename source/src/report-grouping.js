@@ -55,6 +55,22 @@ SR63.specialEducationGradeTitle=function(grade,rows=[],exam){
        onlyEse=rows.length>0&&rows.every(row=>SR63.isSupportRow(row,exam));
  return onlyEse?info.label:'التربية الخاصة — الصف '+info.grade;
 };
+/* Support-specific metrics count ESE and structure-defined special education
+   together on this already-scoped page. General school metrics stay unchanged. */
+SR63.specialEducationMetric=function(rows,exam,settings){
+ const list=Array.isArray(rows)?rows:[],students=new Set();let evaluated=0,passed=0,failed=0,earned=0,possible=0;
+ for(const row of list){
+  const identity=SR63.studentEntityKey(row,exam)||String(row.studentId||'').trim()||ij(row.studentName||'');
+  if(identity)students.add(identity);
+  const cert=SR63.certificateScore(row,exam,settings);
+  if(!cert)continue;
+  evaluated++;earned+=cert.certificateScore;possible+=cert.certificateTotal;
+  if(cert.passed)passed++;else failed++;
+ }
+ return {students:students.size,evaluated,passed,failed,
+  success:evaluated?100*passed/evaluated:null,
+  achievement:possible?100*earned/possible:null};
+};
 SR63.supportLevelGradeChoices=function(rows,exam){
  const source=SR63.specialEducationRows(rows,exam),
        grades=new Set(source.map(row=>SR63.specialEducationGradeNo(row,exam)).filter(Boolean));
