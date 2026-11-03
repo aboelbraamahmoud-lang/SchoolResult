@@ -24,16 +24,16 @@ async function main(){
    await host.locator('#sr-range-min').fill(String(min));await host.locator('#sr-range-max').fill(String(max));
    assert.equal(await host.locator('.school-report-page').count(),0,'bound change clears preview');
    await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.school-report-page').first().waitFor();
-   const ids=await host.locator('.target-student-name small').allTextContents();assert.deepEqual(ids,indices.map(i=>'RANGE'+i));
+   const names=await host.locator('.target-student-name b').allTextContents();assert.deepEqual(names,indices.map(i=>'طالب النطاق '+i));assert.equal(await host.locator('.target-student-name small').count(),0,'personal IDs must not be rendered');
    assert.deepEqual(await host.locator('.target-percent b').allTextContents(),indices.map(i=>ws.rows[i].scores.exam1+'%'));
    assert.match(await host.locator('.target-range-hero').innerText(),new RegExp('من '+min+'% إلى أقل من '+max+'%'));
   }
   await host.locator('#sr-range-min').fill('80');assert.equal(await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).isDisabled(),true);
   assert.equal(await host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true}).isDisabled(),true);
   await host.locator('#sr-range-min').fill('90');await host.locator('#sr-range-max').fill('100');await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
-  await host.locator('.target-student-name small').first().waitFor();
+  await host.locator('.target-student-name b').first().waitFor();
   const popupPromise=page.waitForEvent('popup');await host.getByRole('button',{name:'طباعة التقرير الحالي',exact:true}).click();const popup=await popupPromise;await popup.waitForFunction(()=>window.__rangePrinted===true);
-  assert.deepEqual(await popup.locator('.target-student-name small').allTextContents(),['RANGE10','RANGE11']);await popup.pdf({path:path.join(out,'range-'+role+'.pdf'),preferCSSPageSize:true,printBackground:true});await popup.close();
+  assert.deepEqual(await popup.locator('.target-student-name b').allTextContents(),['طالب النطاق 10','طالب النطاق 11']);assert.equal(await popup.locator('.target-student-name small').count(),0,'IDs must never appear in PDF');await popup.pdf({path:path.join(out,'range-'+role+'.pdf'),preferCSSPageSize:true,printBackground:true});await popup.close();
   await page.screenshot({path:path.join(out,'range-'+role+'.png'),fullPage:true});
   assert.equal(await page.evaluate(()=>subjectCalls.length),0,'range report never loads school-wide aggregates');
   await host.locator('button').filter({has:page.getByText(role==='admin'?ws.settings.reportDesign.reportNames.subjects:'تقرير مقارنة المواد',{exact:true})}).first().click();

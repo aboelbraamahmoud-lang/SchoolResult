@@ -29,13 +29,13 @@ SR63.strugglingPrintModel=function(workspace,minimum,maximum){
  return {error:'',students,pages,subjectCount:students.reduce((n,s)=>n+s.subjects.length,0),min,max,exam};
 };
 SR63.StrugglingReportPage=function({workspace,model,page,pageIndex,generatedAt,pageRef}){
- const h=v.createElement,exam=model.exam,title='تقرير الطلاب المتعثرين ومواد الرسوب',assessment=tj(workspace.settings,exam).name;
+ const h=v.createElement,exam=model.exam,title='تقرير الطلاب المتعثرين ومواد الرسوب',assessment=tj(workspace.settings,exam).name,items=page.groups.flatMap(student=>student.subjects),rawMax=SR63.staffGradeMax(items,'total'),certificateMax=SR63.staffGradeMax(items,'certificateTotal');
  const rows=page.groups.flatMap(student=>student.subjects.map((item,index)=>h('tr',{key:student.key+'-'+index},
   index===0?h('td',{rowSpan:student.subjects.length,className:'sr678-student'},h('b',{},student.studentName),student.continued?h('small',{},'تابع'):null):null,
   index===0?h('td',{rowSpan:student.subjects.length},SR63.displayClass(student.className)):null,
   h('td',{},SR63.reportSubjectLabel(item.subject,workspace.settings)),h('td',{},item.teacher),
-  h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.certificatePercent,workspace.settings)},item.score+' / '+item.total)),
-   h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.certificatePercent,workspace.settings)},item.certificateScore+' / '+item.certificateTotal)),
+  h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.certificatePercent,workspace.settings)},item.score)),
+   h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.certificatePercent,workspace.settings)},item.certificateScore)),
   h('td',{className:'sr678-number'},h('span',{className:'sr681-band-value',style:SR63.reportBandStyle(item.percent,workspace.settings)},SR63.rangePercentLabel(item.percent,{min:0,max:workspace.settings.pass,error:''}))),
   h('td',{},item.action))));
  return h('section',{ref:pageRef,className:'school-report-page sr-fitted-report grade-subjects-landscape report-landscape sr678-struggling-report','data-orientation':'landscape',style:j9(workspace)},
@@ -45,7 +45,7 @@ SR63.StrugglingReportPage=function({workspace,model,page,pageIndex,generatedAt,p
    h('p',{className:'report-method-note'},'اختيار الطلاب: المادة راسبة بعد تحويل درجتها للشهادة وجبرها لأعلى إلى أقرب نصف درجة، مع بقاء النسبة الأصلية معروضة. نطاق النسب الأصلية '+model.min+'% إلى '+model.max+'%؛ ويُعرض لكل طالب جميع مواد رسوبه. حد النجاح: '+workspace.settings.pass+'%.'),
    h('table',{className:'report-table sr678-struggling-table'},
     h('colgroup',{},...[20,7,13,17,9,9,7,18].map((width,index)=>h('col',{key:index,style:{width:width+'%'}}))),
-    h('thead',{},h('tr',{},...['اسم الطالب','الصف','المادة الراسب فيها','المعلم','درجة الاختبار','الدرجة في الشهادة','النسبة الأصلية','الإجراء المطلوب'].map(label=>h('th',{key:label},label)))),h('tbody',{},...rows)),
+    h('thead',{},h('tr',{},...['اسم الطالب','الصف','المادة الراسب فيها','المعلم','درجة الاختبار','الدرجة في الشهادة','النسبة الأصلية','الإجراء المطلوب'].map((label,i)=>h('th',{key:label},label,i===4?h('small',{className:'sr685-maximum'},'الدرجة العظمى '+rawMax):i===5?h('small',{className:'sr685-maximum'},'الدرجة العظمى '+certificateMax):null)))),h('tbody',{},...rows)),
    h(N9,{workspace:{...workspace,reportGeneratedAt:generatedAt},subject:'',teacher:''}),
    h('span',{className:'report-page-number'},'صفحة '+(pageIndex+1)+' من '+model.pages.length)));
 };

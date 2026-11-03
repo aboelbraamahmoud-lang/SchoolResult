@@ -84,6 +84,7 @@ SR63.supportLevelReportPages=function(rows,exam,selectedGrade='الكل',selecte
 SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mode,exam,threshold,settings){
   const sourceRows=Array.isArray(rows)?rows:[],range=mode==='struggling'?SR63.studentPercentRange(threshold):null;
   if(range?.error)throw Error(range.error);
+   if(mode==='struggling'&&['gradeGroup','teacherGroup'].includes(dimension))return SR63.groupedRangePages(sourceRows,exam,settings,range,dimension,selectedEntity,selectedSubject);
   if(mode==='strugglingStats')return SR63.strugglingStatsPages(sourceRows,exam,settings);
   if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل');
    if(mode==='levels'&&dimension==='support')return SR63.supportLevelReportPages(sourceRows,exam,selectedEntity,selectedSubject,settings);
