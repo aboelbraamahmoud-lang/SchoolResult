@@ -1748,3 +1748,39 @@
 .sr684-ese-metrics strong{font-size:15px;color:#075f69;font-weight:900;font-variant-numeric:tabular-nums}
 @media(max-width:720px){.sr684-ese-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media print{.sr684-ese-report-heading,.sr684-ese-metrics span{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+
+/* 6.10.85 — accessible readable student names and single-value marks on A4. */
+.sr685-maximum{display:block!important;margin-top:4px;font-size:9.5pt!important;line-height:1.3;font-weight:800!important;color:#35586a;white-space:normal}
+.school-report-page .target-student-name b,
+.school-report-page .comparison-student,
+.school-report-page .level-student-name,
+.school-report-page .sr678-student b,
+.school-report-page .sr685-name,
+.school-report-page .student-result-name b,
+.sr613-print-report tbody td:nth-child(2),
+.sr613-table tbody td:first-child b,
+.srstaff-scroll tbody tr td:first-child,
+.sr640-table tbody th,
+.sr685-staff-name{font-size:11.5pt!important;font-weight:900!important;line-height:1.4!important;color:#15384b}
+.sr685-group-heading{margin:8px 0 12px;padding:11px;border:1px solid #bdd2d9;background:#f2f8f9;border-radius:9px;break-inside:avoid}
+.sr685-group-heading h2{font-size:16pt;font-weight:900;color:#164353;margin:0 0 5px}
+.sr685-group-heading p{font-size:9.5pt;color:#41616c;margin:0 0 8px}
+.sr685-metrics{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.sr685-metrics span{display:grid;gap:3px;padding:6px 5px;min-width:0;text-align:center;border:1px solid #cfdfe3;background:white;border-radius:6px}
+.sr685-metrics b{font-size:8pt;color:#476472;white-space:normal}
+.sr685-metrics strong{font-size:11pt;color:#156877;font-weight:900}
+.sr685-group-table{width:100%;table-layout:fixed}
+.sr685-group-table th{font-size:9.6pt!important;font-weight:850!important;line-height:1.3;padding:7px 5px!important}
+.sr685-group-table td{font-size:10pt!important;line-height:1.45;padding:7px 5px!important;overflow-wrap:anywhere}
+.sr685-group-table .sr685-name{font-size:11.5pt!important;font-weight:900!important;color:#183c51}
+.sr685-group-table .sr685-num{font-size:11pt!important;text-align:center;font-weight:800;font-variant-numeric:tabular-nums}
+.sr685-method{margin:8px 0 0;font-size:8.8pt;line-height:1.6;color:#4f6873}
+.target-student-table .target-student-name,.level-analysis-table .level-student-name,.comparison-table .comparison-student{min-width:0;overflow-wrap:anywhere}
+.student-result-table th .sr685-maximum,.level-analysis-table th .sr685-maximum{font-size:9.5pt!important}
+@media print{
+ .sr685-group-heading,.sr685-metrics span,.sr685-group-table th,.sr685-group-table td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .sr685-group-heading{break-inside:avoid}
+ .sr685-group-table thead{display:table-header-group}
+ .sr685-group-table tr{break-inside:avoid;page-break-inside:avoid}
+}
