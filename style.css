@@ -1798,3 +1798,56 @@
 .school-report-page .sr686-special-table td{font-size:10pt!important;line-height:1.4!important;padding:6px 5px!important;overflow-wrap:anywhere}
 .school-report-page .sr686-special-table .sr686-student-name strong{font-size:11.5pt!important;font-weight:900!important;color:#133b53;line-height:1.4!important}
 @media print{.sr686-special-table thead{display:table-header-group}.sr686-special-table tr{break-inside:avoid;page-break-inside:avoid}.sr686-special-roster{break-before:auto}}
+
+
+/* 6.10.88 — high-contrast A4 maxima headings and certificate-color parity.
+   Dark teal badge remains readable over dark or light report header themes. */
+.school-report-page .level-analysis-table thead th .sr685-maximum{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  margin:2px auto 0!important;
+  padding:3px 2px!important;
+  border-radius:3px!important;
+  background:#123f50!important;
+  color:#fff!important;
+  font-size:8.5pt!important;
+  font-weight:900!important;
+  line-height:1.4!important;
+  letter-spacing:0!important;
+  text-shadow:none!important;
+  white-space:normal!important;
+  overflow-wrap:normal!important;
+  -webkit-text-fill-color:#fff!important;
+}
+.school-report-page .level-analysis-table thead th{
+  vertical-align:middle!important;
+}
+.school-report-page .level-analysis-table .level-certificate-visual{
+  padding:.35mm!important;
+  min-width:0!important;
+  vertical-align:middle!important;
+}
+.school-report-page .level-analysis-table .level-certificate-visual .report-meter{
+  width:100%!important;
+  min-width:0!important;
+  min-height:4.4mm!important;
+  box-sizing:border-box!important;
+  background:#f1f5f6;
+}
+.school-report-page .level-analysis-table .level-certificate-visual .report-meter>b{
+  color:#102f3a!important;
+  font-weight:1000!important;
+  font-size:inherit!important;
+}
+@media print{
+  .school-report-page .level-analysis-table thead th .sr685-maximum,
+  .school-report-page .level-analysis-table .level-certificate-visual .report-meter,
+  .school-report-page .level-analysis-table .level-certificate-visual .report-meter>i{
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+  .school-report-page .level-analysis-table thead{
+    display:table-header-group!important;
+  }
+}
