@@ -180,7 +180,7 @@ replace('placeholder:`بحث في وظائف البرنامج`,className:`h-10 b
 
 // Subject selector values stay canonical while all user-facing choices show configured labels.
 replace('...Cj(e.rows,`subject`).map(e=>({value:e,label:e}))',
-        '...Cj(e.rows,`subject`).map(name=>({value:name,label:SR63.reportSubjectLabel(name,e.settings)}))',3);
+        '...Cj(e.rows,`subject`).map(name=>({value:name,label:SR63.reportSubjectLabel(name,e.settings)}))',2);
 // Grouped custom reports also honor subject display labels (grouping stays by canonical subject).
 replace('group:e.name,students:e.metric.students',
         'group:n.groupBy===`subject`?SR63.reportSubjectLabel(e.name,SR63.currentWorkspace?.settings):e.name,students:e.metric.students');
