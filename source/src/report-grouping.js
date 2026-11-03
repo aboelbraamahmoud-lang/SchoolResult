@@ -31,9 +31,12 @@ SR63.reportClassOrder=function(rows,exam){
    User-created academic department «التربية الخاصة» is also supported.
    Work only on the workspace rows already authorized for this account. */
 SR63.specialEducationRows=function(rows,exam){
- const aliases=new Set(['التربيه الخاصه','الدعم الاضافي']);
+ const canon=value=>String(value??'').normalize('NFKC')
+  .replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا')
+  .replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/\s+/g,'').toLowerCase();
+ const aliases=new Set(['التربيهالخاصه','الدعمالاضافي']);
  return (Array.isArray(rows)?rows:[]).filter(row=>
-  SR63.isSupportRow(row,exam)||aliases.has(ij(row?.department||'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه')));
+  SR63.isSupportRow(row,exam)||aliases.has(canon(row?.department)));
 };
 SR63.specialEducationGradeNo=function(row,exam){
  const klass=String(hj(row,exam)||row?.className||'').trim(),
