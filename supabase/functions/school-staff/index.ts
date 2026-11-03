@@ -289,11 +289,12 @@ Deno.serve(async(req:Request)=>{
   const newRole=String(body.role||'coordinator'),departments=Array.isArray(body.departments)?[...new Set(body.departments.map((x:any)=>String(x).trim()))].filter(Boolean):[];
   if(!safeUsername(username)||displayName.length<2||password.length<10||password.length>128||!editableRoles.includes(newRole))return reply({error:'INVALID_ACCOUNT_DATA'},400,origin);
   const {data:work}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
-  const allowed=new Set((work?.workspace?.teacherAssignments||[]).map((r:any)=>String(r.department||r.subject||'').trim()).filter(Boolean));
-  if(needsDepartment(newRole)&&!departments.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
-  if(needsDepartment(newRole)&&departments.some(x=>!allowed.has(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
+  const allowed=availableDepartments(work?.workspace||{});
+  const requestedDepartments=normalizeCoordinatorDepartments(departments,allowed);
+  if(needsDepartment(newRole)&&!requestedDepartments.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
+  if(needsDepartment(newRole)&&requestedDepartments.some(x=>!allowed.includes(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
   // Leadership and admin roles have school-wide scope; discard any stale client department values.
-  const scopedDepartments=needsDepartment(newRole)?departments:[];
+  const scopedDepartments=needsDepartment(newRole)?requestedDepartments:[];
   const email=await emailForUsername(username);
   const {data:created,error:creationError}=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{schoolresult_staff:true}});
   if(creationError||!created?.user)return reply({error:/already|registered|exists/i.test(creationError?.message||'')?'USERNAME_EXISTS':'USER_CREATION_FAILED'},409,origin);
@@ -317,9 +318,10 @@ Deno.serve(async(req:Request)=>{
    const selected=[...new Set(rawDepartments.map((x:any)=>String(x).trim()).filter(Boolean))];
    if(!selected.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
    const {data:work}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
-   const allowed=new Set((work?.workspace?.teacherAssignments||[]).map((r:any)=>String(r.department||r.subject||'').trim()).filter(Boolean));
-   if(selected.some(x=>!allowed.has(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
-   patch.departments=selected;
+   const allowed=availableDepartments(work?.workspace||{});
+   const requested=normalizeCoordinatorDepartments(selected,allowed);
+    if(requested.some(x=>!allowed.includes(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
+   patch.departments=requested;
   }else{
    // Owner-approved leadership accounts supervise every department and require no department list.
    patch.departments=[];
