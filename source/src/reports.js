@@ -96,16 +96,10 @@ SR63.metricDisclosure=function(rows){
   return SR63.reportSubjectCount(rows)>1?'الأعداد الخاصة بالحضور والنجاح والرسوب تمثل نتائج المواد، بينما عدد الطلاب يحسب كل طالب مرة واحدة فقط.':'الأعداد تمثل طلاب المادة المحددة في التقييم المختار.';
 };
 
-SR63.supportReportPages=function(rows,exam,selected='الكل'){
-  const support=SR63.supportRows(rows,exam).filter(row=>row.statuses?.[exam]&&row.statuses[exam]!=='unentered'),selectedText=String(selected??'الكل'),pages=[];
-  for(const gradeNo of [7,8,9]){
-    const info=SR63.supportClassInfo(`${gradeNo}/ESE`);if(selectedText!=='الكل'&&ij(selectedText)!==ij(info.grade)&&ij(selectedText)!==ij(info.label)&&ij(selectedText)!==ij(info.className))continue;
-    const subset=support.filter(row=>SR63.supportClassInfo(hj(row,exam)||row.className)?.gradeNo===gradeNo);if(!subset.length)continue;
-    pages.push({key:`support-${gradeNo}-${exam}`,title:info.label,entity:info.label,scope:'department',department:SR63.SUPPORT_DEPARTMENT,grade:info.grade,className:info.className,teacher:'',subject:'كل المواد',rows:subset,allRows:subset,rowOffset:0,part:1,totalParts:1,supportInfo:info});
-  }
-  return pages;
+/* 6.10.86 — the support report itself prints names, not count-only grade pages. */
+SR63.supportReportPages=function(rows,exam,selected='الكل',settings=SR63.currentWorkspace?.settings){
+ return SR63.supportLevelReportPages(rows,exam,selected,'الكل',settings);
 };
-
 SR63.gradeSubjectPages=function(rows,exam,selected='الكل',settings=SR63.currentWorkspace?.settings){
   const grades=[...new Set(rows.map(row=>gj(row,exam)).filter(Boolean))].sort((a,b)=>SR63.gradeOrder(a)-SR63.gradeOrder(b)||String(a).localeCompare(String(b),'ar',{numeric:true}));
   const target=selected==='الكل'?grades:grades.filter(value=>ij(value)===ij(selected));
@@ -259,15 +253,47 @@ function SRDepartmentStatsReport({page:e,exam:t,workspace:n}){
   ]});
 }
 function SRSupportDepartmentReport({page:e,exam:t,workspace:n}){
-  const rows=e.allRows||e.rows||[],info=e.supportInfo||SR63.supportClassInfo(e.className),metric=bj(rows,t,n.settings),subjects=Sj(rows,'subject',t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar',{numeric:true})),cell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
+  const rows=e.allRows||e.rows||[],info=e.supportInfo||SR63.supportClassInfo(e.className),metric=e.supportLevel?SR63.specialEducationMetric(rows,t,n.settings):bj(rows,t,n.settings),rawMax=SR63.reportScoreHeaderMax(rows,t,n.settings),certificateMax=SR63.reportScoreHeaderMax(rows,t,n.settings,'certificate'),subjects=e.supportLevel?[{name:e.subject,metric}]:Sj(rows,'subject',t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar',{numeric:true})),cell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
   return(0,q.jsxs)(q.Fragment,{children:[
-    (0,q.jsxs)(`div`,{className:`support-report-banner`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(`span`,{children:`قسم الدعم الإضافي`}),(0,q.jsx)(`h2`,{children:info?.label||e.title||`طلاب الدمج`}),(0,q.jsxs)(`p`,{children:[`الرمز: `,info?.className||e.className,` · `,tj(n.settings,t).name]})]}),(0,q.jsx)(`strong`,{children:`نتائج مستقلة`})]}),
-    (0,q.jsx)(`p`,{className:`support-report-note`,children:`نتائج طلاب الدمج مستقلة بالكامل، ولا تدخل في نسب النجاح أو التحصيل العامة للمدرسة أو الصفوف أو المواد.`}),
+    (0,q.jsxs)(`div`,{className:`support-report-banner`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(`span`,{children:`قسم التربية الخاصة / طلاب الدمج`}),(0,q.jsx)(`h2`,{children:info?.label||e.title||`طلاب الدمج`}),(0,q.jsxs)(`p`,{children:[`الرمز: `,info?.className||e.className,` · `,tj(n.settings,t).name]})]}),(0,q.jsx)(`strong`,{children:`نتائج مستقلة`})]}),
+    (0,q.jsx)(`p`,{className:`support-report-note`,children:`كشف مفصل بأسماء طلاب التربية الخاصة في كل صف ومادة، دون اشتراط ربط الطالب بمعلم. لا يُحتسب الغائب أو غير المرصود راسبًا، وتُستعمل درجة الشهادة بعد الجبر لتحديد النجاح والتحصيل عند تفعيل التحويل.`}),
     (0,q.jsx)(`div`,{className:`report-kpis support-report-kpis`,children:[[`عدد الطلاب`,metric.students,`students`],[`النتائج المرصودة`,metric.evaluated,`present`],[`النتائج الناجحة`,metric.passed,`passed`],[`النتائج الراسبة`,metric.failed,`failed`],[`نسبة النجاح`,cell(metric.success,'success'),`success`],[`نسبة التحصيل`,cell(metric.achievement,'achievement'),`achievement`]].map(([label,value,tone])=>(0,q.jsxs)(`div`,{className:`kpi-${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},label))}),
     (0,q.jsxs)(`table`,{className:`report-table support-report-table`,children:[
       (0,q.jsx)(`thead`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`المادة`}),(0,q.jsx)(`th`,{children:`عدد الطلاب`}),(0,q.jsx)(`th`,{children:`حاضر`}),(0,q.jsx)(`th`,{children:`ناجح`}),(0,q.jsx)(`th`,{children:`راسب`}),(0,q.jsx)(`th`,{children:`نسبة النجاح`}),(0,q.jsx)(`th`,{children:`نسبة التحصيل`})]})}),
       (0,q.jsx)(`tbody`,{children:subjects.map(group=>(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`td`,{children:SR63.reportSubjectLabel(group.name,n.settings)}),(0,q.jsx)(`td`,{children:group.metric.students}),(0,q.jsx)(`td`,{children:group.metric.evaluated}),(0,q.jsx)(`td`,{children:group.metric.passed}),(0,q.jsx)(`td`,{children:group.metric.failed}),(0,q.jsx)(`td`,{children:cell(group.metric.success,'success')}),(0,q.jsx)(`td`,{children:cell(group.metric.achievement,'achievement')})]},group.name))}),
       (0,q.jsx)(`tfoot`,{children:(0,q.jsxs)(`tr`,{children:[(0,q.jsx)(`th`,{children:`الإجمالي / المتوسط`}),(0,q.jsx)(`th`,{children:metric.students}),(0,q.jsx)(`th`,{children:metric.evaluated}),(0,q.jsx)(`th`,{children:metric.passed}),(0,q.jsx)(`th`,{children:metric.failed}),(0,q.jsx)(`th`,{children:cell(metric.success,'success')}),(0,q.jsx)(`th`,{children:cell(metric.achievement,'achievement')})]})})
+    ]}),
+    (0,q.jsxs)('section',{className:'sr686-special-roster',children:[
+      (0,q.jsxs)('header',{children:[
+        (0,q.jsx)('h3',{children:'كشف الطلاب بالأسماء — '+SR63.reportSubjectLabel(e.subject,n.settings)}),
+        (0,q.jsx)('small',{children:(info?.label||'التربية الخاصة')+' · '+rows.length+' طالب في المادة'+(e.totalParts>1?' · الجزء '+e.part+' من '+e.totalParts:'')})
+      ]}),
+      (0,q.jsxs)('table',{className:'report-table sr686-special-table',children:[
+        (0,q.jsx)('colgroup',{children:[4,25,13,15,11,11,10,11].map((width,index)=>(0,q.jsx)('col',{style:{width:width+'%'}},index))}),
+        (0,q.jsx)('thead',{children:(0,q.jsxs)('tr',{children:[
+          (0,q.jsx)('th',{children:'م'}),
+          (0,q.jsx)('th',{children:'اسم الطالب'}),
+          (0,q.jsx)('th',{children:'الشعبة'}),
+          (0,q.jsx)('th',{children:'المعلم'}),
+          (0,q.jsxs)('th',{children:['درجة الاختبار',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+rawMax})]}),
+          (0,q.jsxs)('th',{children:['الدرجة في الشهادة',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+certificateMax})]}),
+          (0,q.jsx)('th',{children:'النسبة الأصلية'}),
+          (0,q.jsx)('th',{children:'الحالة'})
+        ]})}),
+        (0,q.jsx)('tbody',{children:e.rows.map((row,index)=>{
+          const result=SR63.certificateScore(row,t,n.settings),original=vj(row,t,n.settings);
+          return (0,q.jsxs)('tr',{children:[
+            (0,q.jsx)('td',{children:e.rowOffset+index+1}),
+            (0,q.jsx)('td',{className:'sr686-student-name',children:(0,q.jsx)('strong',{children:row.studentName})}),
+            (0,q.jsx)('td',{children:SR63.displayClass(hj(row,t)||row.className)}),
+            (0,q.jsx)('td',{children:mj(row,t)||row.teacher||'غير مربوط'}),
+            (0,q.jsx)('td',{children:result?.rawScore??'—'}),
+            (0,q.jsx)('td',{children:result?.certificateScore??'—'}),
+            (0,q.jsx)('td',{children:original===null?'—':wj(original,1)}),
+            (0,q.jsx)('td',{children:result?(result.passed?'ناجح':'راسب'):Dj(row.statuses?.[t]||'unentered')})
+          ]},row.id||index);
+        })})
+      ]})
     ]})
   ]});
 }
@@ -394,7 +420,7 @@ function SRComparisonReport({page:e,from:t,to:n,workspace:r}){
   ]});
 }
 function SRLevelAnalysisReport({page:e,exam:t,workspace:n}){
-  const all=e.allRows,metric=bj(all,t,n.settings),isSupport=e.supportLevel===true,groupDefs=[['above','فوق المتوسط'],['average','في المتوسط'],['below','دون المتوسط']],visible=new Set(e.rows.map(row=>row.id)),sections=[],overview=[];
+  const all=e.allRows,isSupport=e.supportLevel===true,metric=isSupport?SR63.specialEducationMetric(all,t,n.settings):bj(all,t,n.settings),groupDefs=[['above','فوق المتوسط'],['average','في المتوسط'],['below','دون المتوسط']],visible=new Set(e.rows.map(row=>row.id)),sections=[],overview=[];
    const supportMetric=(label,value)=>(0,q.jsxs)('span',{children:[(0,q.jsx)('b',{children:label}),(0,q.jsx)('strong',{children:value})]},label);
   for(const [macro,label] of groupDefs){
     const full=all.filter(row=>{const p=SR63.certificatePercentage(row,t,n.settings),band=p===null?null:yj(p,n.settings.bands);return band?.macro===macro;}),rows=full.filter(row=>visible.has(row.id)).sort((a,b)=>(SR63.certificatePercentage(b,t,n.settings)??-1)-(SR63.certificatePercentage(a,t,n.settings)??-1)),avg=full.length?full.reduce((sum,row)=>sum+(SR63.certificatePercentage(row,t,n.settings)??0),0)/full.length:null,share=metric.evaluated?full.length/metric.evaluated*100:0;
