@@ -1787,3 +1787,14 @@
  .sr685-group-table thead{display:table-header-group}
  .sr685-group-table tr{break-inside:avoid;page-break-inside:avoid}
 }
+
+/* 6.10.86 — actual named special education rosters on print-safe A4 pages. */
+.sr686-special-roster{margin-top:10px;border-top:2px solid #b5d0dc;padding-top:9px;break-inside:auto}
+.sr686-special-roster header{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:0 0 6px}
+.sr686-special-roster h3{font-size:13pt;color:#17485e;font-weight:900;margin:0}
+.sr686-special-roster header small{color:#3b6073;font-size:9pt;font-weight:700}
+.school-report-page .sr686-special-table{width:100%;table-layout:fixed}
+.school-report-page .sr686-special-table th{font-size:9.3pt!important;line-height:1.35!important;font-weight:900!important;padding:6px 5px!important}
+.school-report-page .sr686-special-table td{font-size:10pt!important;line-height:1.4!important;padding:6px 5px!important;overflow-wrap:anywhere}
+.school-report-page .sr686-special-table .sr686-student-name strong{font-size:11.5pt!important;font-weight:900!important;color:#133b53;line-height:1.4!important}
+@media print{.sr686-special-table thead{display:table-header-group}.sr686-special-table tr{break-inside:avoid;page-break-inside:avoid}.sr686-special-roster{break-before:auto}}
