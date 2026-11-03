@@ -253,7 +253,7 @@ function SRDepartmentStatsReport({page:e,exam:t,workspace:n}){
   ]});
 }
 function SRSupportDepartmentReport({page:e,exam:t,workspace:n}){
-  const rows=e.allRows||e.rows||[],info=e.supportInfo||SR63.supportClassInfo(e.className),metric=bj(rows,t,n.settings),rawMax=SR63.reportScoreHeaderMax(rows,t,n.settings),certificateMax=SR63.reportScoreHeaderMax(rows,t,n.settings,'certificate'),subjects=Sj(rows,'subject',t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar',{numeric:true})),cell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
+  const rows=e.allRows||e.rows||[],info=e.supportInfo||SR63.supportClassInfo(e.className),metric=e.supportLevel?SR63.specialEducationMetric(rows,t,n.settings):bj(rows,t,n.settings),rawMax=SR63.reportScoreHeaderMax(rows,t,n.settings),certificateMax=SR63.reportScoreHeaderMax(rows,t,n.settings,'certificate'),subjects=e.supportLevel?[{name:e.subject,metric}]:Sj(rows,'subject',t,n.settings,XA.indexOf(t)>0?XA[XA.indexOf(t)-1]:null).sort((a,b)=>String(a.name).localeCompare(String(b.name),'ar',{numeric:true})),cell=(value,key)=>value===null||value===undefined?'—':SR63.renderReportValue(value,key);
   return(0,q.jsxs)(q.Fragment,{children:[
     (0,q.jsxs)(`div`,{className:`support-report-banner`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(`span`,{children:`قسم التربية الخاصة / طلاب الدمج`}),(0,q.jsx)(`h2`,{children:info?.label||e.title||`طلاب الدمج`}),(0,q.jsxs)(`p`,{children:[`الرمز: `,info?.className||e.className,` · `,tj(n.settings,t).name]})]}),(0,q.jsx)(`strong`,{children:`نتائج مستقلة`})]}),
     (0,q.jsx)(`p`,{className:`support-report-note`,children:`كشف مفصل بأسماء طلاب التربية الخاصة في كل صف ومادة، دون اشتراط ربط الطالب بمعلم. لا يُحتسب الغائب أو غير المرصود راسبًا، وتُستعمل درجة الشهادة بعد الجبر لتحديد النجاح والتحصيل عند تفعيل التحويل.`}),
@@ -420,7 +420,7 @@ function SRComparisonReport({page:e,from:t,to:n,workspace:r}){
   ]});
 }
 function SRLevelAnalysisReport({page:e,exam:t,workspace:n}){
-  const all=e.allRows,metric=bj(all,t,n.settings),isSupport=e.supportLevel===true,groupDefs=[['above','فوق المتوسط'],['average','في المتوسط'],['below','دون المتوسط']],visible=new Set(e.rows.map(row=>row.id)),sections=[],overview=[];
+  const all=e.allRows,isSupport=e.supportLevel===true,metric=isSupport?SR63.specialEducationMetric(all,t,n.settings):bj(all,t,n.settings),groupDefs=[['above','فوق المتوسط'],['average','في المتوسط'],['below','دون المتوسط']],visible=new Set(e.rows.map(row=>row.id)),sections=[],overview=[];
    const supportMetric=(label,value)=>(0,q.jsxs)('span',{children:[(0,q.jsx)('b',{children:label}),(0,q.jsx)('strong',{children:value})]},label);
   for(const [macro,label] of groupDefs){
     const full=all.filter(row=>{const p=SR63.certificatePercentage(row,t,n.settings),band=p===null?null:yj(p,n.settings.bands);return band?.macro===macro;}),rows=full.filter(row=>visible.has(row.id)).sort((a,b)=>(SR63.certificatePercentage(b,t,n.settings)??-1)-(SR63.certificatePercentage(a,t,n.settings)??-1)),avg=full.length?full.reduce((sum,row)=>sum+(SR63.certificatePercentage(row,t,n.settings)??0),0)/full.length:null,share=metric.evaluated?full.length/metric.evaluated*100:0;
