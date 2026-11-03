@@ -117,7 +117,7 @@ SR63.validate = function(raw) {
   must(raw.catalogDetached===undefined||typeof raw.catalogDetached==='boolean','حالة فصل الهيكل الأكاديمي غير صالحة.');
   const settings={...ej,...raw.settings};
   must(Array.isArray(settings.exams)&&settings.exams.length===4,'يجب أن تحتوي النسخة تعريف الاختبارات الأربعة.');
-  const examSet=new Set();for(const exam of settings.exams){must(exam&&XA.includes(exam.key)&&!examSet.has(exam.key),'مفاتيح الاختبارات ناقصة أو مكررة.');examSet.add(exam.key);must(typeof exam.name==='string'&&exam.name.trim()&&Number.isFinite(exam.total)&&exam.total>0,'اسم الاختبار أو درجته الكلية غير صالح.');}
+  const examSet=new Set();for(const exam of settings.exams){must(exam&&XA.includes(exam.key)&&!examSet.has(exam.key),'مفاتيح الاختبارات ناقصة أو مكررة.');examSet.add(exam.key);must(typeof exam.name==='string'&&exam.name.trim()&&Number.isFinite(exam.total)&&exam.total>0,'اسم الاختبار أو درجته الكلية غير صالح.');must(exam.certificateTotal===undefined||exam.certificateTotal===null||(typeof exam.certificateTotal==='number'&&Number.isFinite(exam.certificateTotal)&&exam.certificateTotal>=0.5&&exam.certificateTotal<=1000&&Math.abs(exam.certificateTotal*2-Math.round(exam.certificateTotal*2))<1e-8),'درجة الشهادة يجب أن تكون عددًا صحيحًا أو نصف درجة صالحًا.');}
   must(new Set(settings.exams.map(exam=>ij(exam.name))).size===4,'يجب أن تكون أسماء الاختبارات الأربعة مختلفة.');
   must(Number.isFinite(settings.pass)&&settings.pass>=0&&settings.pass<=100,'حد النجاح غير صالح.');
   must(Number.isFinite(settings.stable)&&settings.stable>=0,'هامش الثبات غير صالح.');
