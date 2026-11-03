@@ -27,11 +27,66 @@ SR63.reportTeacherOrder=function(rows,exam){
 SR63.reportClassOrder=function(rows,exam){
   return [...new Set((rows||[]).map(row=>hj(row,exam)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'ar',{numeric:true}));
 };
+/* 6.10.84 — ESE pupils' level reports are independent of teacher assignments.
+   Keep general-education reports isolated. Page order: seventh, eighth,
+   ninth; within each grade, school-configured subject order and real pupils. */
+SR63.supportLevelGradeChoices=function(rows,exam){
+ const levels=new Set(SR63.supportRows(rows,exam).map(row=>SR63.supportClassInfo(hj(row,exam)||row.className)?.gradeNo).filter(Boolean));
+ return [7,8,9].filter(n=>levels.has(n)).map(n=>n+'/ESE');
+};
+SR63.supportLevelSubjectChoices=function(rows,exam,settings=SR63.currentWorkspace?.settings){
+ const names=new Map();
+ for(const row of SR63.supportRows(rows,exam)){
+  const subject=String(row.subject||'').trim(),key=SR63.subjectAliasKey(subject);
+  if(key&&!names.has(key))names.set(key,subject);
+ }
+ return [...names.values()].sort((a,b)=>SR63.reportSubjectCompare(a,b,settings));
+};
+SR63.supportLevelReportPages=function(rows,exam,selectedGrade='الكل',selectedSubject='الكل',settings=SR63.currentWorkspace?.settings){
+ const source=SR63.supportRows(rows,exam),pages=[],subjectFilter=SR63.subjectAliasKey(selectedSubject);
+ const allSubjects=!selectedSubject||selectedSubject==='الكل'||selectedSubject==='كل المواد';
+ const selectedInfo=SR63.supportClassInfo(selectedGrade);
+ const eligibleGrades=[7,8,9].filter(grade=>selectedGrade==='الكل'||selectedInfo?.gradeNo===grade);
+ for(const gradeNo of eligibleGrades){
+  const info=SR63.supportClassInfo(gradeNo+'/ESE');
+  const gradeRows=source.filter(row=>SR63.supportClassInfo(hj(row,exam)||row.className)?.gradeNo===gradeNo);
+  const subjects=new Map();
+  for(const row of gradeRows){
+   const key=SR63.subjectAliasKey(row.subject);
+   if(key&&(allSubjects||key===subjectFilter)&&!subjects.has(key))subjects.set(key,String(row.subject).trim());
+  }
+  for(const [subjectKey,subject] of [...subjects].sort((a,b)=>SR63.reportSubjectCompare(a[1],b[1],settings))){
+   const matches=gradeRows.filter(row=>SR63.subjectAliasKey(row.subject)===subjectKey);
+   const students=new Map();
+   for(const row of matches){
+    const name=String(row.studentName||'').trim();
+    if(!name)continue;
+    const key=SR63.studentEntityKey(row,exam)||String(row.studentId||'').trim()||ij(name);
+    const current=students.get(key),evaluated=r=>SR63.validResult(r,exam,settings)&&r.statuses?.[exam]==='present';
+    if(!current||!evaluated(current)&&evaluated(row))students.set(key,row);
+   }
+   const allRows=[...students.values()].map(row=>({...row,subject,examClasses:{...row.examClasses,[exam]:info.className}}))
+    .sort((a,b)=>String(a.studentName).localeCompare(String(b.studentName),'ar')||String(a.studentId||'').localeCompare(String(b.studentId||'')));
+   if(!allRows.length)continue;
+   const pageSize=26,parts=Math.ceil(allRows.length/pageSize);
+   for(let part=0;part<parts;part++)pages.push({
+    key:'support-level-'+gradeNo+'-'+subjectKey+'-'+part,
+    title:info.label+' — '+SR63.reportSubjectLabel(subject,settings),
+    entity:info.className,scope:'className',className:info.className,grade:info.grade,
+    teacher:'',subject,department:SR63.SUPPORT_DEPARTMENT,supportLevel:true,supportInfo:info,
+    rows:allRows.slice(part*pageSize,(part+1)*pageSize),allRows,rowOffset:part*pageSize,
+    part:part+1,totalParts:parts
+   });
+  }
+ }
+ return pages;
+};
 SR63.buildReportPages=function(rows,dimension,selectedEntity,selectedSubject,mode,exam,threshold,settings){
   const sourceRows=Array.isArray(rows)?rows:[],range=mode==='struggling'?SR63.studentPercentRange(threshold):null;
   if(range?.error)throw Error(range.error);
   if(mode==='strugglingStats')return SR63.strugglingStatsPages(sourceRows,exam,settings);
   if(mode==='support')return SR63.supportReportPages(sourceRows,exam,selectedEntity||'الكل');
+   if(mode==='levels'&&dimension==='support')return SR63.supportLevelReportPages(sourceRows,exam,selectedEntity,selectedSubject,settings);
   const allRows=SR63.generalRows(sourceRows,exam);
   if(mode==='executive')return [{key:`executive-${exam}`,title:'الملخص التنفيذي',entity:'المدرسة',scope:'school',grade:'',className:'',teacher:'',subject:'كل المواد',rows:allRows,allRows,rowOffset:0,part:1,totalParts:1}];
   if(mode==='subjects')return SR63.gradeSubjectPages(allRows,exam,selectedEntity,settings);
