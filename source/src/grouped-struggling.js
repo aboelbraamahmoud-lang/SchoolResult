@@ -14,6 +14,17 @@ SR63.reportScoreHeaderMax=function(rows,exam,settings,kind='raw'){
  }
  return values.size===1?String([...values][0]):'متعددة';
 };
+SR63.reportItemHeaderMax=function(items,exam,settings,kind='raw'){
+ const vals=new Set();
+ for(const x of items||[]){
+  const v=kind==='certificate'?x.certificate?.certificateTotal:x.total;
+  if(typeof v==='number'&&Number.isFinite(v)&&v>0)vals.add(v);
+ }
+ if(vals.size===1)return String([...vals][0]);
+ if(vals.size>1)return 'متعددة';
+ const rule=SR63.certificateExamRule(settings,exam);
+ return String(kind==='certificate'?rule.certificateTotal:rule.rawTotal);
+};
 SR63.reportGradeNumber=function(row,exam){
  const klass=String(hj(row,exam)||row.className||''),m=/^\s*([789])(?:\s*\/|\s*$)/.exec(klass);
  return m?Number(m[1]):SR63.gradeOrder(gj(row,exam)||row.grade);
