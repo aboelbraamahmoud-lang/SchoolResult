@@ -77,7 +77,7 @@ assert.ok(!sourceFile('reports.js').includes('children:row.studentId'),'personal
 assert.ok(!sourceFile('reports.js').includes('esc(row.studentId)'),'personal ID hidden in archive preview');
 assert.ok(!sourceFile('student-results-print.js').includes('children:page.studentId'),'student statement private');
 assert.ok(!sourceFile('grade-review.js').includes('safe(item.studentId)'),'grade review print private');
-assert.ok(!sourceFile('patches/reports.js').includes("'الرقم الأكاديمي':row.studentId"),'Excel report private');
+assert.match(sourceFile('patches/reports.js'),/dataExchange\['!cols'\]=\[\{hidden:true\}\]/,'Excel identity mapping must be hidden, not shown in the report');
 assert.match(sourceFile('patches/ui.js'),/gradeGroup/);assert.match(sourceFile('patches/ui.js'),/teacherGroup/);
 assert.match(sourceFile('staff.js'),/failedGrade/);assert.match(sourceFile('staff.js'),/failedTeacher/);
 const style=sourceFile('repair.css');
