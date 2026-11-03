@@ -1,4 +1,11 @@
 /* A staff role sees only the rows returned by the authenticated scoped gateway. */
+const srStaffCertified=(row,exam,settings)=>{
+ if(typeof SR63.certificateScore==='function')return SR63.certificateScore(row,exam,settings);
+ // Standalone role fixtures load staff analytics without the full grade engine.
+ const score=row?.scores?.[exam],total=Number(row?.totals?.[exam]??settings?.exams?.find(e=>e.key===exam)?.total);
+ return row?.statuses?.[exam]==='present'&&typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(total)&&total>0
+  ?{certificateScore:score,certificateTotal:total,certificatePercent:100*score/total,passed:100*score/total>=Number(settings?.pass??50)}:null;
+};
 SR63.staffStudentLevels=function(workspace,exam,className='الكل',subject='الكل'){
  const rows=Array.isArray(workspace?.rows)?workspace.rows:[],settings=workspace.settings||{};
  const bands=Array.isArray(settings.bands)?settings.bands.slice().sort((a,b)=>b.min-a.min):[];
@@ -11,7 +18,7 @@ SR63.staffStudentLevels=function(workspace,exam,className='الكل',subject='ا
   if(!totals.has(uid))totals.set(uid,{key:uid,name:String(row.studentName||'طالب'),className:klass,score:0,max:0,certificateScore:0,certificateMax:0,evaluated:0,missing:0});
   const t=totals.get(uid),score=row.scores?.[exam],total=Number(row.totals?.[exam]??settings.exams?.find(x=>x.key===exam)?.total);
   if(row.statuses?.[exam]==='present'&&typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(total)&&total>0){
-   const cert=SR63.certificateScore(row,exam,settings);if(cert){t.score+=score;t.max+=total;t.certificateScore+=cert.certificateScore;t.certificateMax+=cert.certificateTotal;t.evaluated++;}
+   const cert=srStaffCertified(row,exam,settings);if(cert){t.score+=score;t.max+=total;t.certificateScore+=cert.certificateScore;t.certificateMax+=cert.certificateTotal;t.evaluated++;}
   }else t.missing++;
  }
  const result=[...bands.map(b=>({id:b.id||b.label,label:b.label,color:/^#[a-f\d]{6}$/i.test(b.color||'')?b.color:'#426579',min:b.min,max:b.max,students:[]})),{id:'not_assessed',label:'غائب أو غير مرصود',color:'#64748b',students:[]}];
@@ -49,7 +56,7 @@ SR63.staffExamComparison=function(workspace,from,to){
    if(seen.has(key)||row.statuses?.[e]!=='present'||typeof grade!=='number'||!Number.isFinite(grade)||!Number.isFinite(max)||max<=0)continue;
    seen.add(key);
    if(!groups.has(klass))groups.set(klass,{className:klass,results:{[older]:{earned:0,max:0,passed:0,count:0},[later]:{earned:0,max:0,passed:0,count:0}}});
-   const bucket=groups.get(klass).results[e];const cert=SR63.certificateScore(row,e,settings);if(!cert)continue;bucket.count++;bucket.earned+=cert.certificateScore;bucket.max+=cert.certificateTotal;
+   const bucket=groups.get(klass).results[e];const cert=srStaffCertified(row,e,settings);if(!cert)continue;bucket.count++;bucket.earned+=cert.certificateScore;bucket.max+=cert.certificateTotal;
    if(cert.passed)bucket.passed++;
   }
  }
