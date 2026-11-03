@@ -30,7 +30,7 @@ SR63.aiPlanCandidateSet=function(workspace,filters){
       const teacher=original?.examTeachers?.[exam]||original?.teacher||'';
       if(ij(teacher)!==ij(filters.teacher))continue;
     }
-    const p=Number.isFinite(item.score)&&Number.isFinite(item.total)&&item.total>0&&item.status==='present'?Math.round(1000*item.score/item.total)/10:null;
+    const p=item.certificate?Math.round(item.certificate.certificatePercent*10)/10:null;
     if(filters.mode!=='individual'&&type==='below50'&&!(p!==null&&p<50))continue;
     if(filters.mode!=='individual'&&type==='below60'&&!(p!==null&&p<60))continue;
     if(filters.mode!=='individual'&&type==='between60and80'&&!(p!==null&&p>=60&&p<80))continue;
