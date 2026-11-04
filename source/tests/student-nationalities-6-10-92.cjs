@@ -46,7 +46,7 @@ assert.equal(troubled.duplicates,1);
 assert.equal(troubled.nameMismatch,1);
 assert.equal(troubled.unmatched,1);
 assert.equal(troubled.invalid,1);
-assert.deepEqual(troubled.entries.map(x=>x.studentId),['Q1']);
+assert.deepEqual(Array.from(troubled.entries,x=>x.studentId),['Q1']);
 const record=Object.fromEntries(preview.entries.map(s=>[s.studentId,s.group]));
 ws={...ws,studentNationalities:record};
 assert.equal(S.studentNationalityFor(ws,'Q0'),'qatari');
