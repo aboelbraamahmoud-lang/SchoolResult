@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.91', release:'2026-11-04', formDirty:false};
+var SR63 = {version:'6.10.92', release:'2026-11-04', formDirty:false};
 /* 6.10.89 — Unified and persisted enabled grade bands. */
 SR63.activeBands=function(bands){
  const enabled=(Array.isArray(bands)?bands:[]).filter(b=>b&&b.enabled!==false).slice().sort((a,b)=>a.min-b.min);
@@ -137,6 +137,12 @@ SR63.validate = function(raw) {
   must(new Set(settings.bands.map(b=>b.id)).size===settings.bands.length&&!Ej(settings.bands).length,'حدود مستويات الأداء مكررة أو متداخلة أو بها فجوات.');
   must(settings.bands.every(b=>b.enabled===undefined||typeof b.enabled==='boolean')&&settings.bands.filter(b=>b.enabled!==false).length>=3,'يجب تفعيل ثلاثة مستويات تقدير على الأقل.');
   for(const field of ['schoolName','academicYear','principalName','academicViceName','coordinatorName','schoolVision'])must(typeof settings[field]==='string',`الحقل ${field} غير صالح.`);
+  if(raw.studentNationalities!==undefined){
+   const nationalities=raw.studentNationalities;
+   must(nationalities&&typeof nationalities==='object'&&!Array.isArray(nationalities),'سجل جنسيات الطلاب غير صالح.');
+   const entries=Object.entries(nationalities);
+   must(entries.length<=100000&&entries.every(([id,kind])=>id.trim().length>0&&id.length<=150&&['qatari','resident'].includes(kind)),'سجل الجنسيات يحتوي قيَمًا غير صالحة.');
+  }
   for(const [field,limit] of [['students',100000],['grades',100],['classes',1000],['subjects',1000],['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
   if(settings.reportDesign!==undefined){const design=settings.reportDesign;must(design&&typeof design==='object'&&!Array.isArray(design),'تصميم التقرير غير صالح.');for(const [key,value] of Object.entries(ZA)){if(design[key]===undefined)continue;must(typeof design[key]===typeof value,`إعداد تصميم غير صالح: ${key}`);if(typeof value==='object')must(design[key]&&!Array.isArray(design[key])&&Object.values(design[key]).every(item=>typeof item==='string'),'مسميات التقرير غير صالحة.');}}
   if(settings.subjectReportOrder!==undefined){

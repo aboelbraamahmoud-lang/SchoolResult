@@ -75,6 +75,13 @@ const summaryBenchmarks=(ws:any,examKey?:string)=>{
  }
  return [...per.values()].map(x=>({department:x.department,evaluated:x.evaluated,success:Math.round(x.passed/x.evaluated*1000)/10,achievement:Math.round(x.score/x.total*1000)/10}));
 };
+// IDs are scoped to the same student records that staff may already read.
+const scopedNationalities=(ws:any,rows:any[])=>{
+ const ids=new Set((Array.isArray(rows)?rows:[]).map((r:any)=>String(r?.studentId??'').trim()).filter(Boolean));
+ const source=ws?.studentNationalities;
+ return Object.fromEntries(Object.entries(source&&typeof source==='object'&&!Array.isArray(source)?source:{})
+  .filter(([id,group])=>ids.has(id)&&(group==='qatari'||group==='resident')));
+};
 const cleanCoordinator=(ws:any,deps:string[])=>{
  const scoped=departmentRows(ws,deps),authorizedKinds=new Set(deps.map(skillKind).filter(Boolean));
  const rows=(Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>scoped.includes(r)||(!specialEducationRow(r)&&authorizedKinds.has(skillKind(r.subject)))),
@@ -98,7 +105,7 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  const skillSubject=(value:unknown)=>skillKind(value)||dept(value);
  const allowedSkills=new Set([...subjects,...depts].map(skillSubject));
  const skillsAssessments=(Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[]).filter((a:any)=>allowedSkills.has(skillSubject(a.subject)));
- return {workspace:{version:ws.version,settings:publicSettings,activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:visibleSubjects,imports:[],auditLog:[],customReports:[]}};
+ return {workspace:{version:ws.version,settings:publicSettings,studentNationalities:scopedNationalities(ws,rows),activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:visibleSubjects,imports:[],auditLog:[],customReports:[]}};
 };
 // School leadership sees the entire school's analytical rows through this
 // whitelisted read-only response. Never expose auth data, backups or arbitrary
@@ -122,6 +129,7 @@ const cleanLeadership=(ws:any)=>{
  if(Object.prototype.hasOwnProperty.call(originalSettings,'dashboardSubjects'))visible.workspace.settings.dashboardSubjects=originalSettings.dashboardSubjects;
  visible.workspace.skillsAssessments=[];
  visible.workspace.rows=Array.isArray(ws.rows)?ws.rows:[];
+ visible.workspace.studentNationalities=scopedNationalities(ws,visible.workspace.rows);
  visible.workspace.teachers=Array.isArray(ws.teachers)?ws.teachers:[];
  visible.workspace.teacherAssignments=Array.isArray(ws.teacherAssignments)?ws.teacherAssignments:[];
  // Read-only school leadership does not receive editable AI plans.
@@ -177,7 +185,7 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();
   if(error||!data)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
-  if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
+  if(profile.permissions.reports!==true){scoped.workspace.skillsAssessments=[];scoped.workspace.studentNationalities={};}
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
  }
  if(action==='subject_comparison'){
