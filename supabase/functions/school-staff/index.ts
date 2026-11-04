@@ -185,7 +185,8 @@ Deno.serve(async(req:Request)=>{
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();
   if(error||!data)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
-  if(profile.permissions.reports!==true){scoped.workspace.skillsAssessments=[];scoped.workspace.studentNationalities={};}
+  if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
+  if(profile.permissions.reports!==true)scoped.workspace.studentNationalities={};
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
  }
  if(action==='subject_comparison'){
