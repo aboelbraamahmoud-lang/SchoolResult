@@ -1,9 +1,10 @@
 /* Shared presentation-only footer for HTML reports; mirrors the admin N9 footer. */
-SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter=''){
+SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',options={}){
  const s=workspace?.settings||{},d=s.reportDesign||{},labels=d.signatureLabels||{},esc=SR63.escape;
- const coordinator=(SR63.subjectCoordinator?.(workspace,subject)||
-  (typeof fj==='function'?fj({...workspace,teachers:workspace?.teachers||[],settings:{...s,coordinatorName:String(s.coordinatorName||'')}},subject):s.coordinatorName)||'');
- const signatures=[[labels.teacher||'معلم المادة',teacher],[labels.coordinator||'منسق المادة',coordinator],[labels.vice||'النائب الأكاديمي',s.academicViceName],[labels.principal||'مدير المدرسة',s.principalName]];
+ const support=options?.supportLevel===true;
+ const coordinator=support?String(options.supportCoordinatorName||'').trim():((SR63.subjectCoordinator?.(workspace,subject)||
+  (typeof fj==='function'?fj({...workspace,teachers:workspace?.teachers||[],settings:{...s,coordinatorName:String(s.coordinatorName||'')}},subject):s.coordinatorName))||'');
+ const signatures=[[labels.teacher||'معلم المادة',teacher],[support?'منسق التربية الخاصة':(labels.coordinator||'منسق المادة'),coordinator],[labels.vice||'النائب الأكاديمي',s.academicViceName],[labels.principal||'مدير المدرسة',s.principalName]];
  const attribution=[s.preparedByName&&'إعداد: '+s.preparedByName,s.reviewedByName&&'مراجعة: '+s.reviewedByName,s.programmerDesignerName&&'البرمجة والتصميم: '+s.programmerDesignerName,s.reportSystemName&&'طُبع بواسطة: '+s.reportSystemName].filter(Boolean);
  return '<footer class="report-footer">'+
   (d.showSignatures?'<div class="report-signatures">'+signatures.map(([label,name])=>'<div><b>'+esc(label)+'</b><span>'+esc(name||'')+'</span></div>').join('')+'</div>':'')+

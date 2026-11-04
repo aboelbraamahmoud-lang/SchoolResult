@@ -158,6 +158,20 @@ Deno.serve(async(req:Request)=>{
   if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);
   return reply({apiVersion:'6.10.38',leadershipRoles:true,departmentScope:'coordinator_only',supportedRoles:editableRoles},200,origin);
  }
+ if(action==='support_signatory'){
+   if(!['owner','admin',...readRoles].includes(role)||
+     (readRoles.includes(role)&&profile.permissions.reports!==true))return reply({error:'PERMISSION_DENIED'},403,origin);
+   // Only the authenticated school's active Special Education coordinator can sign.
+   // Return a name only, never account lists or other department members.
+   const {data:accounts,error}=await admin.from('school_staff_accounts')
+    .select('display_name,departments').eq('owner_id',ownerId)
+    .eq('role','coordinator').eq('active',true);
+   if(error)return reply({error:'SUPPORT_SIGNATORY_UNAVAILABLE'},503,origin);
+   const names=[...new Set((accounts||[])
+    .filter((entry:any)=>Array.isArray(entry.departments)&&entry.departments.some(specialEducationName))
+    .map((entry:any)=>String(entry.display_name||'').trim()).filter(Boolean))];
+   return reply({name:names.length===1?names[0]:'',status:names.length===1?'assigned':names.length?'ambiguous':'unassigned'},200,origin);
+  }
  if(action==='coordinator_data'){
   if(!readRoles.includes(role))return reply({error:'STAFF_REPORTS_ONLY'},403,origin);
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();

@@ -204,7 +204,8 @@ replace('label:`المشكلات الحرجة`,value:Q(be.critical),hint:`يجب
 // 6.10.0 — final terminology cleanup after legacy transforms.
 code=code.split('`نتيجة مقيمة`').join('`نتيجة مرصودة`').split('`نتائج مقيمة`').join('`نتائج مرصودة`');
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
-code=code.split('i.signatureLabels.coordinator,fj(e,n)').join('i.signatureLabels.coordinator,SR63.subjectCoordinator(e,n)||fj(e,n)');
+replace('function N9({workspace:e,teacher:t=``,subject:n=``,customFooter:r=``})','function N9({workspace:e,teacher:t=``,subject:n=``,customFooter:r=``,supportLevel:srSupport=false,supportCoordinatorName:srSupportName=``})');
+replace('i.signatureLabels.coordinator,fj(e,n)','srSupport?`منسق التربية الخاصة`:i.signatureLabels.coordinator,srSupport?srSupportName:(SR63.subjectCoordinator(e,n)||fj(e,n))');
 {const start=code.indexOf('function N9('),end=code.indexOf('var pde=',start);if(start<0||end<0)throw Error('Admin footer not found');const footer=code.slice(start,end).replace('new Date().toLocaleString(`ar-EG`)','(e.reportGeneratedAt||new Date().toLocaleString(`ar-EG`))');code=code.slice(0,start)+footer+code.slice(end);}
 // 6.10.14 — each on-screen analytical table gets its own responsive layout.
 // Keep the original rows, numeric calculations, grade bands and result fields intact.

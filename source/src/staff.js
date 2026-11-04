@@ -29,7 +29,8 @@ SR63.staff={
   return data;
  },
  async profile(){return (await this.call({action:'profile'})).profile;},
- async coordinatorLoad(exam=''){const result=await this.call({action:'coordinator_data',exam});return {...result,comparisonExam:exam};}
+ async coordinatorLoad(exam=''){const result=await this.call({action:'coordinator_data',exam});return {...result,comparisonExam:exam};},
+ async supportCoordinator(){const result=await this.call({action:'support_signatory'});return typeof result?.name==='string'?result.name.trim():'';}
 };
 SR63.StaffAdminPage=function(){
  const [accounts,setAccounts]=(0,v.useState)([]),[departments,setDepartments]=(0,v.useState)([]),
@@ -71,6 +72,7 @@ SR63.StaffAdminPage=function(){
     (0,q.jsxs)('div',{className:'srstaff-flex',children:[
       (0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>void edit(user,{active:!user.active}),children:user.active?'إيقاف الحساب':'تفعيل الحساب'}),
       (0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>{const password=window.prompt('أدخل كلمة مرور جديدة (10 أحرف على الأقل).');if(password!==null)void edit(user,{password});},children:'تغيير كلمة المرور'}),
+      user.role==='coordinator'?(0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>{const value=window.prompt('الاسم الظاهر للمنسق في التقارير والتوقيعات',user.display_name||'');if(value!==null&&value.trim()&&value.trim()!==user.display_name)void edit(user,{displayName:value.trim()});},children:'تعديل اسم المنسق في التقارير'}):null,
       ['admin','coordinator'].includes(user.role)?(0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>void edit(user,{role:user.role==='admin'?'coordinator':'admin',departments:user.role==='admin'?departments.slice(0,1):[],permissions:user.permissions}),children:user.role==='admin'?'تحويل إلى منسق':'منحه صلاحيات أدمن'}):null,
       user.role==='coordinator'?(0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>{setForm(x=>({...x,role:'coordinator',departments:user.departments,permissions:{...x.permissions,...user.permissions,plans:false,savePlans:false,generateAI:false}}));window.scrollTo({top:0,behavior:'smooth'});setSuccess('انسخ/عدّل صلاحيات هذا المنسق في النموذج لإنشاء حساب مماثل. لتعديل الحساب الحالي استخدم الخيارات المباشرة أدناه.');},children:'نسخ إعداداته'}):null
     ]}),
