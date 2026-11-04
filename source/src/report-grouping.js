@@ -13,6 +13,8 @@ SR63.rangePercentLabel=function(value,range){
  if(typeof value!=='number'||!Number.isFinite(value))return '—';
  for(let digits=2;digits<=12;digits++){
   const rounded=Number(value.toFixed(digits));
+  // Displaying 99.999% as 100% would hide the difference between near-full and full marks.
+  if(rounded===100&&value<100)continue;
   if(SR63.percentInRange(rounded,range))return `${rounded}%`;
  }
  return `${value}%`;
