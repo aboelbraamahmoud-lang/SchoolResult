@@ -75,5 +75,5 @@
     "test:range-100-inclusive": "node --expose-internals tests/target-range-100-6-10-91.cjs",
     "test:student-nationalities": "node --expose-internals tests/student-nationalities-6-10-92.cjs"
   },
-  "version": "6.10.92"
+  "version": "6.10.93"
 }

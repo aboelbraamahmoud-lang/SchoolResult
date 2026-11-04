@@ -21,10 +21,10 @@ SR63.studentNationalityFor=function(workspace,studentId){
 };
 SR63.nationalityHeaderKind=function(value){
  const s=String(value??'').trim().toLowerCase().replace(/[\u064b-\u065f\u0670\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/[^\u0621-\u064a0-9a-z]/g,'');
- if(['الرقمالاكاديمي','الرقمالمدرسي','رقمالطالب','رقمالمتعلم','studentid','studentnumber','academicid','academicnumber','pupilid','studentcode'].includes(s))return 'id';
+ if(['الرقم','رقمالقيد','الرقمالاكاديمي','الرقمالمدرسي','رقمالطالب','رقمالمتعلم','studentid','studentnumber','academicid','academicnumber','pupilid','studentcode'].includes(s))return 'id';
  if(['اسمالطالب','اسمالمتعلم','اسم','studentname','pupilname','fullname'].includes(s))return 'name';
  if(['الجنسية','جنسيةالطالب','nationality','citizenship','country'].includes(s))return 'nationality';
- if(['الشعبة','الصفوالشعبة','classname','class','section'].includes(s))return 'class';
+ if(['الشعبة','الشعبةالصفية','الصفوالشعبة','classname','class','section'].includes(s))return 'class';
  if(['الصف','الصفالدراسي','grade','schoolgrade'].includes(s))return 'grade';
  return '';
 };
@@ -69,6 +69,35 @@ SR63.nationalityImportPreview=function(workspace,matrix){
  const counts=registry.reduce((tot,s)=>{const k=merged[SR63.nationalityId(s.studentId)];if(k==='qatari')tot.qatari++;else if(k==='resident')tot.resident++;else tot.unknown++;return tot;},{qatari:0,resident:0,unknown:0});
  return {error:'',entries,sourceRows,matched:entries.length,unmatched,invalid,nameMismatch,duplicates,conflicts,examples,counts,totalStudents:registry.length};
 };
+/* 6.10.93 — Accept the original Qatar school enrolment workbook unchanged.
+   Prefer its combined "الجميع" sheet; otherwise merge the grade sheets once. */
+SR63.nationalityWorkbookPreview=function(workspace,book){
+ const sheetNames=Array.isArray(book?.SheetNames)?book.SheetNames:[];
+ const sheets=sheetNames.map(name=>{
+  const sheet=book.Sheets?.[name];
+  if(!sheet)return null;
+  const matrix=Gv.sheet_to_json(sheet,{header:1,raw:false,defval:'',blankrows:false});
+  const headerIndex=matrix.findIndex((row,i)=>i<20&&Array.isArray(row)&&
+   row.map(SR63.nationalityHeaderKind).includes('id')&&row.map(SR63.nationalityHeaderKind).includes('nationality'));
+  return headerIndex<0?null:{name,matrix,headerIndex,fields:matrix[headerIndex].map(SR63.nationalityHeaderKind)};
+ }).filter(Boolean);
+ if(!sheets.length)return {error:'لم أجد أعمدة «الرقم» و«الجنسية». ارفع سجل القيد الأصلي أو نموذج الجنسيات.',entries:[]};
+ const combined=sheets.find(item=>/^(الجميع|الكل|all|all students|جميع الطلاب)$/i.test(item.name.trim()));
+ if(combined){
+  const preview=SR63.nationalityImportPreview(workspace,combined.matrix);
+  return {...preview,sourceSheets:[combined.name]};
+ }
+ const canonical=[['الرقم','الاسم','الجنسية','الصف','الشعبة الصفية']];
+ for(const sheet of sheets){
+  const index=kind=>sheet.fields.indexOf(kind);
+  for(const row of sheet.matrix.slice(sheet.headerIndex+1)){
+   if(!Array.isArray(row)||!row.some(cell=>cell!==null&&cell!==undefined&&String(cell).trim()))continue;
+   canonical.push(['id','name','nationality','grade','class'].map(kind=>index(kind)<0?'':row[index(kind)]));
+  }
+ }
+ const preview=SR63.nationalityImportPreview(workspace,canonical);
+ return {...preview,sourceSheets:sheets.map(item=>item.name)};
+};
 SR63.studentNationalityTemplate=function(workspace){
  const rows=SR63.studentRegistry(workspace,workspace.activeExam)
   .slice().sort((a,b)=>SR63.gradeOrder(a.grade)-SR63.gradeOrder(b.grade)||String(a.className).localeCompare(String(b.className),'ar',{numeric:true})||a.studentName.localeCompare(b.studentName,'ar'));
@@ -100,14 +129,10 @@ SR63.StudentNationalityAdmin=function({workspace,setWorkspace}){
   if(file.size>8*1024*1024)return setError('حجم الملف أكبر من 8 ميجابايت؛ ارفع كشف الجنسيات فقط.');
   setBusy(true);
   try{
-   const bytes=await file.arrayBuffer(),book=Gv.read(new Uint8Array(bytes),{type:'array'});
-   let result;
-   for(const name of book.SheetNames){
-    const matrix=Gv.sheet_to_json(book.Sheets[name],{header:1,raw:false,defval:''});
-    const proposal=SR63.nationalityImportPreview(workspace,matrix);
-    if(!proposal.error){result=proposal;break;}
-   }
-   if(!result)throw Error('لم أعثر على ورقة تحتوي الرقم الأكاديمي والجنسية. استخدم النموذج الذي يمكنك تنزيله من هذه الصفحة.');
+   const bytes=await file.arrayBuffer(),book=hv(new Uint8Array(bytes),{type:'array'});
+   if(!book||!Array.isArray(book.SheetNames))throw Error('تعذر قراءة أوراق ملف Excel.');
+   const result=SR63.nationalityWorkbookPreview(workspace,book);
+   if(result.error)throw Error(result.error);
    setPreview(result);
    if(!result.matched)setError('لم يُطابق الملف أي طالب؛ راجع ملاحظات المطابقة، ولم تُحفظ أي بيانات.');
   }catch(err){setError(String(err?.message||'تعذر فتح ملف Excel.').slice(0,230));}
@@ -133,12 +158,12 @@ SR63.StudentNationalityAdmin=function({workspace,setWorkspace}){
   h('div',{style:{fontWeight:700,color:'#466477',fontSize:12}},label),h('strong',{style:{fontSize:25,color:'#143c53'}},value));
  return h('section',{dir:'rtl',className:'sr610-nationality-admin',style:{display:'grid',gap:18}},
   h('header',{style:cardStyle},h('h2',{style:{fontSize:24,fontWeight:900,color:'#173f55'}},'جنسيات الطلاب — تقسيم المراكز العشرة الأولى'),
-   h('p',{style:{lineHeight:1.9,color:'#486276'}},'ارفع كشف جنسيات الطلاب من لوحة الإدارة بعد معاينته. يُربط كل طالب برقمِه الأكاديمي دون تغيير درجاته أو مواده أو شعبته. لا تُستنتج الجنسية من الاسم أو الرقم.')),
+   h('p',{style:{lineHeight:1.9,color:'#486276'}},'ارفع سجل القيد الأصلي من المدرسة مباشرةً، ولا حاجة لتعديله أو نقله إلى نموذج جديد. تتم مطابقة الطلاب برقمهم الموجود في المنصة، مع فحص الاسم وحماية درجاتهم ونتائجهم. لا تُستنتج الجنسية من الاسم أو الرقم.')),
   h('div',{style:{display:'flex',gap:12,flexWrap:'wrap'}},
    stat('طلاب قطريون',summary.qatari),stat('طلاب مقيمون',summary.resident),stat('جنسية غير محددة',summary.unknown),stat('إجمالي الطلاب',registry.length)),
   h('section',{style:cardStyle},
    h('h3',{style:{fontSize:18,fontWeight:900,marginBottom:8}},'الخطوة ١ — تنزيل نموذج Excel من بيانات المنصة'),
-   h('p',{style:{marginBottom:14,color:'#4e6876'}},'يحتوي النموذج على الرقم الأكاديمي واسم الطالب والصف والشعبة. املأ عمود «الجنسية» فقط، مثل: قطري، مصري، أردني، أو مقيم.'),
+   h('p',{style:{marginBottom:14,color:'#4e6876'}},'يمكنك رفع «سجل القيد» الأصلي مباشرةً بصيغته المعتمدة: الرقم، الاسم، الجنسية، الصف، الشعبة الصفية؛ وسيستخدم النظام ورقة «الجميع» تلقائيًا. النموذج الاختياري متاح إن احتجت إليه.'),
    h('button',{type:'button',style:btnStyle,disabled:busy||!registry.length,onClick:()=>{try{SR63.studentNationalityTemplate(workspace)}catch(err){setError(String(err?.message||'تعذر تنزيل النموذج'))}}},'تنزيل نموذج الجنسيات (Excel)')),
   h('section',{style:cardStyle},
    h('h3',{style:{fontSize:18,fontWeight:900,marginBottom:8}},'الخطوة ٢ — رفع الملف ومراجعة المطابقة'),
@@ -146,6 +171,7 @@ SR63.StudentNationalityAdmin=function({workspace,setWorkspace}){
    filename?h('p',{style:{color:'#42677d',marginTop:8}},'الملف المحدد: '+filename):null,
    error?h('p',{role:'alert',style:{color:'#a52c39',fontWeight:750,marginTop:10}},error):null,
    preview?h('div',{style:{marginTop:14,display:'grid',gap:9}},
+    h('p',{style:{color:'#315f77',fontWeight:750}},'الأوراق المقروءة: '+(preview.sourceSheets||[]).join('، ')),
     h('div',{style:{display:'flex',gap:9,flexWrap:'wrap'}},
       stat('صفوف الملف',preview.sourceRows),stat('طلاب مطابقون',preview.matched),
       stat('أرقام غير موجودة',preview.unmatched),stat('أسماء غير مطابقة',preview.nameMismatch),

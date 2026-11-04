@@ -37,20 +37,26 @@ async function main(){
   const download=page.waitForEvent('download');
   await page.getByRole('button',{name:'تنزيل نموذج الجنسيات (Excel)'}).click();
   const file=await download;assert.match(file.suggestedFilename(),/جنسيات/);
-  const b64=await page.evaluate(()=>{
-   const wb=Gv.book_new(),sheet=Gv.aoa_to_sheet([
-    ['الرقم الأكاديمي','اسم الطالب','الجنسية'],
-    ['Q01','طالب قطري','قطري'],
-    ['R01','طالب مقيم','مصري']]);
-   Gv.book_append_sheet(wb,sheet,'الجنسية');
-   return Gv.write(wb,{type:'base64',bookType:'xlsx'});
+  const workbookDownload=page.waitForEvent('download');
+  await page.evaluate(()=>{
+   const wb=Gv.book_new(),header=['الرقم','الاسم','الجنسية','الصف','الشعبة الصفية'];
+   const qatari=['Q01','طالب قطري','قطر','7','07/1'];
+   const resident=['R01','طالب مقيم','مصر','8','08/1'];
+   const add=(name,rows)=>Gv.book_append_sheet(wb,Gv.aoa_to_sheet([header,...rows]),name);
+   add('7',[qatari]);add('8',[resident]);add('9',[]);
+   add('الجميع',[qatari,resident]);
+   Tv(wb,'سجل-القيد-التجريبي.xlsx');
   });
+  const workbookFile=await workbookDownload;
+  const workbookBytes=fs.readFileSync(await workbookFile.path());
   await page.locator('#nat-test input[type="file"]').setInputFiles({
-   name:'nationalities-test.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-   buffer:Buffer.from(b64,'base64')
+   name:'سجل-القيد-التجريبي.xlsx',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+   buffer:workbookBytes
   });
   await page.getByRole('button',{name:'الخطوة ٣ — اعتماد الجنسيات وحفظها'}).waitFor();
   assert.equal(await page.getByText('طلاب مطابقون').locator('..').locator('strong').innerText(),'2');
+  assert.equal(await page.getByText('صفوف الملف').locator('..').locator('strong').innerText(),'2','combined sheet avoids duplicate rows');
+  await page.getByText('الأوراق المقروءة: الجميع').waitFor();
   assert.deepEqual(await page.evaluate(()=>getSavedNationalities()),{},'preview must not persist data');
   await page.getByRole('button',{name:'الخطوة ٣ — اعتماد الجنسيات وحفظها'}).click();
   await page.waitForFunction(()=>getSavedNationalities()?.Q01==='qatari'&&getSavedNationalities()?.R01==='resident');
