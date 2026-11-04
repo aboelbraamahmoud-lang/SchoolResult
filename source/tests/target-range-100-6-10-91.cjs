@@ -42,6 +42,12 @@ assert.equal(pages.flatMap(p=>p.rows).length,66,'66 of 69 scored PE students sho
 const byTeacher=S.buildReportPages(ws.rows,'teacher','الكل','بدنية','struggling','exam1',range,ws.settings);
 assert.equal(byTeacher.length,3);
 assert.equal(byTeacher.flatMap(p=>p.rows).length,66,'teacher report uses identical upper bound');
+for(const grouping of ['gradeGroup','teacherGroup']){
+ const grouped=S.buildReportPages(ws.rows,grouping,'الكل','بدنية','struggling','exam1',range,ws.settings);
+ assert.equal(grouped.flatMap(p=>p.rows).length,66,grouping+' keeps full-mark students');
+ assert.ok(grouped.every(p=>p.rows.length<=23),'grouped A4 pages retain their original page capacity');
+}
+
 assert.equal(S.buildReportPages(ws.rows,'className','الكل','بدنية','struggling','exam1',{min:99,max:100},ws.settings).flatMap(p=>p.rows).length,60);
 assert.equal(S.buildReportPages(ws.rows,'className','الكل','بدنية','struggling','exam1',{min:90,max:95},ws.settings).flatMap(p=>p.rows).length,0,'95 is excluded from non-100 upper bound');
 assert.equal(S.buildReportPages(ws.rows,'className','الكل','بدنية','struggling','exam1',{min:0,max:100},ws.settings).flatMap(p=>p.rows).length,69,'all valid scores including full 100');
