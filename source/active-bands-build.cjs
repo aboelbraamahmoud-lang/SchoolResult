@@ -5,8 +5,8 @@ module.exports=function(code){
   if(found!==expected)throw Error('6.10.89 grade band patch expected '+expected+' occurrences, found '+found+': '+before.slice(0,70));
   code=code.split(before).join(after);
  }
- patch('yj=(e,t)=>[...t].sort((e,t)=>t.min-e.min).find', 'yj=(e,t)=>[...SR63.activeBands(t)].sort((e,t)=>t.min-e.min).find');
- patch('Object.fromEntries(n.bands.map(e=>[e.id,0]))','Object.fromEntries(SR63.activeBands(n.bands).map(e=>[e.id,0]))');
+ patch('[...bands].sort((a,b)=>b.min-a.min).find', '[...SR63.activeBands(bands)].sort((a,b)=>b.min-a.min).find');
+ patch('Object.fromEntries(settings.bands.map(b=>[b.id,0]))','Object.fromEntries(SR63.activeBands(settings.bands).map(b=>[b.id,0]))');
  patch('e.settings.bands.map(e=>','SR63.activeBands(e.settings.bands).map(e=>',4);
  patch('n.settings.bands.map(e=>','SR63.activeBands(n.settings.bands).map(e=>');
  patch('desc:`ست فئات قابلة للتعديل مع منع التداخل والفجوات والخروج عن 0–100.`', 'desc:`فعّل من ثلاثة إلى ستة مستويات. تغطي المستويات المختارة جميع النسب من 0 إلى 100 دون فجوات.`');
