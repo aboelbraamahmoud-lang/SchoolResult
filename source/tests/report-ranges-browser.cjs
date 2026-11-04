@@ -20,20 +20,20 @@ async function main(){
    rangeRoot.render(v.createElement(xde,{workspace:ws,onExportExcel:()=>{},readOnly:role!=='admin',onSchoolSummary:role==='admin'?null:()=>{},reportScope:role==='coordinator'?'department':'school',canCompareSubjects:true,canPrint:true}));
   },{ws,role,aggregates});
   const host=page.locator('#range-test');await host.locator('button').filter({has:page.getByText('الطلاب ضمن نسبة',{exact:true})}).first().click();
-  for(const [min,max,indices] of [[90,100,[10,11]],[50,60,[2,3]],[0,60,[0,1,2,3]],[70,80,[6,7]]]){
+  for(const [min,max,indices] of [[90,100,[10,11,12]],[50,60,[2,3]],[0,60,[0,1,2,3]],[70,80,[6,7]]]){
    await host.locator('#sr-range-min').fill(String(min));await host.locator('#sr-range-max').fill(String(max));
    assert.equal(await host.locator('.school-report-page').count(),0,'bound change clears preview');
    await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.school-report-page').first().waitFor();
    const names=await host.locator('.target-student-name b').allTextContents();assert.deepEqual(names,indices.map(i=>'طالب النطاق '+i));assert.equal(await host.locator('.target-student-name small').count(),0,'personal IDs must not be rendered');
    assert.deepEqual(await host.locator('.target-percent b').allTextContents(),indices.map(i=>ws.rows[i].scores.exam1+'%'));
-   assert.match(await host.locator('.target-range-hero').innerText(),new RegExp('من '+min+'% إلى أقل من '+max+'%'));
+   assert.match(await host.locator('.target-range-hero').innerText(),new RegExp('من '+min+'% إلى '+max+'% '+(max===100?'شاملًا':'\\(غير شامل\\)')));
   }
   await host.locator('#sr-range-min').fill('80');assert.equal(await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).isDisabled(),true);
   assert.equal(await host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true}).isDisabled(),true);
   await host.locator('#sr-range-min').fill('90');await host.locator('#sr-range-max').fill('100');await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();
   await host.locator('.target-student-name b').first().waitFor();
   const popupPromise=page.waitForEvent('popup');await host.getByRole('button',{name:'طباعة التقرير الحالي',exact:true}).click();const popup=await popupPromise;await popup.waitForFunction(()=>window.__rangePrinted===true);
-  assert.deepEqual(await popup.locator('.target-student-name b').allTextContents(),['طالب النطاق 10','طالب النطاق 11']);assert.equal(await popup.locator('.target-student-name small').count(),0,'IDs must never appear in PDF');await popup.pdf({path:path.join(out,'range-'+role+'.pdf'),preferCSSPageSize:true,printBackground:true});await popup.close();
+  assert.deepEqual(await popup.locator('.target-student-name b').allTextContents(),['طالب النطاق 10','طالب النطاق 11','طالب النطاق 12']);assert.equal(await popup.locator('.target-student-name small').count(),0,'IDs must never appear in PDF');await popup.pdf({path:path.join(out,'range-'+role+'.pdf'),preferCSSPageSize:true,printBackground:true});await popup.close();
   await page.screenshot({path:path.join(out,'range-'+role+'.png'),fullPage:true});
   assert.equal(await page.evaluate(()=>subjectCalls.length),0,'range report never loads school-wide aggregates');
   await host.locator('button').filter({has:page.getByText(role==='admin'?ws.settings.reportDesign.reportNames.subjects:'تقرير مقارنة المواد',{exact:true})}).first().click();
@@ -50,7 +50,7 @@ async function main(){
    assert.equal(await page.evaluate(()=>subjectCalls.length),1);assert.ok((await host.locator('.grade-subject-matrix').first().innerText()).includes('معلم العربية'));
    assert.ok(!(await host.innerText()).includes('اسم خارج القسم'));assert.equal(await host.getByRole('textbox',{name:'المادة الثابتة لقسم المنسق'}).count(),0);
   }
-  assert.deepEqual(errors,[]);results.push({role,boundaries:4,printedRange:'90 <= p < 100',subjectPages:2,status:'PASS'});await context.close();
+  assert.deepEqual(errors,[]);results.push({role,boundaries:4,printedRange:'90 <= p <= 100',subjectPages:2,status:'PASS'});await context.close();
  }}finally{await browser.close();await new Promise(r=>server.close(r));fs.writeFileSync(path.join(out,'report-ranges-browser.json'),JSON.stringify(results,null,2));}
  console.log('PASS browser ranges and original comparison reports across all four roles');
 }

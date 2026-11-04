@@ -12,12 +12,17 @@ ws.rows=[0,49.999,50,59.999,60,69.999,70,79.999,80,89.999,90,99.999,100].map((n,
 ws.rows.push(make('absent',null,{status:'absent'}),make('missing',null,{status:'unentered'}),make('invalid',101),make('support',95,{className:'7/ESE'}));
 const pagesFor=(min,max)=>S.buildReportPages(ws.rows,'className','الكل','الكل','struggling','exam1',{min,max},ws.settings);
 const values=pages=>Array.from(pages.flatMap(p=>p.rows.map(r=>r.scores.exam1)));
-assert.deepEqual(values(pagesFor(90,100)),[90,99.999]);
+assert.deepEqual(values(pagesFor(90,100)),[90,99.999,100]);
+assert.equal(S.percentInRange(100,S.studentPercentRange({min:90,max:100})),true,'100% must be included at full upper limit');
+assert.equal(S.percentInRange(100,S.studentPercentRange({min:80,max:90})),false,'internal upper bounds remain exclusive');
+assert.equal(S.percentInRange(99.9999,S.studentPercentRange({min:90,max:100})),true);
+assert.equal(S.percentInRange(100.000001,S.studentPercentRange({min:90,max:100})),false);
+
 assert.deepEqual(values(pagesFor(50,60)),[50,59.999]);
 assert.deepEqual(values(pagesFor(0,60)),[0,49.999,50,59.999]);
 assert.deepEqual(values(pagesFor(70,80)),[70,79.999]);
-assert.deepEqual(values(pagesFor(99.999,100)),[99.999]);
-assert.deepEqual(values(pagesFor('٩٠','١٠٠')),[90,99.999]);
+assert.deepEqual(values(pagesFor(99.999,100)),[99.999,100]);
+assert.deepEqual(values(pagesFor('٩٠','١٠٠')),[90,99.999,100]);
 for(const range of [{min:'',max:100},{min:0,max:''},{min:80,max:70},{min:50,max:50},{min:-1,max:80},{min:0,max:101},{min:NaN,max:60}]){
  assert.ok(S.studentPercentRange(range).error);assert.throws(()=>pagesFor(range.min,range.max));
 }
@@ -26,9 +31,9 @@ const walk=(node,out=[])=>{if(Array.isArray(node)){node.forEach(n=>walk(n,out));
 const renderText=node=>walk(node).flatMap(n=>typeof n.props?.children==='string'?[n.props.children]:Array.isArray(n.props?.children)?n.props.children.filter(x=>typeof x==='string'||typeof x==='number'):[]).join(' ');
 const rangePage=pagesFor(90,100)[0];
 const rendered=ctx.SRTargetRangeReport({page:rangePage,exam:'exam1',threshold:{min:90,max:100},workspace:ws});
-assert.match(renderText(rendered),/من  90 % إلى أقل من  100 %/);
-assert.equal(walk(rendered).filter(n=>n.type==='tr'&&String(n.props.className||'').includes('target-row')).length,2);
-assert.deepEqual(walk(rendered).filter(n=>n.props?.className==='target-percent').map(n=>renderText(n)),['90%','99.999%']);
+assert.match(renderText(rendered),/من  90 % إلى  100 % شاملًا/);
+assert.equal(walk(rendered).filter(n=>n.type==='tr'&&String(n.props.className||'').includes('target-row')).length,3);
+assert.deepEqual(walk(rendered).filter(n=>n.props?.className==='target-percent').map(n=>renderText(n)),['90%','99.999%','100%']);
 for(const [value,min,max,label] of [[59.999,50,60,'59.999%'],[79.999,70,80,'79.999%'],[70.0001,70.0001,80,'70.0001%'],[0,0,60,'0%']])assert.equal(S.rangePercentLabel(value,S.studentPercentRange({min,max})),label);
 assert.equal(S.rangePercentLabel(null,{min:0,max:100}),'—');
 const many={...ws,rows:Array.from({length:85},(_,i)=>make(i,75))};
