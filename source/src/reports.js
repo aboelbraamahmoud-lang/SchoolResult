@@ -197,11 +197,7 @@ function SRGradeSubjectsReport({page:e,exam:t,workspace:n}){
     ]}),
     (0,q.jsxs)(`div`,{className:`grade-matrix-legend`,children:[
       (0,q.jsx)(`b`,{children:`المفتاح`}),
-      (0,q.jsx)(`span`,{className:`tone-very-low`,children:`< 21%`}),
-      (0,q.jsx)(`span`,{className:`tone-low`,children:`21% - 49.9%`}),
-      (0,q.jsx)(`span`,{className:`tone-mid`,children:`50% - 70.9%`}),
-      (0,q.jsx)(`span`,{className:`tone-good`,children:`71% - 90.9%`}),
-      (0,q.jsx)(`span`,{className:`tone-excellent`,children:`≥ 91%`})
+      ...SR63.activeBands(n.settings.bands).slice().reverse().map(b=>(0,q.jsx)(`span`,{style:{backgroundColor:b.color,color:SR63.bandTextColor(b.color)},children:`${b.label}: ${b.min}%–${b.max}%`},b.id))
     ]}),
     (0,q.jsxs)(`div`,{className:`grade-matrix-summary`,children:[
       (0,q.jsxs)(`span`,{children:[`متوسط ${metric==='achievement'?'التحصيل':'النجاح'}: `,(0,q.jsx)(`b`,{children:SR63.reportWestern(wj(data.overall[metric]))})]}),

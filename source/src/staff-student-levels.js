@@ -8,7 +8,7 @@ const srStaffCertified=(row,exam,settings)=>{
 };
 SR63.staffStudentLevels=function(workspace,exam,className='الكل',subject='الكل'){
  const rows=Array.isArray(workspace?.rows)?workspace.rows:[],settings=workspace.settings||{};
- const bands=Array.isArray(settings.bands)?settings.bands.slice().sort((a,b)=>b.min-a.min):[];
+ const bands=SR63.activeBands(settings.bands).sort((a,b)=>b.min-a.min);
  const totals=new Map();
  for(const row of rows){
   const klass=String(row.examClasses?.[exam]||row.className||'');
