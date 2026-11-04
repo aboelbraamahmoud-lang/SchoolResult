@@ -115,7 +115,7 @@ SR63.GroupedRangeReport=function({page,exam,workspace}){
  return h(q.Fragment,{},[
   h('div',{className:'sr685-group-heading'},[
    h('h2',{},page.groupTitle),
-   h('p',{},'النطاق من '+page.range.min+'% إلى أقل من '+page.range.max+'% من النسبة الأصلية · '+tj(settings,exam).name
+   h('p',{},'النطاق من '+page.range.min+'% إلى '+page.range.max+(page.range.max===100?'% شاملًا':'% (غير شامل)')+' من النسبة الأصلية · '+tj(settings,exam).name
     +(page.totalParts>1?' · الجزء '+page.part+' من '+page.totalParts:'')),
    h('div',{className:'sr685-metrics'},[
     ['عدد النتائج',all.length],['حاضر',stats.evaluated],['ناجح',stats.passed],['راسب',stats.failed],
