@@ -359,7 +359,7 @@ function SRTargetRangeReport({page:e,exam:t,threshold:n,workspace:r}){
   const intervention=value=>value<30?['تدخل عاجل','urgent','خطة فردية + متابعة مكثفة']:value<r.settings.pass?['دعم علاجي','support','متابعة أسبوعية + تدريب علاجي']:['تعزيز','reinforce','أنشطة إثرائية + تثبيت الإتقان'];
   return(0,q.jsxs)(q.Fragment,{children:[
     (0,q.jsxs)(`div`,{className:`target-range-hero`,children:[
-      (0,q.jsxs)(`div`,{children:[(0,q.jsx)(`span`,{children:`نطاق الاستهداف`}),(0,q.jsxs)(`strong`,{children:[`من `,range.min,`% إلى أقل من `,range.max,`%`]}),(0,q.jsx)(`small`,{children:tj(r.settings,t).name})]}),
+      (0,q.jsxs)(`div`,{children:[(0,q.jsx)(`span`,{children:`نطاق الاستهداف`}),(0,q.jsxs)(`strong`,{children:[`من `,range.min,`% إلى `,range.max,range.max===100?`% شاملًا`:`% (غير شامل)`]}),(0,q.jsx)(`small`,{children:tj(r.settings,t).name})]}),
       (0,q.jsxs)(`div`,{className:`target-range-track`,children:[(0,q.jsx)(`i`,{style:{right:`${range.min}%`,width:`${range.max-range.min}%`}}),(0,q.jsx)(`b`,{style:{right:`calc(${range.max}% - 13px)`},children:`${range.max}%`})]})
     ]}),
     (0,q.jsx)(`div`,{className:`target-range-kpis`,children:[['نتائج ضمن النطاق',targeted.length,'targeted'],['عدد الطلاب',uniqueStudents,'students'],['متوسط المستهدفين',SR63.rangePercentLabel(avg,range),'average'],['أدنى نسبة',SR63.rangePercentLabel(lowest,range),'lowest']].map(([label,value,tone])=>(0,q.jsxs)(`article`,{className:`${tone}`,children:[(0,q.jsx)(`span`,{children:label}),(0,q.jsx)(`b`,{children:value})]},label))}),

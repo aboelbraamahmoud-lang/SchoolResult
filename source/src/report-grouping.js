@@ -1,4 +1,4 @@
-/* Inclusive lower bound, exclusive upper bound. Empty input is invalid, not zero. */
+/* Lower bound inclusive. Upper bound exclusive, except 100% is always inclusive. Empty input invalid. */
 SR63.studentPercentRange=function(value){
  const raw=typeof value==='object'&&value!==null?value:{min:0,max:value};
  const min=SR63.number(raw.min),max=SR63.number(raw.max);
@@ -7,12 +7,14 @@ SR63.studentPercentRange=function(value){
   min>=max?'يجب أن يكون الحد الأدنى أقل من الحد الأعلى.':'';
  return {min,max,error};
 };
-SR63.percentInRange=(value,range)=>!range.error&&typeof value==='number'&&Number.isFinite(value)&&value>=range.min&&value<range.max;
+SR63.percentInRange=(value,range)=>!!range&&!range.error&&typeof value==='number'&&Number.isFinite(value)&&value>=range.min&&(value<range.max||(range.max===100&&value===100));
 // Keep displayed percentages inside the selected interval, even just below its upper bound.
 SR63.rangePercentLabel=function(value,range){
  if(typeof value!=='number'||!Number.isFinite(value))return '—';
  for(let digits=2;digits<=12;digits++){
   const rounded=Number(value.toFixed(digits));
+  // Displaying 99.999% as 100% would hide the difference between near-full and full marks.
+  if(rounded===100&&value<100)continue;
   if(SR63.percentInRange(rounded,range))return `${rounded}%`;
  }
  return `${value}%`;
