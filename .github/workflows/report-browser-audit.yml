@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install and build project
-        run: npm --prefix source ci --no-audit --no-fund && npm run build
+        run: npm --prefix source ci --no-audit --no-fund && npm run build && npm --prefix source run test:active-grade-bands
       - name: Install pinned browser tools
         run: |
           npm install --prefix /tmp/sr-browser-audit --no-package-lock --no-audit --no-fund playwright@1.64.1

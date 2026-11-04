@@ -1,5 +1,16 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.88', release:'2026-11-02', formDirty:false};
+var SR63 = {version:'6.10.89', release:'2026-11-04', formDirty:false};
+/* 6.10.89 — Unified and persisted enabled grade bands. */
+SR63.activeBands=function(bands){
+ const enabled=(Array.isArray(bands)?bands:[]).filter(b=>b&&b.enabled!==false).slice().sort((a,b)=>a.min-b.min);
+ if(!enabled.length)return [];
+ return enabled.map((band,index)=>({...band,min:index===0?0:band.min,max:index===enabled.length-1?100:enabled[index+1].min}));
+};
+SR63.bandTextColor=function(hex){
+ if(typeof hex!=='string'||!/^#[0-9a-f]{6}$/i.test(hex))return '#172c3a';
+ const rgb=[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16)/255).map(n=>n<=.04045?n/12.92:Math.pow((n+.055)/1.055,2.4));
+ return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]<.18?'#ffffff':'#172c3a';
+};
 SR63.equal = (a,b) => JSON.stringify(a) === JSON.stringify(b);
 SR63.clone = value => structuredClone(value);
 SR63.clearResults=function(workspace,exam='all'){
@@ -124,6 +135,7 @@ SR63.validate = function(raw) {
   must(Number.isInteger(settings.minSampleSize)&&settings.minSampleSize>=1,'الحد الأدنى للعينة غير صالح.');
   must(Array.isArray(settings.bands)&&settings.bands.length>0&&settings.bands.every(b=>b&&typeof b.id==='string'&&typeof b.label==='string'&&Number.isFinite(b.min)&&Number.isFinite(b.max)&&['above','average','below'].includes(b.macro)),'مستويات الأداء غير صالحة.');
   must(new Set(settings.bands.map(b=>b.id)).size===settings.bands.length&&!Ej(settings.bands).length,'حدود مستويات الأداء مكررة أو متداخلة أو بها فجوات.');
+  must(settings.bands.every(b=>b.enabled===undefined||typeof b.enabled==='boolean')&&settings.bands.filter(b=>b.enabled!==false).length>=3,'يجب تفعيل ثلاثة مستويات تقدير على الأقل.');
   for(const field of ['schoolName','academicYear','principalName','academicViceName','coordinatorName','schoolVision'])must(typeof settings[field]==='string',`الحقل ${field} غير صالح.`);
   for(const [field,limit] of [['students',100000],['grades',100],['classes',1000],['subjects',1000],['teachers',10000],['teacherAssignments',50000],['imports',10000],['customReports',1000],['auditLog',1000]])must(raw[field]===undefined||Array.isArray(raw[field])&&raw[field].length<=limit,`القائمة ${field} غير صالحة أو تجاوزت الحد المسموح.`);
   if(settings.reportDesign!==undefined){const design=settings.reportDesign;must(design&&typeof design==='object'&&!Array.isArray(design),'تصميم التقرير غير صالح.');for(const [key,value] of Object.entries(ZA)){if(design[key]===undefined)continue;must(typeof design[key]===typeof value,`إعداد تصميم غير صالح: ${key}`);if(typeof value==='object')must(design[key]&&!Array.isArray(design[key])&&Object.values(design[key]).every(item=>typeof item==='string'),'مسميات التقرير غير صالحة.');}}
