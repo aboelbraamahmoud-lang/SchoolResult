@@ -22,6 +22,27 @@ const matrix=[
  ...Array.from({length:12},(_,i)=>['R'+i,'مقيم رقم '+i,'7/1',i%2?'مصري':'مقيم'])
 ];
 const preview=S.nationalityImportPreview(ws,matrix);
+assert.equal(S.nationalityHeaderKind('الرقم'),'id');
+assert.equal(S.nationalityHeaderKind('الشعبة الصفية'),'class');
+assert.equal(typeof ctx.hv,'function','the legacy XLSX parser hv is available for file uploads');
+const canonicalHeader=['الرقم','الاسم','الجنسية','الصف','الشعبة الصفية'];
+const fullRows=matrix.slice(1).map(record=>[record[0],record[1],record[3],7,'07/1']);
+const sheetOf=rows=>ctx.Gv.aoa_to_sheet([canonicalHeader,...rows]);
+const originalFormat={SheetNames:['7','8','9','الجميع'],Sheets:{
+ '7':sheetOf(fullRows.slice(0,12)),
+ '8':sheetOf(fullRows.slice(12,24)),
+ '9':sheetOf([]),
+ 'الجميع':sheetOf(fullRows)
+}};
+const originalPreview=S.nationalityWorkbookPreview(ws,originalFormat);
+assert.equal(originalPreview.matched,24,'original combined enrolment sheet imports exactly once');
+assert.equal(originalPreview.sourceRows,24,'no duplicate rows from grade sheets plus everyone');
+assert.equal(originalPreview.sourceSheets.join(','),'الجميع','the combined sheet has priority');
+assert.equal(originalPreview.counts.qatari,12);
+assert.equal(originalPreview.counts.resident,12);
+const alternate=S.nationalityWorkbookPreview(ws,{SheetNames:['7','8','9'],Sheets:{'7':originalFormat.Sheets['7'],'8':originalFormat.Sheets['8'],'9':originalFormat.Sheets['9']}});
+assert.equal(alternate.matched,24,'grade sheets merge when combined sheet is unavailable');
+assert.equal(alternate.sourceSheets.join(','),'7,8,9');
 assert.equal(preview.error,'');
 assert.equal(preview.matched,24);
 assert.equal(preview.counts.qatari,12);
