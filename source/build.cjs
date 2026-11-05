@@ -251,6 +251,7 @@ try{
 
 const sr680AnalyticsWrapper="const sr680OriginalAnalytics=SR63.OriginalAnalytics;SR63.OriginalAnalytics=function(props){return props.page==='struggling'?v.createElement('div',{className:'sr680-struggling-page'},v.createElement(SR63.StrugglingStatsPanel,{workspace:props.workspace,canPrint:props.canPrint!==false}),v.createElement(sr680OriginalAnalytics,props)):v.createElement(sr680OriginalAnalytics,props);};\n";
 code=canvasBundle+'\n'+services+'\n' +sharedAnalytics.generated+'\n'+sr680AnalyticsWrapper+'\n'+importOld+'\n'+qualityOld+'\n'+code;
+if(process.env.CI){const fdeStart=code.indexOf('function fde('),fdeEnd=code.indexOf('function ',fdeStart+10),fdeCode=code.slice(fdeStart,fdeEnd);const tag=fdeCode.indexOf('اعتماد النتائج');const rev=fdeCode.indexOf('مراجعة تعارضات الطلاب وتصحيحها');console.log('IMPORT-GATE-DIAG',JSON.stringify({fdeLength:fdeCode.length,tag,button:fdeCode.slice(Math.max(0,tag-1500),tag+2000),review:fdeCode.slice(Math.max(0,rev-1200),rev+800),shorts:[...fdeCode.matchAll(/(?:disabled|\bI=|\bI\|\||\bI&&)/g)].slice(0,30).map(m=>({i:m.index,text:fdeCode.slice(m.index-160,m.index+240)}))}));}
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);
 fs.writeFileSync(path.join(webRoot,'style.css'),readSource('base/style.css')+'\n'+readSource('src/repair.css'));
