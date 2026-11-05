@@ -112,8 +112,8 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
   }catch(error){const message=String(error?.message||'تعذر تنزيل التقرير.');setExportError(message);eb.error(message);}
   finally{setExportBusy(false);}
  };
- const list=(value,change,options,label)=>h("label",{style:{display:"grid",gap:"5px",fontWeight:700,fontSize:"13px",minWidth:"170px",flex:"1 1 170px"}},
-  h("span",{},label),h("select",{value,onChange:event=>{change(event.target.value);reset();},style:{height:"40px",width:"100%",padding:"4px 8px",border:"1px solid #c6d7df",borderRadius:"8px",background:"white",color:"#173e54"}},
+ const list=(value,change,options,label,resetOnChange=true)=>h("label",{style:{display:"grid",gap:"5px",fontWeight:700,fontSize:"13px",minWidth:"170px",flex:"1 1 170px"}},
+  h("span",{},label),h("select",{value,onChange:event=>{change(event.target.value);if(resetOnChange)reset();},style:{height:"40px",width:"100%",padding:"4px 8px",border:"1px solid #c6d7df",borderRadius:"8px",background:"white",color:"#173e54"}},
     options.map(option=>h("option",{key:option.value,value:option.value},option.label))));
  const num=value=>Number(value).toLocaleString("en-US",{maximumFractionDigits:2});
  const percentage=value=>Number(value).toFixed(3)+"%";
@@ -148,7 +148,7 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
   h("div",{style:{display:"flex",gap:"10px",flexWrap:"wrap",marginBottom:"16px"}},
    h("button",{type:"button",onClick:()=>setPrepared(true),style:{background:"#087f78",color:"#fff",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},"عرض المراكز العشرة"),
    h("button",{type:"button",disabled:!canPrint||!prepared||!count,onClick:print,style:{background:canPrint&&prepared&&count?"#884522":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},"معاينة الطباعة / حفظ PDF"),
-   nationalityMode==='split'?list(exportScope,setExportScope,[{value:'both',label:'القطريون ثم المقيمون'},{value:'qatari',label:'القطريون فقط'},{value:'resident',label:'المقيمون فقط'}],'تنزيل فئة الجنسية'):null,
+   nationalityMode==='split'?list(exportScope,setExportScope,[{value:'both',label:'القطريون ثم المقيمون'},{value:'qatari',label:'القطريون فقط'},{value:'resident',label:'المقيمون فقط'}],'تنزيل فئة الجنسية',false):null,
    h("button",{type:"button",disabled:!canPrint||!prepared||!count||exportBusy,onClick:()=>void download('docx'),style:{background:canPrint&&prepared&&count&&!exportBusy?"#1f6178":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},exportBusy?'جارٍ إعداد التقرير...':'تحميل Word'),
    h("button",{type:"button",disabled:!canPrint||!prepared||!count||exportBusy,onClick:()=>void download('pdf'),style:{background:canPrint&&prepared&&count&&!exportBusy?"#8b3953":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},exportBusy?'جارٍ إعداد التقرير...':'تحميل PDF')
   ),
