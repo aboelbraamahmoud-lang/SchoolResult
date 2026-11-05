@@ -52,9 +52,16 @@ async function main(){
   const malformed=await page.evaluate(xml=>new DOMParser().parseFromString(xml,'application/xml').getElementsByTagName('parsererror').length,documentXml);
   assert.equal(malformed,0,'DOCX XML should parse without errors');
   await scope.selectOption('qatari');
-  const pdfDownload=page.waitForEvent('download');
+  const pdfDownload=page.waitForEvent('download',{timeout:15000});
   await area.getByRole('button',{name:'تحميل PDF'}).click();
-  const pdf=await pdfDownload,pdfBytes=fs.readFileSync(await pdf.path());
+  let pdf;
+  try{pdf=await pdfDownload;}
+  catch(error){
+   const alert=await area.locator('[role="alert"]').allTextContents();
+   const text=await area.innerText();
+   throw Error('PDF direct export failed: '+JSON.stringify({alert,tail:text.slice(-850),pageErrors:errors})+' '+error.message);
+  }
+  const pdfBytes=fs.readFileSync(await pdf.path());
   assert.ok(pdf.suggestedFilename().endsWith('.pdf'));
   assert.equal(pdfBytes.subarray(0,8).toString('latin1'),'%PDF-1.4');
   assert.equal((pdfBytes.toString('latin1').match(/\/Type\/Page\/Parent/g)||[]).length,1,'Qatari-only PDF is one landscape page');
