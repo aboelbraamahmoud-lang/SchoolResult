@@ -133,6 +133,45 @@ SR63.mergeTeachers=function(workspace,preview,policy){
 /* Identity preflight: never silently replace a name for an existing official ID.
    Resolve in the browser before changing grades; cancelling leaves the workspace intact. */
 SR63.isVerifiedAcademicId=value=>/^\d{6,15}$/.test(SR63.nationalityId(value));
+/* Pre-commit review. Nothing in this workflow changes persisted student data until commitImport succeeds. */
+SR63.importIdentityReviewDetails=function(workspace,items){
+  const rows=Array.isArray(items)?items:[];
+  const saved=SR63.studentRegistry(workspace,workspace.activeExam);
+  const byIdentity=new Map();
+  const idKey=value=>SR63.nationalityId(value);
+  for(const student of saved){
+    const key=SR63.studentIdentityKey(student.studentName,student.className);
+    if(!byIdentity.has(key))byIdentity.set(key,new Map());
+    byIdentity.get(key).set(idKey(student.studentId),student);
+  }
+  const details=[];
+  const seen=new Set();
+  for(const item of rows){
+    const key=SR63.studentIdentityKey(item.studentName,item.className),incomingId=idKey(item.studentId);
+    const candidate=[...(byIdentity.get(key)?.values()??[])].filter(student=>idKey(student.studentId)!==incomingId);
+    if(!candidate.length)continue;
+    const fingerprint=[incomingId,key].join('|');
+    if(seen.has(fingerprint))continue;
+    seen.add(fingerprint);
+    details.push({studentName:item.studentName,className:item.className,studentId:incomingId,sourceFile:item.sourceFile??'',sourceSheet:item.sourceSheet??'',sourceRow:item.sourceRow??'',candidates:candidate.map(student=>({studentId:idKey(student.studentId),studentName:student.studentName,className:student.className}))});
+  }
+  return details;
+};
+SR63.showImportIdentityReview=function(workspace,items){
+  const mismatches=SR63.importIdentityReviewDetails(workspace,items);
+  const nameFixes=SR63.resolveImportIdentityConflicts(workspace,items);
+  SR63.pendingImportIdentityChoices=nameFixes;
+  if(!mismatches.length)return {nameFixes:nameFixes.size,otherConflicts:0};
+  const lines=mismatches.slice(0,15).map((issue,i)=>
+    (i+1)+'. '+issue.studentName+' — '+issue.className+' — ملف: '+(issue.sourceFile||'نتائج')+
+    '، الصف '+(issue.sourceRow||'?')+'\nرقم الملف: '+issue.studentId+
+    '\nالأرقام المحفوظة للاسم والشعبة: '+issue.candidates.map(c=>c.studentId).join('، ')
+  );
+  const text='وُجد '+mismatches.length+' تعارضًا محتملًا بين هوية الملف وسجلات المدرسة.\n'+lines.join('\n\n')+
+    '\n\nإذا كان الرقم في الملف صحيحًا لطالب مختلف فاحتفظ به، ولا تدمج الطالبين. إذا كان السجل لنفس الطالب فتأكد من رقمه الأكاديمي الصحيح من سجل القيد ثم صحح السجل من إدارة الطلاب أو أصل الملف وأعد الرفع. لن تُغير هذه المعاينة أي درجات.';
+  if(typeof window!=='undefined'&&typeof window.alert==='function')window.alert(text);
+  return {nameFixes:nameFixes.size,otherConflicts:mismatches.length};
+};
 SR63.resolveImportIdentityConflicts=function(workspace,items){
   const byId=new Map(),imported=new Map(),resolutions=new Map();
   const keyName=name=>SR63.studentNameKey(String(name??''));
@@ -157,12 +196,13 @@ SR63.resolveImportIdentityConflicts=function(workspace,items){
       '\n\nاكتب الاسم الصحيح كاملًا لاعتماده في جميع نتائج هذا الرقم دون تغيير الدرجات.\nإلغاء = إيقاف الاستيراد بأمان.';
     if(typeof window==='undefined'||typeof window.prompt!=='function')
       SR63.fail(message+'\nافتح الاستيراد من واجهة الإدارة لتصحيح الاسم.');
-    const answer=window.prompt(message,choices[0].name);
+    const preapproved=SR63.pendingImportIdentityChoices?.get(id);
+    const answer=preapproved&&typeof preapproved==='object'&&preapproved.fingerprint===[...newNames.keys()].sort().join('|')+'::'+[...existing.keys()].sort().join('|')?preapproved.name:window.prompt(message,choices[0].name);
     if(answer===null)SR63.fail('تم إلغاء الاستيراد دون تعديل البيانات بسبب تعارض الرقم '+id+'.');
     const corrected=String(answer).replace(/\s+/g,' ').trim();
     if(!corrected||corrected.length>200||!/[\u0621-\u064Aa-zA-Z]/.test(corrected))
       SR63.fail('لم يُعتمد الاستيراد: الاسم المدخل للرقم '+id+' غير صالح. صحح الاسم وأعد المحاولة.');
-    resolutions.set(id,corrected);
+    resolutions.set(id,{name:corrected,fingerprint:[...newNames.keys()].sort().join('|')+'::'+[...existing.keys()].sort().join('|')});
   }
   return resolutions;
 };
@@ -171,10 +211,10 @@ SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTo
   const parserErrors=(files??[]).flatMap(file=>[...(file.issues??[]),...(file.sheets??[]).filter(sheet=>sheet.selected).flatMap(sheet=>sheet.issues??[])]).filter(issue=>issue.severity==='error');
   if(parserErrors.length)SR63.fail(`توجد ${parserErrors.length} مشكلة مانعة في قراءة ملف Excel؛ لم تُعتمد النتائج. أولها في الصف ${parserErrors[0].row}: ${parserErrors[0].message}`);
   const identityFixes=SR63.resolveImportIdentityConflicts(workspace,items);
-  const catalog=SR63.ensureCatalog(workspace),canonicalSubjects=new Map(catalog.subjects.map(s=>[SR63.subjectAliasKey(s.name),s])),batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),normalizedRows=SR63.reconcileStudentRows(workspace.rows).map(row=>{const corrected=identityFixes.get(SR63.nationalityId(row.studentId));return corrected?{...row,studentName:corrected}:row;}),identityIds=SR63.studentIdentityIndex({...workspace,rows:normalizedRows}),rows=new Map(normalizedRows.map(row=>[_j(row),row])),aliasRows=new Map(normalizedRows.map(row=>[`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`,_j(row)])),originalAliases=new Set(normalizedRows.map(row=>`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`)),changes=[];let skipped=0,created=0,updated=0;
+  const catalog=SR63.ensureCatalog(workspace),canonicalSubjects=new Map(catalog.subjects.map(s=>[SR63.subjectAliasKey(s.name),s])),batchId=crypto.randomUUID(),profiles=new Map(workspace.teachers.map(p=>[p.id,p])),links=new Map(matches.map(m=>[m.key,m])),normalizedRows=SR63.reconcileStudentRows(workspace.rows).map(row=>{const corrected=identityFixes.get(SR63.nationalityId(row.studentId))?.name;return corrected?{...row,studentName:corrected}:row;}),identityIds=SR63.studentIdentityIndex({...workspace,rows:normalizedRows}),rows=new Map(normalizedRows.map(row=>[_j(row),row])),aliasRows=new Map(normalizedRows.map(row=>[`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`,_j(row)])),originalAliases=new Set(normalizedRows.map(row=>`${ij(row.studentId)}|${SR63.subjectAliasKey(row.subject)}`)),changes=[];let skipped=0,created=0,updated=0;
   const usedExams=new Set(),seen=new Set();
   for(const originalItem of items){
-    const correctedName=identityFixes.get(SR63.nationalityId(originalItem.studentId));
+    const correctedName=identityFixes.get(SR63.nationalityId(originalItem.studentId))?.name;
     const item=correctedName?{...originalItem,studentName:correctedName}:originalItem;
     const target=item.exam??exam,link=links.get(SR63.linkKey(item))??links.get(dj(item.subject,item.className)),support=SR63.supportClassInfo(item.className),profile=support?{id:'__support__',teacher:String(item.teacher??'').trim()||SR63.SUPPORT_DEPARTMENT,department:SR63.SUPPORT_DEPARTMENT}:profiles.get(link?.selectedProfileId),total=getTotal(item);
     if(!support&&!profile)SR63.fail('يوجد إسناد غير مكتمل. أكمل خريطة التكليفات أولًا.');
@@ -198,5 +238,5 @@ SR63.commitImport=function(workspace,items,matches,files,exam,defaultTotal,getTo
   const definitions=new Map(files.flatMap(file=>file.sheets.filter(s=>s.selected&&s.wide&&s.examDefinition).map(s=>[s.exam,s.examDefinition])));
   const wide=definitions.size>0,exams=workspace.settings.exams.map(def=>definitions.has(def.key)?{...def,...definitions.get(def.key)}:!wide&&def.key===exam?{...def,total:defaultTotal}:def);
   const imported={id:batchId,name:[...new Set(files.map(f=>f.fileName))].join('، '),at:new Date().toISOString(),rows:changes.length,warnings:files.flatMap(f=>[...f.issues,...f.sheets.flatMap(s=>s.issues)]).filter(i=>i.severity==='warning').length,kind:'results',exam:usedExams.size>1?'multi':[...usedExams][0]??exam,changes,skipped,updated,created};
-  return jj(SR63.withCatalog({...workspace,rows:[...rows.values()],activeExam:usedExams.size===1?[...usedExams][0]:workspace.activeExam,settings:{...workspace.settings,exams},teacherAssignments:assignments,students:(workspace.students??[]).map(student=>{const corrected=identityFixes.get(SR63.nationalityId(student.studentId));return corrected?{...student,studentName:corrected}:student;}),teachers:workspace.teachers.map(p=>({...p,classes:[...new Set(assignments.filter(a=>a.profileId===p.id).map(a=>a.className))]})),imports:[imported,...workspace.imports]}),'استيراد النتائج',`${imported.name} — ${changes.length} نتيجة، ${usedExams.size} اختبار`);
+  return jj(SR63.withCatalog({...workspace,rows:[...rows.values()],activeExam:usedExams.size===1?[...usedExams][0]:workspace.activeExam,settings:{...workspace.settings,exams},teacherAssignments:assignments,students:(workspace.students??[]).map(student=>{const corrected=identityFixes.get(SR63.nationalityId(student.studentId))?.name;return corrected?{...student,studentName:corrected}:student;}),teachers:workspace.teachers.map(p=>({...p,classes:[...new Set(assignments.filter(a=>a.profileId===p.id).map(a=>a.className))]})),imports:[imported,...workspace.imports]}),'استيراد النتائج',`${imported.name} — ${changes.length} نتيجة، ${usedExams.size} اختبار`);
 };
