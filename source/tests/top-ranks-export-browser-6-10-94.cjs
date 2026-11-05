@@ -52,14 +52,20 @@ async function main(){
   const malformed=await page.evaluate(xml=>new DOMParser().parseFromString(xml,'application/xml').getElementsByTagName('parsererror').length,documentXml);
   assert.equal(malformed,0,'DOCX XML should parse without errors');
   await scope.selectOption('qatari');
-  const pdfDownload=page.waitForEvent('download',{timeout:15000});
-  await area.getByRole('button',{name:'تحميل PDF'}).click();
-  let pdf;
-  try{pdf=await pdfDownload;}
-  catch(error){
+  const pdfDownload=page.waitForEvent('download',{timeout:20000}).catch(error=>error);
+  await area.getByRole('button',{name:'تحميل PDF'}).click({noWaitAfter:true});
+  const pdf=await pdfDownload;
+  if(pdf instanceof Error){
    const alert=await area.locator('[role="alert"]').allTextContents();
-   const text=await area.innerText();
-   throw Error('PDF direct export failed: '+JSON.stringify({alert,tail:text.slice(-850),pageErrors:errors})+' '+error.message);
+   const direct=await page.evaluate(async ws=>{
+    const groups=SR63.studentTopRankings(ws,{exam:'exam1',mode:'grade',nationalityMode:'split'});
+    const selected=SR63.topRanksExportPages(groups,{scope:'qatari'});
+    try{
+     const blob=await SR63.topRanksPdfBlob(selected,{workspace:ws,mode:'grade',title:'المراكز العشرة الأولى',examName:'الاختبار الأول',method:'تحليل النتائج',note:'الطلاب المتساوون'});
+     return {bytes:blob.size};
+    }catch(e){return {error:String(e?.message||e),stack:String(e?.stack||'').slice(0,900)};}
+   },ws);
+   throw Error('PDF direct export failed: '+JSON.stringify({alert,direct,pageErrors:errors})+' '+pdf.message);
   }
   const pdfBytes=fs.readFileSync(await pdf.path());
   assert.ok(pdf.suggestedFilename().endsWith('.pdf'));
