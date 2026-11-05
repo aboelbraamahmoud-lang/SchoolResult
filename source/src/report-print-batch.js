@@ -115,7 +115,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
 };
 SR63.prepareReportPreview=function(page){
  if(!page)return;
- const fit=()=>{if(!page.isConnected)return;try{
+ const fit=()=>{if(!page.isConnected)return;try{SR63.ensureReportContrast?.(page);
   const landscape=page.dataset.orientation==='landscape';
   SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
   delete page.dataset.fitError;
@@ -167,6 +167,7 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
     const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');
+    SR63.ensureReportContrast?.(win.document);
     const fit=SR63.fitReportPagesForPrint(win.document,landscape);
     if(fit.some(page=>page.zoom<.35))throw Error('عرض التقرير يتجاوز مساحة A4 بشكل كبير؛ اختر صفًا أو معلمًا أو عددًا أقل من الأعمدة.');
     win.focus();win.print();

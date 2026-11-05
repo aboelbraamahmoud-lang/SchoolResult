@@ -88,6 +88,7 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  for(const img of element.querySelectorAll('img')){
   await img.decode();if(!img.naturalWidth)throw Error('تعذر تحميل شعار أو صورة التقرير.');
  }
+ SR63.ensureReportContrast?.(element);
  SR63.planReportSheet(element,w,h);
  // Rasterize the original DOM/CSS without hand-positioning text or replacing colors.
  const canvas=await SR72Canvas.toCanvas(element,{pixelRatio:300/96,backgroundColor:'#fff',

@@ -11,7 +11,7 @@ assert.match(ui,/mde\(reportRows,i,o,S,n,T,g,e\.settings\)/);
 assert.match(ui,/n==='struggling'\|\|n==='support'\|\|n==='levels'&&i==='support'\?\(e.rows\|\|\[\]\)/,'targeted and special-education reports use only the already-scoped rows returned to coordinator');
 assert.match(ui,/\.filter\(row=>row&&String\(row\.subject\|\|''\)\.trim\(\)===fixedSubject\)/,'report pages filter to one subject without evaluating null rows');
 assert.doesNotMatch(ui,/fixedSubject\|\|\x60الكل\x60/,'no all-subject fallback for coordinator');
-assert.equal((ui.match(/SR63\.buildReportPages\(reportRows,i,o,S,n,T,g,e\.settings\)/g)||[]).length,2,'PDF and ZIP always use coordinator-scoped rows');
+assert.equal((ui.match(/SR63\.buildReportPages\(reportRows,i,o,S,n,T,g,e\.settings\)/g)||[]).length,3,'PDF, ZIP and Word always use coordinator-scoped rows');
 assert.match(ui,/'aria-readonly':true/);
 assert.match(staff,/reportScope:isLeadership\?'school':'department'/);
 const workspace=ctx.zj();

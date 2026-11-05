@@ -56,11 +56,11 @@ SR63.printStrugglingReport=async function(workspace,model,preparedWindow){
   const generatedAt=new Date().toLocaleString('ar-EG'),html=[];
   stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:297mm;pointer-events:none;';document.body.append(stage);root=y.createRoot(stage);
   for(let pageIndex=0;pageIndex<model.pages.length;pageIndex++){
-   if(preparedWindow.closed)return 0;
+   if(preparedWindow?.closed)return 0;
    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('تعذر تجهيز التقرير. أعد المحاولة.')),15000);root.render(v.createElement(SR63.StrugglingReportPage,{key:pageIndex,workspace,model,page:model.pages[pageIndex],pageIndex,generatedAt,pageRef:node=>{if(node){clearTimeout(timer);resolve();}}}));});
    html.push(stage.querySelector('.school-report-page').outerHTML);
   }
-  return await SR63.printReportBatch(html,'تقرير الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow);
+  return preparedWindow?await SR63.printReportBatch(html,'تقرير الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow):await SR63.downloadWordReport(html,{landscape:true,title:'تقرير الطلاب المتعثرين',filename:'تقرير الطلاب المتعثرين - '+tj(workspace.settings,model.exam).name});
  }catch(error){if(preparedWindow&&!preparedWindow.closed)preparedWindow.close();throw error;}
  finally{root?.unmount();stage?.remove();}
 };
@@ -73,7 +73,16 @@ SR63.StrugglingPrintButton=function({workspace,minimum,maximum,canPrint=true}){
   popup.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>تجهيز تقرير المتعثرين</title><body>جارٍ تجهيز جميع صفحات التقرير…</body></html>');popup.document.close();
   setBusy(true);try{await SR63.printStrugglingReport(workspace,model,popup);}catch(error){eb.error(error.message||'تعذر تجهيز التقرير.');}finally{setBusy(false);}
  };
- return v.createElement('div',{className:'sr678-print-action'},v.createElement(dA,{onClick:print,disabled:busy||!!model.error||!model.pages.length,title:'طباعة كل الطلاب المطابقين للنطاق وجميع مواد رسوبهم، وليس صفحة القائمة الحالية فقط'},v.createElement(Fy,{}),busy?'جارٍ تجهيز التقرير…':'طباعة تقرير المتعثرين'),v.createElement('small',{role:model.error?'alert':undefined},model.error||(!model.students.length?'لا توجد مواد رسوب ضمن النطاق المحدد.':Q(model.students.length)+' طالب · '+Q(model.subjectCount)+' مادة راسبة · طباعة / حفظ PDF')));
+ const word=async()=>{
+  if(busy||model.error||!model.pages.length)return;setBusy(true);
+  try{await SR63.printStrugglingReport(workspace,model,null);}
+  catch(error){eb.error(error.message||'تعذر تنزيل Word.');}
+  finally{setBusy(false);}
+ };
+ return v.createElement('div',{className:'sr678-print-action'},
+  v.createElement(dA,{onClick:print,disabled:busy||!!model.error||!model.pages.length,title:'طباعة كل الطلاب المطابقين للنطاق وجميع مواد رسوبهم، وليس صفحة القائمة الحالية فقط'},v.createElement(Fy,{}),busy?'جارٍ تجهيز التقرير…':'طباعة تقرير المتعثرين'),
+  v.createElement(dA,{onClick:()=>void word(),disabled:busy||!!model.error||!model.pages.length},'تحميل Word'),
+  v.createElement('small',{role:model.error?'alert':undefined},model.error||(!model.students.length?'لا توجد مواد رسوب ضمن النطاق المحدد.':Q(model.students.length)+' طالب · '+Q(model.subjectCount)+' مادة راسبة · طباعة / حفظ PDF / Word')));
 };
 
 
@@ -175,7 +184,7 @@ SR63.printStrugglingStatistics=async function(workspace,preparedWindow){
   stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:297mm;pointer-events:none;';
   document.body.append(stage);root=y.createRoot(stage);
   for(let pageIndex=0;pageIndex<pages.length;pageIndex++){
-   if(preparedWindow.closed)return 0;
+   if(preparedWindow?.closed)return 0;
    await new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>reject(Error('تعذر تجهيز الإحصاء المجمع للطباعة.')),15000);
     root.render(v.createElement(SR63.StrugglingStatisticsPrintPage,{
@@ -187,7 +196,7 @@ SR63.printStrugglingStatistics=async function(workspace,preparedWindow){
    if(!pageNode)throw Error('تعذر إنشاء صفحة الإحصاء للطباعة.');
    html.push(pageNode.outerHTML);
   }
-  return await SR63.printReportBatch(html,'إحصاء الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow);
+  return preparedWindow?await SR63.printReportBatch(html,'إحصاء الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow):await SR63.downloadWordReport(html,{landscape:true,title:'إحصاء الطلاب المتعثرين',filename:'إحصاء الطلاب المتعثرين - '+tj(workspace.settings,model.exam).name});
  }catch(error){if(preparedWindow&&!preparedWindow.closed)preparedWindow.close();throw error;}
  finally{root?.unmount();stage?.remove();}
 };
@@ -204,5 +213,13 @@ SR63.StrugglingStatsPrintButton=function({workspace,canPrint=true}){
   catch(error){eb.error(error.message||'تعذر طباعة الإحصاء المجمع.');}
   finally{setBusy(false);}
  };
- return v.createElement(dA,{onClick:print,disabled:busy,className:'sr681-print-button',title:'طباعة الإحصاء المجمع لكامل المدرسة والمواد والشعب بصيغة A4 وحفظه PDF'},v.createElement(Fy,{}),busy?'جارٍ تجهيز الطباعة…':'طباعة الإحصاء المجمع');
+ const word=async()=>{
+  if(busy)return;setBusy(true);
+  try{await SR63.printStrugglingStatistics(workspace,null);}
+  catch(error){eb.error(error.message||'تعذر تحميل Word للإحصاء.');}
+  finally{setBusy(false);}
+ };
+ return v.createElement('div',{className:'sr681-print-actions'},
+  v.createElement(dA,{onClick:print,disabled:busy,className:'sr681-print-button',title:'طباعة الإحصاء المجمع لكامل المدرسة والمواد والشعب بصيغة A4 وحفظه PDF'},v.createElement(Fy,{}),busy?'جارٍ تجهيز الطباعة…':'طباعة الإحصاء المجمع'),
+  v.createElement(dA,{onClick:()=>void word(),disabled:busy,className:'sr681-print-button'},'تحميل Word للإحصاء'));
 };
