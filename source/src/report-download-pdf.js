@@ -47,7 +47,7 @@ SR63.reportPdfFromJpegs=function(images){
  append(`trailer\n<</Size ${total}/Root 1 0 R>>\nstartxref\n${xref}\n%%EOF\n`);
  return new Blob(parts,{type:'application/pdf'});
 };
-SR63.reportZipFromPdfs=async function(files){
+SR63.reportZipFromPdfs=async function(files,preservePackagePaths=false){
  // Simple UTF-8 ZIP "store" writer; PDFs already contain JPEG-compressed page images.
  if(!files.length)throw Error('لا توجد تقارير لتنزيلها.');
  const enc=new TextEncoder(),pieces=[],central=[];let offset=0;
@@ -56,7 +56,9 @@ SR63.reportZipFromPdfs=async function(files){
  const crc32=data=>{let c=0xffffffff;for(const x of data)c=table[(c^x)&255]^(c>>>8);return(c^0xffffffff)>>>0;};
  const hdr=(size,sig)=>{const b=new Uint8Array(size);const d=new DataView(b.buffer);d.setUint32(0,sig,true);return {b,d};};
  for(const {name,blob} of files){
-  const filename=enc.encode(SR63.safeReportFilename(name)),fileBytes=new Uint8Array(await blob.arrayBuffer());
+  const safeInternal=String(name||'');
+   if(preservePackagePaths&&!/^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[a-zA-Z0-9_\-\[\]\/\.]+$/.test(safeInternal))throw Error('مسار غير صالح داخل مستند Word.');
+   const filename=enc.encode(preservePackagePaths?safeInternal:SR63.safeReportFilename(name)),fileBytes=new Uint8Array(await blob.arrayBuffer());
   if(fileBytes.length>0xffffffff||offset>0xffffffff)throw Error('حجم التقرير يتجاوز حد ملفات ZIP التقليدية.');
   const crc=crc32(fileBytes),start=offset;
   const {b:l,d:ld}=hdr(30,0x04034b50);ld.setUint16(4,20,true);ld.setUint16(6,0x800,true);ld.setUint32(14,crc,true);ld.setUint32(18,fileBytes.length,true);ld.setUint32(22,fileBytes.length,true);ld.setUint16(26,filename.length,true);
