@@ -34,7 +34,12 @@
    '<div class="tr-page-num">صفحة '+n+' من '+count+'</div></article>';
  }
  SR63.topRanksExportHtml=(pages,meta)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>'+css+'</style></head><body>'+pages.map((p,i)=>pageHtml(p,meta,i+1,pages.length)).join('')+'</body></html>';
- const textRun=(value,size=19,bold=false,color='19384A')=>'<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>'+(bold?'<w:b/>':'')+'<w:color w:val="'+color+'"/></w:rPr><w:t xml:space="preserve">'+xml(value)+'</w:t></w:r>';
+ const textRun=(value,size=19,bold=false,color='19384A')=>
+  String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean).map(part=>
+   '<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl w:val="'+(/[\u0590-\u08FF]/.test(part)?'1':'0')+'"/>'+
+   '<w:lang w:bidi="ar-QA"/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>'+
+   (bold?'<w:b/>':'')+'<w:color w:val="'+color+'"/></w:rPr>'+
+   '<w:t xml:space="preserve">'+xml(part)+'</w:t></w:r>').join('');
  const p=(value,opts={})=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+(opts.align||'right')+'"/><w:spacing w:after="'+(opts.after??100)+'"/></w:pPr>'+textRun(value,opts.size||19,opts.bold||false,opts.color||'19384A')+'</w:p>';
  const widths=[1350,3500,1450,1680,1680,1310,2230];
  const col=(value,width,head,alternate)=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/><w:shd w:val="clear" w:fill="'+(head?'D9E9EE':alternate?'F5FAFB':'FFFFFF')+'"/></w:tcPr>'+p(value,{bold:head,size:head?17:18,color:head?'173F51':'19384A',after:0})+'</w:tc>';
