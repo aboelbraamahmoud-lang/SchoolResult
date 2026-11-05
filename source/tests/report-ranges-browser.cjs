@@ -20,6 +20,20 @@ async function main(){
    rangeRoot.render(v.createElement(xde,{workspace:ws,onExportExcel:()=>{},readOnly:role!=='admin',onSchoolSummary:role==='admin'?null:()=>{},reportScope:role==='coordinator'?'department':'school',canCompareSubjects:true,canPrint:true}));
   },{ws,role,aggregates});
   const host=page.locator('#range-test');await host.locator('button').filter({has:page.getByText('الطلاب ضمن نسبة',{exact:true})}).first().click();
+  // One-click Word must be visibly available on every regular report card.
+  const directCards=host.locator('.sr-word-report-card-action');
+  assert.ok(await directCards.count()>=5,'Word actions must be visible on regular report cards');
+  const quickSummary=host.locator('.sr-word-report-card-wrap[data-report-id="summary"] .sr-word-report-card-action');
+  await quickSummary.waitFor({state:'visible'});
+  assert.equal(await quickSummary.isEnabled(),true,'summary Word action must work before preview');
+  const quickPromise=page.waitForEvent('download',{timeout:30000});
+  await quickSummary.click();
+  const quickDownload=await quickPromise,quickPath=await quickDownload.path();
+  assert.match(quickDownload.suggestedFilename(),/\.docx$/i);
+  assert.equal(fs.readFileSync(quickPath).subarray(0,2).toString('latin1'),'PK');
+  const quickXML=cp.execFileSync('unzip',['-p',quickPath,'word/document.xml'],{encoding:'utf8'});
+  assert.match(quickXML,/w:bidiVisual w:val="1"/);
+  assert.ok(quickXML.includes('طالب النطاق'),'the selected report includes the right student data');
   const wordButton=host.getByRole('button',{name:'تحميل Word (.docx) — نفس التقرير',exact:true});
   const pdfButton=host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true});
   await wordButton.waitFor({state:'visible'});
