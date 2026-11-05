@@ -263,4 +263,9 @@ code=canvasBundle+'\n'+services+'\n' +sharedAnalytics.generated+'\n'+sr680Analyt
 acorn.parse(code,{ecmaVersion:'latest'});
 fs.writeFileSync(path.join(webRoot,'app.js'),code);
 fs.writeFileSync(path.join(webRoot,'style.css'),readSource('base/style.css')+'\n'+readSource('src/repair.css'));
+// Avoid stale app.js/style.css cache across school releases (including clients with cached HTML).
+const entryPath=path.join(webRoot,'index.html');
+const entryHtml=fs.readFileSync(entryPath,'utf8');
+const currentHtml=entryHtml.replace(/(\.\/(?:app\.js|supabase\.js|style\.css)\?v=)[\w.\-]+/g,(_matched,prefix)=>prefix+version.version);
+if(currentHtml!==entryHtml)fs.writeFileSync(entryPath,currentHtml);
 console.log(`Built ${changes.length} replacements; ${Buffer.byteLength(code)} bytes; JavaScript syntax valid.`);

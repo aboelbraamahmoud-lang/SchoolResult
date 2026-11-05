@@ -138,6 +138,8 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
   // for the entire selected report scope (including pages beyond preview batch 8).
   const pages=Array.isArray(selector)?selector:[...document.querySelectorAll(selector)];
   if(!pages.length)throw new Error('جهّز المعاينة أولًا.');
+  // Preserve identical contrast in the live preview and its printed clone.
+  for(const page of pages)if(typeof page!=='string')SR63.ensureReportContrast?.(page);
   // Open synchronously while the click's user activation is available.
   const win=preparedWindow||window.open('','_blank');if(!win)throw new Error('فعّل السماح بالنوافذ المنبثقة للطباعة.');
   win.document.open();win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تجهيز الطباعة…</title></head><body><p dir="rtl">جارٍ تجهيز التقرير والتأكد من تحميل الخطوط والصور قبل الطباعة…</p></body></html>');win.document.close();
@@ -167,7 +169,6 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
     const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');
-    SR63.ensureReportContrast?.(win.document);
     const fit=SR63.fitReportPagesForPrint(win.document,landscape);
     if(fit.some(page=>page.zoom<.35))throw Error('عرض التقرير يتجاوز مساحة A4 بشكل كبير؛ اختر صفًا أو معلمًا أو عددًا أقل من الأعمدة.');
     win.focus();win.print();
