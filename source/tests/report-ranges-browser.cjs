@@ -41,8 +41,9 @@ async function main(){
     assert.equal(bytes.subarray(0,2).toString('latin1'),'PK');
     cp.execFileSync('unzip',['-t',fullPath],{stdio:'pipe'});
     const doc=cp.execFileSync('unzip',['-p',fullPath,'word/document.xml'],{encoding:'utf8'});
-    assert.ok(doc.includes('طالب النطاق 10')&&doc.includes('طالب النطاق 12'),'Word file includes same selected 90–100% students');
-    assert.ok(!doc.includes('طالب النطاق 2'),'Word file excludes rows outside range');
+    const wordPlain=[...doc.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m=>m[1]).join('');
+    assert.ok(wordPlain.includes('طالب النطاق 10')&&wordPlain.includes('طالب النطاق 12'),'Word file includes same selected 90–100% students');
+    assert.ok(!wordPlain.includes('طالب النطاق 2'),'Word file excludes rows outside range');
    }
 
    const names=await host.locator('.target-student-name b').allTextContents();assert.deepEqual(names,indices.map(i=>'طالب النطاق '+i));assert.equal(await host.locator('.target-student-name small').count(),0,'personal IDs must not be rendered');

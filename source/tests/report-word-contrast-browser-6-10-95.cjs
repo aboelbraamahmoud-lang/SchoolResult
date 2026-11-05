@@ -23,7 +23,7 @@ async function main(){
    const style=document.createElement('style');style.textContent='#sr95-test .dark {background:#11283d;color:#142638;padding:14px} #sr95-test .light {background:#eff6fa;color:#193a4b} #sr95-test table {border-collapse:collapse} #sr95-test th {background:#17374a;color:#1a3945} #sr95-test td {background:#f0f7f9;color:#133747}';
    document.head.appendChild(style);
    const section=document.createElement('section');section.id='sr95-test';section.className='school-report-page report-landscape';
-   section.innerHTML='<header><img src="./moehe.png" width="110" height="44"><h1>تقرير تجريبي للمدرسة</h1><div class="dark"><span class="dark-text">عنوان بخلفية داكنة</span></div></header><div class="light"><span>مؤشرات أداء المدرسة</span></div><table><thead><tr><th>الطالب</th><th>النسبة</th></tr></thead><tbody><tr><td>طالب تجريبي</td><td>91.5%</td></tr></tbody></table><footer><strong>مدير المدرسة</strong></footer>';
+   section.innerHTML='<header class="report-head" dir="rtl"><img src="./moehe.png" width="110" height="44"><h1>تقرير تجريبي للمدرسة</h1><div class="dark"><span class="dark-text">عنوان بخلفية داكنة</span></div></header><div class="light"><span>مؤشرات أداء المدرسة</span></div><table dir="rtl"><colgroup><col style="width:70%"><col style="width:30%"></colgroup><thead><tr><th>الطالب</th><th>النسبة</th></tr></thead><tbody><tr><td>طالب تجريبي</td><td>91.5%</td></tr></tbody></table><footer><div class="report-signatures"><div><b>المعلم</b><span>معلم اختبار</span></div><div><b>منسق المادة</b><span>منسق اختبار</span></div><div><b>النائب الأكاديمي</b><span>نائب اختبار</span></div><div><b>مدير المدرسة</b><span>مدير اختبار</span></div></div></footer>';
    document.body.appendChild(section);
    const before=getComputedStyle(section.querySelector('.dark-text')).color;
    const affected=SR63.ensureReportContrast(section);
@@ -48,6 +48,15 @@ async function main(){
   const doc=cp.execFileSync('unzip',['-p',filename,'word/document.xml'],{encoding:'utf8'});
   for(const value of ['تقرير تجريبي للمدرسة','عنوان بخلفية داكنة','طالب تجريبي','91.5%','مدير المدرسة'])assert.ok(doc.includes(value),'editable text '+value);
   assert.ok(doc.includes('<w:tbl>')&&doc.includes('w:orient="landscape"'));
+  assert.match(doc,/w:bidiVisual w:val="1"/,'Word tables must begin at the right');
+  assert.match(doc,/w:bidi w:val="1"/,'Arabic paragraphs must be right-to-left');
+  assert.match(doc,/w:jc w:val="right"/,'Arabic report headings must be right aligned');
+  assert.ok(doc.includes('مدير اختبار')&&doc.includes('منسق اختبار'),'Word preserves signature columns');
+  const gridContents=[...doc.matchAll(/<w:tblGrid>([\s\S]*?)<\/w:tblGrid>/g)].map(m=>m[1]);
+  assert.ok(gridContents.length>=3,'Word should contain header, data grid, and footer signatures');
+  const detailed=gridContents.find(part=>(part.match(/w:gridCol /g)||[]).length===2&&
+    part.includes('w:w="10752"'));
+  assert.ok(detailed,'70/30 CSS column width from PDF must be retained in DOCX table');
   const invalid=await page.evaluate(x=>new DOMParser().parseFromString(x,'application/xml').getElementsByTagName('parsererror').length,doc);
   assert.equal(invalid,0,'Word OOXML must be valid');
   const duplicate=doc.match(/<w:t xml:space="preserve">طالب تجريبي<\/w:t>/g)||[];

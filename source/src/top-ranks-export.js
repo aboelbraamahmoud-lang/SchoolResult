@@ -34,20 +34,25 @@
    '<div class="tr-page-num">صفحة '+n+' من '+count+'</div></article>';
  }
  SR63.topRanksExportHtml=(pages,meta)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>'+css+'</style></head><body>'+pages.map((p,i)=>pageHtml(p,meta,i+1,pages.length)).join('')+'</body></html>';
- const textRun=(value,size=19,bold=false,color='19384A')=>'<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>'+(bold?'<w:b/>':'')+'<w:color w:val="'+color+'"/></w:rPr><w:t xml:space="preserve">'+xml(value)+'</w:t></w:r>';
- const p=(value,opts={})=>'<w:p><w:pPr><w:bidi/><w:jc w:val="'+(opts.align||'right')+'"/><w:spacing w:after="'+(opts.after??100)+'"/></w:pPr>'+textRun(value,opts.size||19,opts.bold||false,opts.color||'19384A')+'</w:p>';
+ const textRun=(value,size=19,bold=false,color='19384A')=>
+  String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean).map(part=>
+   '<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl w:val="'+(/[\u0590-\u08FF]/.test(part)?'1':'0')+'"/>'+
+   '<w:lang w:bidi="ar-QA"/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>'+
+   (bold?'<w:b/>':'')+'<w:color w:val="'+color+'"/></w:rPr>'+
+   '<w:t xml:space="preserve">'+xml(part)+'</w:t></w:r>').join('');
+ const p=(value,opts={})=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+(opts.align||'right')+'"/><w:spacing w:after="'+(opts.after??100)+'"/></w:pPr>'+textRun(value,opts.size||19,opts.bold||false,opts.color||'19384A')+'</w:p>';
  const widths=[1350,3500,1450,1680,1680,1310,2230];
  const col=(value,width,head,alternate)=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/><w:shd w:val="clear" w:fill="'+(head?'D9E9EE':alternate?'F5FAFB':'FFFFFF')+'"/></w:tcPr>'+p(value,{bold:head,size:head?17:18,color:head?'173F51':'19384A',after:0})+'</w:tc>';
  const table=rows=>{
   const b='<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>'<w:'+x+' w:val="single" w:sz="5" w:color="BCCED6"/>').join('')+'</w:tblBorders>';
-  const start='<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblLayout w:type="fixed"/><w:bidiVisual/>'+b+'</w:tblPr><w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
+  const start='<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblLayout w:type="fixed"/><w:bidiVisual w:val="1"/><w:jc w:val="right"/>'+b+'</w:tblPr><w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
   const tr=(values,head,index)=>'<w:tr><w:trPr><w:cantSplit/>'+(head?'<w:tblHeader/>':'')+'</w:trPr>'+values.map((x,j)=>col(x,widths[j],head,index%2===0)).join('')+'</w:tr>';
   return start+tr(labels,true,0)+rows.map((r,i)=>tr(cells(r),false,i)).join('')+'</w:tbl>';
  };
  const signature=(meta,group)=>{
   const s=meta.workspace.settings,d=s.reportDesign||{};if(d.showSignatures!==true)return '';
   const keys=d.signatureLabels||{},list=[[keys.teacher||'معلم المادة',''],[keys.coordinator||'منسق المادة',SR63.subjectCoordinator?.(meta.workspace,meta.mode==='subject'?group.subject:'')||s.coordinatorName||''],[keys.vice||'النائب الأكاديمي',s.academicViceName||''],[keys.principal||'مدير المدرسة',s.principalName||'']];
-  return '<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="13200" w:type="dxa"/></w:tblPr><w:tblGrid>'+Array(4).fill('<w:gridCol w:w="3300"/>').join('')+'</w:tblGrid><w:tr>'+list.map(([title,name])=>'<w:tc><w:tcPr><w:tcW w:w="3300" w:type="dxa"/></w:tcPr>'+p(title,{size:16,bold:true,color:'24516B',align:'center',after:40})+p(name,{size:16,align:'center',after:40})+'</w:tc>').join('')+'</w:tr></w:tbl>';
+  return '<w:tbl><w:tblPr><w:bidiVisual w:val="1"/><w:jc w:val="right"/><w:tblW w:w="13200" w:type="dxa"/></w:tblPr><w:tblGrid>'+Array(4).fill('<w:gridCol w:w="3300"/>').join('')+'</w:tblGrid><w:tr>'+list.map(([title,name])=>'<w:tc><w:tcPr><w:tcW w:w="3300" w:type="dxa"/></w:tcPr>'+p(title,{size:16,bold:true,color:'24516B',align:'center',after:40})+p(name,{size:16,align:'center',after:40})+'</w:tc>').join('')+'</w:tr></w:tbl>';
  };
  const logo=()=>'<w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="1660000" cy="730000"/><wp:docPr id="1" name="شعار الوزارة"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="moehe.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1660000" cy="730000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
  SR63.topRanksWordBlob=async(pages,meta)=>{
