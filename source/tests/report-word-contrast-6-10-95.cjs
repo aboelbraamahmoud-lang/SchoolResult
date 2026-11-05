@@ -15,6 +15,12 @@ const ui=inSrc('patches/ui.js'),word=inSrc('report-word-export.js'),contrast=inS
 const pdf=inSrc('report-download-pdf.js'),print=inSrc('report-print-batch.js');
 for(const role of ['admin','vice_principal','coordinator'])assert.ok(/downloadWordReport/.test(ui),'all roles share the original report center');
 assert.match(ui,/تنزيل Word — نفس التقرير/);
+assert.match(ui,/children:`تنزيل Word`/,'Word export appears beside PDF in the report center header');
+const webRoot=path.join(__dirname,'../..'),indexHTML=fs.readFileSync(path.join(webRoot,'index.html'),'utf8');
+const releaseVersion=JSON.parse(fs.readFileSync(path.join(webRoot,'version.json'),'utf8')).version;
+for(const file of ['app.js','style.css','supabase.js'])assert.ok(indexHTML.includes('./'+file+'?v='+releaseVersion),'cache version must match the release for '+file);
+assert.match(fs.readFileSync(path.join(__dirname,'../build.cjs'),'utf8'),/currentHtml=entryHtml\.replace/,'future builds keep page asset version in sync');
+
 assert.match(ui,/renderReportHTML\(exportPages,landscape/);
 assert.match(pdf,/ensureReportContrast/);
 assert.match(print,/ensureReportContrast/);
