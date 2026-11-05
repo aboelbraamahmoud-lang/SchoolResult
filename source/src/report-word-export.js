@@ -10,22 +10,34 @@
  const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
  const isBlock=el=>/^(?:DIV|P|SECTION|ARTICLE|HEADER|FOOTER|MAIN|H[1-6]|UL|OL|LI|FIGURE|FIGCAPTION|ASIDE|BLOCKQUOTE|PRE)$/i.test(el?.tagName||'');
  const visible=el=>{const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden';};
- const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi/><w:jc w:val="'+align+'"/><w:spacing w:after="65" w:line="245" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
- function fontStyle(el){
-  const s=getComputedStyle(el),font=Math.min(29,Math.max(14,Math.round((parseFloat(s.fontSize)||12)*1.5)));
-  const color=rgb(s.color)||'19384A';
-  const bold=/bold|bolder/i.test(s.fontWeight)||+s.fontWeight>=600||/^(B|STRONG|TH|H[1-6])$/.test(el.tagName);
-  return '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/><w:sz w:val="'+font+'"/><w:szCs w:val="'+font+'"/><w:color w:val="'+color+'"/>'+(bold?'<w:b/>':'')+'</w:rPr>';
+ const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+align+'"/><w:spacing w:after="70" w:line="260" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
+ // Word handles RTL numerals best when Arabic and numeric runs are isolated.
+ const textTokens=value=>String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean);
+ function fontStyle(el,value=''){
+  const style=getComputedStyle(el);
+  const font=Math.min(40,Math.max(13,Math.round((parseFloat(style.fontSize)||12)*1.5)));
+  const color=rgb(style.color)||'19384A';
+  const bold=/bold|bolder/i.test(style.fontWeight)||+style.fontWeight>=600||/^(B|STRONG|TH|H[1-6])$/.test(el.tagName);
+  const family=/tahoma/i.test(style.fontFamily)?'Tahoma':'Arial';
+  const rtl=/[\u0590-\u08FF]/.test(value);
+  return '<w:rPr><w:rFonts w:ascii="'+family+'" w:hAnsi="'+family+'" w:cs="'+family+'"/>'+
+   '<w:rtl w:val="'+(rtl?'1':'0')+'"/><w:lang w:bidi="ar-QA"/>'+
+   '<w:sz w:val="'+font+'"/><w:szCs w:val="'+font+'"/><w:color w:val="'+color+'"/>'+
+   (bold?'<w:b/>':'')+'</w:rPr>';
  }
- const txt=(s,el)=>'<w:r>'+fontStyle(el)+'<w:t xml:space="preserve">'+esc(s)+'</w:t></w:r>';
+ const txt=(value,element)=>textTokens(value).map(part=>
+  '<w:r>'+fontStyle(element,part)+'<w:t xml:space="preserve">'+esc(part)+'</w:t></w:r>').join('');
  const inline=node=>{
   if(node.nodeType===3)return clean(node.nodeValue)?txt(node.nodeValue,node.parentElement):'';
   if(node.nodeType!==1||!visible(node))return '';
   if(node.tagName==='BR')return '<w:r><w:br/></w:r>';
   return [...node.childNodes].map(inline).join('');
  };
- const tagP=el=>para([...el.childNodes].map(inline).join(''),['center','left','right','justify'].includes(getComputedStyle(el).textAlign)?getComputedStyle(el).textAlign:'right');
- const wordWidth=landscape=>landscape?15000:10400;
+ const tagP=el=>{
+  const alignment=String(getComputedStyle(el).textAlign||'').toLowerCase();
+  return para([...el.childNodes].map(inline).join(''),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
+ };
+ const wordWidth=landscape=>landscape?15360:10460;
  const docHeader=()=>'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>';
  const partsXml=(body,landscape)=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+docHeader()+body+'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/>'+
   '<w:pgMar w:top="640" w:bottom="640" w:right="700" w:left="700" w:header="340" w:footer="340" w:gutter="0"/></w:sectPr></w:body></w:document>';
