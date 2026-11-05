@@ -68,6 +68,14 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
     '<p class="sr640-note">المصدر: بيانات العام الحالي في النظام والأرشيف السنوي للعام السابق. آخر حفظ للأرشيف: '+
      esc(r.archiveAt?new Date(r.archiveAt).toLocaleDateString('ar-EG'):'—')+'.</p>'};
  }
+ const doWord=async()=>{
+  if(!canPrint||!canReport)return;
+  try{
+   const report=documentReport();
+   await SR63.downloadStaffReportWord(report,{schoolName:r.schoolName,academicYear:r.previousYear+' / '+r.currentYear,
+    principalName:r.principalName,workspace});
+  }catch(error){setState(x=>({...x,error:String(error.message||error)}));}
+ };
  const doPrint=()=>{
   if(!canPrint||!canReport)return;
   try{SR63.staffPrintHtml(documentReport(),{schoolName:r.schoolName,academicYear:r.previousYear+' / '+r.currentYear,
@@ -90,7 +98,7 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
      h('option',{value:'الكل'},'المدرسة بالكامل'),
      grades.map(x=>h('option',{key:x.grade,value:x.grade},x.label)))),
    h('button',{type:'button',disabled:state.loading,onClick:()=>setRefresh(n=>n+1)},'تحديث المقارنة'),
-   h('button',{type:'button',disabled:!canPrint||!canReport,onClick:doPrint},'معاينة الطباعة / حفظ PDF')),
+   h('button',{type:'button',disabled:!canPrint||!canReport,onClick:doPrint},'معاينة الطباعة / حفظ PDF'),h('button',{type:'button',disabled:!canPrint||!canReport,onClick:()=>void doWord()},'تنزيل Word')),
   state.loading?h('p',{className:'sr67-year-status',role:'status'},'جارٍ قراءة بيانات العام الحالي والأرشيف السنوي السابق…'):null,
   state.error?h('p',{className:'sr67-year-alert',role:'alert'},state.error):null,
   warning?h('p',{className:'sr67-year-alert',role:'alert'},warning):null,

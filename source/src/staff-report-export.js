@@ -89,6 +89,7 @@
    for(const img of prepared.images)await SR63.reportEmbedImage(img);
    if(win.closed)return;
    win.document.open();win.document.write('<!doctype html>'+prepared.documentElement.outerHTML);win.document.close();
+   SR63.ensureReportContrast?.(win.document);
    const images=[...win.document.images];
    await Promise.race([Promise.all([win.document.fonts?.ready||Promise.resolve(),...images.map(img=>img.decode())]),new Promise((_,reject)=>setTimeout(()=>reject(Error('لم يكتمل تحميل خطوط أو صور التقرير.')),15000))]);
    if(win.closed)return;

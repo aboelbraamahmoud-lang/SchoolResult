@@ -108,6 +108,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
     const node=stage.querySelector('.school-report-page');
     if(!node)throw Error('تعذر تجهيز إحدى صفحات التقرير للطباعة.');
     await Promise.all([...node.querySelectorAll('img')].map(img=>img.decode()));
+    SR63.ensureReportContrast?.(node);
     SR63.planReportSheet(node,(isLandscape?297:210)*96/25.4,(isLandscape?210:297)*96/25.4);
     pageHTML.push(capture?await capture(node,page,pIndex):node.outerHTML);
    }
@@ -174,6 +175,26 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   }
  };
 
+ const exportWord=async()=>{
+  if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
+  if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
+  const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
+  if(!exportPages.length){eb.error('لا توجد صفحات لهذا التقرير حسب الاختيارات الحالية.');return;}
+  if(exportPages.length>250){eb.error('اختر نطاقًا أصغر؛ الحد الأقصى 250 صفحة.');return;}
+  try{
+   const landscape=SR63.reportPageIsLandscape(n);
+   const reportName=e.settings.reportDesign.reportNames[n]||'تقرير المدرسة';
+   const examName=w?(tj(e.settings,f).name+' - '+tj(e.settings,m).name):tj(e.settings,u).name;
+   const html=await renderReportHTML(exportPages,landscape,
+    index=>setDownloadState('جارٍ تجهيز Word: صفحة '+index+' من '+exportPages.length));
+   setDownloadState('جارٍ إنشاء ملف Word القابل للتحرير…');
+   await SR63.downloadWordReport(html,{landscape,title:reportName,filename:reportName+' - '+examName,
+    onProgress:(index,total)=>setDownloadState('تحويل صفحة '+index+' من '+total+' إلى Word…')});
+   eb.success('تم تنزيل '+exportPages.length+' صفحة بصيغة Word.');
+   if(!prepared)setPrepared(true);
+  }catch(error){eb.error('تعذّر تنزيل Word: '+String(error?.message||error));}
+  finally{setDownloadState('');}
+ };
  const exportPDF=async(split=false)=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل المقارنة.');return;}
@@ -220,6 +241,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
  (0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{htmlFor:`sr-range-max`,children:`الحد الأعلى (%) — غير شامل إلا إذا كان 100%`}),(0,q.jsx)(fA,{id:`sr-range-max`,className:`mt-2`,type:`number`,min:`0`,max:`100`,step:`any`,value:upperLimit,'aria-invalid':!!rangeError,onChange:e=>{_(e.target.value);invalidate()}})]}),
  (0,q.jsx)(`p`,{className:`col-span-full text-sm font-bold`,role:rangeError?`alert`:undefined,children:rangeError||`يشمل الحد الأدنى، والحد الأعلى غير شامل إلا 100% فتُحسب الدرجة الكاملة. مثال: من 90% إلى 100% شاملًا.`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 flex flex-wrap items-center gap-2`,children:[prepared?(0,q.jsx)(uA,{className:reportOverflowCount?`bg-rose-50 text-rose-700`:`bg-emerald-50 text-emerald-700`,children:reportOverflowCount?`فحص الطباعة: ${reportOverflowCount.toLocaleString(`ar-EG`)} صفحة تحتاج مراجعة`:`فحص الطباعة: جاهز`}):(0,q.jsx)(uA,{className:`bg-sky-50 text-sky-800`,children:`المعاينة لم تُجهز بعد`}),(0,q.jsxs)(uA,{className:`bg-slate-100 text-slate-700`,children:[prepared?D.length.toLocaleString(`ar-EG`):`0`,` صفحة`]}),O>0&&(0,q.jsxs)(uA,{className:`bg-amber-50 text-amber-800`,children:[O.toLocaleString(`ar-EG`),` اسم طويل — راجع المعاينة`]}),w&&f===m&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-700`,children:`اختر اختبارين مختلفين`}),(0,q.jsxs)(dA,{onClick:()=>void preparePreview(),disabled:w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`mr-auto bg-teal-700`,children:[subjectBusy?`جارٍ تحميل مقارنة المواد…`:`تجهيز المعاينة`]}),(previewError||subjectError||subjectBlocked)&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-800`,children:`${subjectBlocked?'مقارنة المواد تتطلب صلاحية مقارنة القسم بالأقسام الأخرى.':subjectError||('تعذر تجهيز المعاينة: '+previewError)}`}),!specialMode&&(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#123247]`,children:[(0,q.jsx)(Fy,{}),`طباعة التقرير الحالي`]}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(false),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-teal-700`,children:`تنزيل PDF كامل — ملف واحد`}),
+ (0,q.jsx)(dA,{onClick:()=>void exportWord(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#285c76] text-white`,children:`تنزيل Word — نفس التقرير`}),
   (0,q.jsx)(dA,{onClick:()=>void saveVectorPDF(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`حفظ PDF متجهي — بدون بكسلة عند التكبير`}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(true),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`تنزيل تقارير مفردة ZIP — حسب ${i===`teacher`?'المعلم':'الصف'}`}),
  downloadState&&(0,q.jsx)(`span`,{role:`status`,className:`sr646-export-status`,children:downloadState}),

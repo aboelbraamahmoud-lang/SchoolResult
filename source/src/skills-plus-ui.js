@@ -134,6 +134,16 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
    setMessage('اكتملت المعاينة.');
   }catch(e){try{win?.close();}catch{}setMessage('تعذرت المعاينة: '+(e?.message||e));}finally{setLoading(false);}
  };
+ const word=async()=>{
+  if(!canPrint||loading||!active)return;
+  try{
+   if(!reportModel.pages.length||reportModel.pages.length>200)throw Error('اختر تقريرًا يحتوي من 1 إلى 200 صفحة.');
+   setLoading(true);setMessage('جارٍ تجهيز Word بنفس صفحات تقرير المهارات…');
+   await SR63.downloadWordReport(reportModel.pages,{landscape:true,title:'تحليل مهارات '+active.subject,filename:'تحليل مهارات '+active.subject});
+   setMessage('تم تنزيل تحليل المهارات بصيغة Word.');
+  }catch(error){setMessage('تعذر تصدير Word: '+(error?.message||error));}
+  finally{setLoading(false);}
+ };
  const pdf=async()=>{
   if(!canPrint)return;let stage=null;try{
    if(!reportModel.pages.length||reportModel.pages.length>200)throw Error('اختر تقريرًا يحتوي من 1 إلى 200 صفحة.');
@@ -227,7 +237,7 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
    ['weak','comparison'].includes(report)?control('المهارة',skill?.key||'',setWantedSkill,active.skills.map(s=>[s.key,s.label])):null,
    report==='comparison'?control('الاختبار السابق',prior?.id||'',setWantedPrior,otherTests.length?otherTests.map(x=>[x.id,(settings.exams||[]).find(e=>e.key===x.exam)?.name||x.exam]):[['','لا توجد بيانات مقارنة']]):null),
    h('div',{className:'srskill-actions'},btn('معاينة وطباعة',()=>void print(),!canPrint||!reportModel.pages.length),
-    btn('تنزيل PDF',()=>void pdf(),!canPrint||!reportModel.pages.length),btn('تقارير الشعب ZIP',()=>void zipByClass(),!canPrint||!reportModel.pages.length),btn('تصدير Excel (CSV)',csvReport,!canPrint),h('span',{},'عدد الصفحات: '+reportModel.pages.length)),
+    btn('تنزيل PDF',()=>void pdf(),!canPrint||!reportModel.pages.length),btn('تنزيل Word',()=>void word(),!canPrint||!reportModel.pages.length),btn('تقارير الشعب ZIP',()=>void zipByClass(),!canPrint||!reportModel.pages.length),btn('تصدير Excel (CSV)',csvReport,!canPrint),h('span',{},'عدد الصفحات: '+reportModel.pages.length)),
    report==='comparison'&&!prior?h('p',{},'يلزم وجود درجات مهارات محفوظة للاختبار السابق للمقارنة.'):null,
    reportModel.pages.length?h('section',{className:'srskill-preview'},
     h('div',{className:'srskill-preview-navigation'},btn('صفحة سابقة',()=>setReportPage(n=>Math.max(0,n-1)),currentReportPage===0),

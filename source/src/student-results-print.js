@@ -34,6 +34,11 @@ SR63.studentResultPages=function(workspace,exam,filters={}){
   return pages.sort((a,b)=>SR63.gradeOrder(a.grade)-SR63.gradeOrder(b.grade)||lj(a.className).localeCompare(lj(b.className),'en',{numeric:true})||String(a.studentName).localeCompare(String(b.studentName),'ar',{numeric:true}));
 };
 // The printed student statement is the same React DOM as the on-screen preview.
+SR63.downloadStudentResultsWord=async function(){
+ const pages=[...(document.getElementById('printable-reports')?.querySelectorAll('.student-result-page')||[])];
+ if(!pages.length)throw Error('جهّز معاينة النتائج قبل تحميل Word.');
+ return await SR63.downloadWordReport(pages,{landscape:false,title:'بيان نتائج الطلاب',filename:'بيان نتائج الطلاب'});
+};
 SR63.printStudentResults=async function(){
   const report=document.getElementById('printable-reports');
   const pages=[...(report?.querySelectorAll?.('.student-result-page')||[])];
@@ -58,7 +63,7 @@ SR63.StudentResultsPrint=function({workspace}){
   const pages=(0,v.useMemo)(()=>prepared?SR63.studentResultPages(workspace,exam,{grade,className,studentId}):[],[prepared,workspace,exam,grade,className,studentId]);
   const invalidate=()=>setPrepared(false),select=(label,value,setter,items,allLabel)=>(0,q.jsxs)('label',{className:'student-results-filter',children:[(0,q.jsx)('span',{children:label}),(0,q.jsxs)('select',{value,onChange:event=>{setter(event.target.value);invalidate()},children:[allLabel?(0,q.jsx)('option',{value:'الكل',children:allLabel}):null,...items.map(item=>(0,q.jsx)('option',{value:item.value,children:item.label},item.value))]})]}),scoreText=item=>item.status==='present'&&Number.isFinite(item.score)?SR63.reportWestern(Number(item.score).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:false})):Dj(item.status),totalText=item=>Number.isFinite(item.total)?SR63.reportWestern(Number(item.total).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:false})):'—';
   return (0,q.jsxs)('div',{className:'space-y-6 student-results-print-screen',children:[
-    (0,q.jsxs)('section',{className:'student-results-command',children:[(0,q.jsxs)('div',{children:[(0,q.jsx)('span',{children:'نتيجة الطالب الرسمية'}),(0,q.jsx)('h1',{children:'طباعة نتائج الطلاب حسب التقييم'}),(0,q.jsx)('p',{children:'حدد التقييم والنطاق أولًا ثم جهّز المعاينة. لا يتم إنشاء مئات صفحات الطباعة بمجرد فتح الشاشة.'})]}),(0,q.jsxs)('div',{className:'student-results-command-actions',children:[(0,q.jsx)('button',{type:'button',onClick:()=>setPrepared(true),children:'تجهيز المعاينة'}),(0,q.jsx)('button',{type:'button',disabled:!prepared||!pages.length,onClick:()=>void SR63.printStudentResults(),children:prepared?`طباعة ${pages.length===1?'نتيجة الطالب':`${pages.length} نتيجة`}`:'الطباعة بعد التجهيز'})]})]}),
+    (0,q.jsxs)('section',{className:'student-results-command',children:[(0,q.jsxs)('div',{children:[(0,q.jsx)('span',{children:'نتيجة الطالب الرسمية'}),(0,q.jsx)('h1',{children:'طباعة نتائج الطلاب حسب التقييم'}),(0,q.jsx)('p',{children:'حدد التقييم والنطاق أولًا ثم جهّز المعاينة. لا يتم إنشاء مئات صفحات الطباعة بمجرد فتح الشاشة.'})]}),(0,q.jsxs)('div',{className:'student-results-command-actions',children:[(0,q.jsx)('button',{type:'button',onClick:()=>setPrepared(true),children:'تجهيز المعاينة'}),(0,q.jsx)('button',{type:'button',disabled:!prepared||!pages.length,onClick:()=>void SR63.printStudentResults(),children:prepared?`طباعة ${pages.length===1?'نتيجة الطالب':`${pages.length} نتيجة`}`:'الطباعة بعد التجهيز'}),(0,q.jsx)('button',{type:'button',disabled:!prepared||!pages.length,onClick:()=>void SR63.downloadStudentResultsWord().catch(error=>eb.error(error.message||'تعذر تحميل Word.')),children:'تحميل Word لنتائج الطلاب'})]})]}),
     (0,q.jsxs)('section',{className:'student-results-controls',children:[
       select('التقييم',exam,value=>{setExam(value);setGrade('الكل');setClassName('الكل');setStudentId('الكل')},workspace.settings.exams.map(item=>({value:item.key,label:item.name})),null),
       select('الصف',grade,value=>{setGrade(value);setClassName('الكل');setStudentId('الكل')},grades.map(value=>({value,label:value})),'كل الصفوف'),
