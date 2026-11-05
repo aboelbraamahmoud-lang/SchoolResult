@@ -27,7 +27,9 @@ assert.match(print,/ensureReportContrast/);
 assert.match(word,/w:tbl/);assert.match(word,/w:document/);
 assert.match(word,/application\/vnd\.openxmlformats-officedocument\.wordprocessingml\.document/);
 assert.match(word,/reportZipFromPdfs\(files,true\)/);
-assert.match(word,/getReportStyleText/);
+assert.doesNotMatch(word,/await SR63\.getReportStyleText\(\)/,'Word must use already loaded styles without a network fetch');
+assert.doesNotMatch(word,/fetch\(data\)/,'Word must not fetch data: URLs blocked by the site CSP');
+assert.match(word,/dataURLBlob/,'embedded data images must be decoded locally');
 assert.match(contrast,/ratio\(painted,background\)>=4\.5/);
 for(const p of ['staff.js','skills-plus-ui.js','year-over-year-ui.js','student-results-print.js','struggling-print.js'])
  assert.match(inSrc(p),/Word/,'a PDF/print report must offer a Word version: '+p);
