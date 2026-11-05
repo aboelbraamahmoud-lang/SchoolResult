@@ -38,7 +38,7 @@ async function main(){
     const downloaded=await downloadPromise;
     assert.match(downloaded.suggestedFilename(),/\.docx$/i);
     const fullPath=await downloaded.path(),bytes=fs.readFileSync(fullPath);
-    assert.equal(bytes.subarray(0,4).toString('latin1'),'PK\\x03\\x04'.replace(/\\x03/g,'\\u0003').replace(/\\x04/g,'\\u0004'));
+    assert.equal(bytes.subarray(0,2).toString('latin1'),'PK');
     cp.execFileSync('unzip',['-t',fullPath],{stdio:'pipe'});
     const doc=cp.execFileSync('unzip',['-p',fullPath,'word/document.xml'],{encoding:'utf8'});
     assert.ok(doc.includes('طالب النطاق 10')&&doc.includes('طالب النطاق 12'),'Word file includes same selected 90–100% students');
