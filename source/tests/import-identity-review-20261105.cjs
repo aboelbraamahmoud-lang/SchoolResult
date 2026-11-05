@@ -58,7 +58,17 @@ prompts=[];response=null;
 const approved=SR63.resolveImportIdentityConflicts(workspace,items);
 assert.equal(approved.get('11223344').name,newName);
 assert.equal(prompts.length,0,'pre-reviewed name must not prompt again');
+
+assert.equal(SR63.importUnresolvedIdentityCount(workspace,items),0,'valid reviewed correction unlocks identity count');
+assert.equal(SR63.importUnresolvedIdentityCount(workspace,[{...items[0],studentName:'اسم آخر'}]),1,'different incoming name invalidates prior approval');
+assert.equal(SR63.importUnresolvedIdentityCount(workspace,[{...items[0],studentName:oldName}]),0,'matching name never blocks');
+assert.equal(SR63.importUnresolvedIdentityCount({rows:[]},items),0,'no saved conflict');
+assert.equal(SR63.importUnresolvedIdentityCount({rows:[{studentId:'99887766',studentName:'غير مرتبط'}]},items),0,'unrelated existing records never block current batch');
+assert.equal(SR63.importUnresolvedIdentityCount({rows:[{studentId:'legacy-file-1',studentName:oldName}]},[{studentId:'legacy-file-1',studentName:newName}]),1,'legacy synthetic mismatches remain blocked');
 const build=fs.readFileSync(path.join(__dirname,'../build.cjs'),'utf8');
 assert.match(build,/مراجعة تعارضات الطلاب وتصحيحها/);
+assert.match(build,/importUnresolvedIdentityCount\(e,j\)/);
+assert.match(build,/setIdentityReviewRevision\(t=>t\+1\)/);
+assert.match(build,/ما زال هناك/);
 
 console.log('Student identity conflict preflight: passed');
