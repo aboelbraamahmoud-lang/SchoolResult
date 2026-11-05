@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.96",
+  "version": "6.10.97",
   "released": "2026-11-05",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تثبيت ظهور أزرار تنزيل Word عبر تجديد نسخة ملفات الواجهة تلقائيًا عند كل تحديث، وتوحيد تباين الخط بين معاينة نتائج الطلاب وطباعة PDF، مع بقاء تقارير الإدارة والنواب والمنسقين بنفس الصلاحيات والقوالب."
+  "notes": "تأكيد ظهور خيار تحميل Word مباشرة داخل بطاقة إعداد التقرير، ومنع استخدام ملفات JavaScript القديمة عبر إعادة التحقق من ملفات الواجهة ومنع تخزين صفحة الدخول مؤقتًا، مع اختبار واقعي لظهور أزرار Word وPDF للأدمن والنائب والمنسق."
 }
