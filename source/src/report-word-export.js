@@ -141,7 +141,7 @@
   const number=++context.imagesNumber,id='rId'+number,name='word/media/report-'+number+'.'+type;
   context.imageFiles.push({name,blob});context.imageRelations.push({id,name:'media/report-'+number+'.'+type});
   context.usedTypes.set(type,type==='jpeg'?'image/jpeg':type==='webp'?'image/webp':'image/png');
-  const rect=element.getBoundingClientRect(),maxWidth=context.landscape?675:450;
+  const rect=element.getBoundingClientRect(),maxWidth=context.maxImageWidth|| (context.landscape?675:450);
   const measuredWidth=rect.width||180,measuredHeight=rect.height||75;
   const width=Math.max(30,Math.min(maxWidth,measuredWidth)),height=Math.max(14,Math.min(context.landscape?220:280,measuredHeight*(width/measuredWidth)));
   const output=para(imageRun(id,number,width,height),'center');
@@ -232,23 +232,67 @@
   }).join('');
   return tableStart(width,widths)+rowXML+'</w:tbl>';
  }
- async function walk(el,context,depth=0){
+ const wordCell=(body,width,shading='FFFFFF')=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+
+  '<w:shd w:val="clear" w:fill="'+shading+'"/><w:vAlign w:val="center"/></w:tcPr>'+body+'</w:tc>';
+ async function wordHeader(el,context,depth){
+  const images=[...el.querySelectorAll('img')].filter(visible);
+  if(!images.length)return null;
+  const maxWidth=context.landscape?wordWidth(true):wordWidth(false);
+  const logoWidth=context.landscape?2950:2600;
+  const previous=context.maxImageWidth;
+  context.maxImageWidth=logoWidth/16;
+  let media='';
+  try{for(const image of images.slice(0,3))media+=await embed(image,context);}
+  finally{context.maxImageWidth=previous;}
+  const content=await walk(el,context,depth+1,true,true);
+  const textBody=content||para(txt(clean(el.textContent),el));
+  return tableStart(maxWidth,[maxWidth-logoWidth,logoWidth])+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
+   wordCell(textBody,maxWidth-logoWidth,'FFFFFF')+wordCell(media||para(''),logoWidth,'FFFFFF')+
+   '</w:tr></w:tbl>';
+ }
+ async function horizontalGroup(el,context,depth){
+  const children=[...el.children].filter(visible);
+  if(!children.length)return null;
+  const cols=children.length,width=wordWidth(context.landscape),colWidth=Math.floor(width/cols);
+  const widths=Array(cols).fill(colWidth);widths[cols-1]+=width-colWidth*cols;
+  const cells=[];
+  for(let i=0;i<cols;i++){
+   const child=children[i];
+   const title=child.querySelector(':scope > b,:scope > strong');
+   const value=child.querySelector(':scope > span,:scope > p');
+   let content='';
+   if(title&&value){
+    content+=para(txt(clean(title.textContent),title),'center','E7F0F3');
+    content+=para(txt(clean(value.textContent),value),'center');
+   }else content=await walk(child,context,depth+1);
+   cells.push(wordCell(content||para(txt(clean(child.textContent),child)),widths[i],i%2===0?'F6FAFB':'FFFFFF'));
+  }
+  return tableStart(width,widths)+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+cells.join('')+'</w:tr></w:tbl>';
+ }
+ async function walk(el,context,depth=0,skipImages=false,skipHeader=false){
   if(depth>24||!el||el.nodeType!==1||!visible(el))return '';
-  const name=el.tagName;
+  const name=el.tagName,classes=String(el.className?.baseVal??el.className??'');
   if(['SCRIPT','STYLE','BUTTON','SELECT','INPUT','TEXTAREA','NOSCRIPT'].includes(name))return '';
   if(name==='TABLE')return wordTable(el,context);
+  if(skipImages&&name==='IMG')return '';
   if(name==='IMG'||name==='SVG'||name==='CANVAS')return await embed(el,context);
+  if(!skipHeader&&(/(?:^|\s)(?:report-head|sr640-header|sr-top-export-header|tr-header)(?:\s|$)/.test(classes)||
+     name==='HEADER')&&el.querySelector('img')){
+   const header=await wordHeader(el,context,depth);if(header)return header;
+  }
+  if(/(?:^|\s)(?:report-signatures|sr640-signatures|report-meta-grid)(?:\s|$)/.test(classes)){
+   const result=await horizontalGroup(el,context,depth);if(result)return result;
+  }
   const children=[...el.children].filter(visible);
   const hasBlocks=children.some(child=>isBlock(child)||['TABLE','IMG','SVG','CANVAS'].includes(child.tagName));
   if(!hasBlocks){
-   const value=clean(el.textContent);
-   if(!value)return '';
+   if(!clean(el.textContent))return '';
    return tagP(el);
   }
   let out='';
   for(const node of el.childNodes){
    if(node.nodeType===3){if(clean(node.nodeValue))out+=para(txt(node.nodeValue,el));}
-   else if(node.nodeType===1)out+=await walk(node,context,depth+1);
+   else if(node.nodeType===1)out+=await walk(node,context,depth+1,skipImages,skipHeader);
   }
   return out;
  }
