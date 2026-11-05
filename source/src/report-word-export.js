@@ -148,26 +148,89 @@
   if(key)context.imageCache.set(key,output);
   return output;
  }
+ /* Widths/column order come from the SAME DOM table shown in PDF. */
+ function columnWidths(table,count,total){
+  let sizes=[];
+  const cols=table.querySelector(':scope > colgroup');
+  if(cols){
+   for(const col of cols.children){
+    if(col.tagName!=='COL')continue;
+    const span=Math.max(1,Number(col.span)||1);
+    let value=String(col.style.width||col.getAttribute('width')||'').trim();
+    let weight=parseFloat(value)||0;
+    if(value.endsWith('px'))weight=weight||0;
+    if(!weight){const bbox=col.getBoundingClientRect();weight=bbox.width||0;}
+    for(let i=0;i<span;i++)sizes.push(weight||1);
+   }
+  }
+  if(sizes.length!==count||sizes.some(v=>v<=0)){
+   sizes=Array(count).fill(0);
+   const source=[...table.rows].find(row=>[...row.cells].reduce((n,td)=>n+Math.max(1,td.colSpan||1),0)===count);
+   if(source){
+    let index=0;
+    for(const cell of source.cells){
+     const span=Math.max(1,cell.colSpan||1),size=cell.getBoundingClientRect().width||span;
+     for(let n=0;n<span&&index<count;n++,index++)sizes[index]=size/span;
+    }
+   }
+  }
+  if(!sizes.some(Boolean))sizes=Array(count).fill(1);
+  sizes=sizes.map(n=>Math.max(.1,n||1));
+  const sum=sizes.reduce((n,x)=>n+x,0);
+  const widths=sizes.map(v=>Math.max(160,Math.round(total*v/sum)));
+  widths[widths.length-1]+=total-widths.reduce((n,x)=>n+x,0);
+  return widths;
+ }
+ const tableBorders=()=>'<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>
+  '<w:'+x+' w:val="single" w:sz="5" w:color="BFCFD6"/>').join('')+'</w:tblBorders>';
+ const tableStart=(width,widths)=>'<w:tbl><w:tblPr><w:tblW w:w="'+width+'" w:type="dxa"/>'+
+  '<w:tblLayout w:type="fixed"/><w:bidiVisual w:val="1"/><w:jc w:val="right"/>'+tableBorders()+'</w:tblPr>'+
+  '<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
  function wordTable(table,context){
   const lines=[...table.rows];if(!lines.length)return '';
-  const maxCols=Math.max(1,...lines.map(tr=>[...tr.cells].reduce((sum,td)=>sum+Math.max(1,td.colSpan||1),0)));
-  const width=wordWidth(context.landscape),colWidth=Math.floor(width/maxCols);
-  const grid='<w:tblGrid>'+Array.from({length:maxCols},()=>'<w:gridCol w:w="'+colWidth+'"/>').join('')+'</w:tblGrid>';
-  const border='<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>'<w:'+x+' w:val="single" w:sz="4" w:color="BFCFD6"/>').join('')+'</w:tblBorders>';
-  const rows=lines.map((tr,rowIndex)=>{
-   const heads=tr.closest('thead')!==null;
-   const cells=[...tr.cells].map(td=>{
-    const span=Math.max(1,td.colSpan||1),style=getComputedStyle(td);
-    const bg=rgb(style.backgroundColor)|| (heads?'D9E9EE':rowIndex%2?'FFFFFF':'F5FAFB');
-    const value=clean(td.textContent)||' ';
+  const count=Math.max(1,...lines.map(tr=>[...tr.cells].reduce((sum,td)=>sum+Math.max(1,td.colSpan||1),0)));
+  const width=wordWidth(context.landscape),widths=columnWidths(table,count,width);
+  const pending=Array(count).fill(null);
+  const rowXML=lines.map((tr,rowIndex)=>{
+   const heads=!!tr.closest('thead'),cols=[],alternate=rowIndex%2===0;
+   let col=0;
+   const item=(td,span,merge)=>{
+    const w=widths.slice(col,col+span).reduce((n,x)=>n+x,0);
+    const style=td?getComputedStyle(td):null;
+    const rgbOf=node=>node?rgb(getComputedStyle(node).backgroundColor):null;
+    const bg=(style&&rgb(style.backgroundColor))||rgbOf(tr)||rgbOf(tr.parentElement)||
+     (heads?'D9E9EE':alternate?'F5FAFB':'FFFFFF');
     const sp=span>1?'<w:gridSpan w:val="'+span+'"/>':'';
-    const props='<w:tcPr><w:tcW w:w="'+(colWidth*span)+'" w:type="dxa"/>'+sp+'<w:shd w:val="clear" w:fill="'+bg+'"/>'+
-     '<w:tcMar><w:top w:w="74" w:type="dxa"/><w:bottom w:w="74" w:type="dxa"/><w:right w:w="68" w:type="dxa"/><w:left w:w="68" w:type="dxa"/></w:tcMar></w:tcPr>';
-    return '<w:tc>'+props+para(txt(value,td))+'</w:tc>';
-   }).join('');
-   return '<w:tr><w:trPr><w:cantSplit/>'+(heads?'<w:tblHeader/>':'')+'</w:trPr>'+cells+'</w:tr>';
+    const merged=merge?'<w:vMerge w:val="'+merge+'"/>':'';
+    const prop='<w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+sp+merged+
+     '<w:shd w:val="clear" w:fill="'+bg+'"/><w:vAlign w:val="center"/>'+
+     '<w:tcMar><w:top w:w="78" w:type="dxa"/><w:bottom w:w="78" w:type="dxa"/>'+
+     '<w:right w:w="76" w:type="dxa"/><w:left w:w="76" w:type="dxa"/></w:tcMar></w:tcPr>';
+    const align=style&&style.textAlign==='center'?'center':style&&style.textAlign==='left'?'left':'right';
+    const val=td?([...td.childNodes].map(inline).join('')||txt(' ',td)):'';
+    return '<w:tc>'+prop+para(val,align)+'</w:tc>';
+   };
+   function continuation(){
+    const carry=pending[col];if(!carry||carry.start!==col)return false;
+    cols.push(item(null,carry.span,'continue'));
+    for(let i=0;i<carry.span;i++){
+     if(pending[col+i])pending[col+i].remaining--;
+     if(pending[col+i]?.remaining<=0)pending[col+i]=null;
+    }
+    col+=carry.span;return true;
+   }
+   for(const td of tr.cells){
+    while(col<count&&pending[col])if(!continuation())col++;
+    const span=Math.min(count-col,Math.max(1,td.colSpan||1));if(span<=0)break;
+    const rowSpan=Math.max(1,td.rowSpan||1);
+    cols.push(item(td,span,rowSpan>1?'restart':null));
+    if(rowSpan>1)for(let j=0;j<span;j++)pending[col+j]={start:col,span,remaining:rowSpan-1};
+    col+=span;
+   }
+   while(col<count&&pending[col])if(!continuation())col++;
+   return '<w:tr><w:trPr><w:cantSplit/>'+(heads?'<w:tblHeader/>':'')+'</w:trPr>'+cols.join('')+'</w:tr>';
   }).join('');
-  return '<w:tbl><w:tblPr><w:tblW w:w="'+width+'" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:bidiVisual/>'+border+'</w:tblPr>'+grid+rows+'</w:tbl>';
+  return tableStart(width,widths)+rowXML+'</w:tbl>';
  }
  async function walk(el,context,depth=0){
   if(depth>24||!el||el.nodeType!==1||!visible(el))return '';
