@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.93', release:'2026-11-04', formDirty:false};
+var SR63 = {version:'6.10.94', release:'2026-11-05', formDirty:false};
 /* 6.10.89 — Unified and persisted enabled grade bands. */
 SR63.activeBands=function(bands){
  const enabled=(Array.isArray(bands)?bands:[]).filter(b=>b&&b.enabled!==false).slice().sort((a,b)=>a.min-b.min);

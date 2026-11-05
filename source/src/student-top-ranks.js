@@ -83,7 +83,8 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
  const [exam,setExam]=(0,v.useState)(workspace.activeExam||exams[0]?.key||"exam1");
  const [groupType,setGroupType]=(0,v.useState)("grade"),[grade,setGrade]=(0,v.useState)("الكل");
  const [className,setClassName]=(0,v.useState)("الكل"),[subject,setSubject]=(0,v.useState)("الكل"),
-  [onlyComplete,setOnlyComplete]=(0,v.useState)(false),[prepared,setPrepared]=(0,v.useState)(false),[nationalityMode,setNationalityMode]=(0,v.useState)(Object.values(workspace.studentNationalities||{}).some(v=>v==='qatari'||v==='resident')?'split':'all');
+  [onlyComplete,setOnlyComplete]=(0,v.useState)(false),[prepared,setPrepared]=(0,v.useState)(false),[nationalityMode,setNationalityMode]=(0,v.useState)(Object.values(workspace.studentNationalities||{}).some(v=>v==='qatari'||v==='resident')?'split':'all'),
+  [exportScope,setExportScope]=(0,v.useState)('both'),[exportBusy,setExportBusy]=(0,v.useState)(false),[exportError,setExportError]=(0,v.useState)('');
  const raw=(0,v.useMemo)(()=>SR63.generalRows(workspace.rows||[],exam),[workspace,exam]);
  const gradeIdentity=value=>{const order=SR63.gradeOrder(value);return Number.isInteger(order)&&order>0&&order<999?"grade:"+order:ij(value);};
  const grades=(0,v.useMemo)(()=>{
@@ -101,7 +102,16 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
  },[raw,exam,grade,settings]);
  const filters={exam,mode,groupType,grade,className:groupType==="class"?className:"الكل",subject:mode==="subject"?subject:"الكل",onlyComplete,nationalityMode};
  const groups=(0,v.useMemo)(()=>prepared?SR63.studentTopRankings(workspace,filters):[],[prepared,workspace,exam,mode,groupType,grade,className,subject,onlyComplete,nationalityMode]);
- const reset=()=>setPrepared(false),count=groups.reduce((sum,g)=>sum+g.rows.length,0);
+ const reset=()=>{setPrepared(false);setExportError('')},count=groups.reduce((sum,g)=>sum+g.rows.length,0);
+ const download=async format=>{
+  if(!canPrint||!prepared||exportBusy||!count)return;
+  setExportBusy(true);setExportError('');
+  try{
+   await SR63.topRanksDownload(format,groups,{scope:nationalityMode==='split'?exportScope:'both',
+    workspace,mode,title:heading,examName:exams.find(x=>x.key===exam)?.name||exam,method,note});
+  }catch(error){const message=String(error?.message||'تعذر تنزيل التقرير.');setExportError(message);eb.error(message);}
+  finally{setExportBusy(false);}
+ };
  const list=(value,change,options,label)=>h("label",{style:{display:"grid",gap:"5px",fontWeight:700,fontSize:"13px",minWidth:"170px",flex:"1 1 170px"}},
   h("span",{},label),h("select",{value,onChange:event=>{change(event.target.value);reset();},style:{height:"40px",width:"100%",padding:"4px 8px",border:"1px solid #c6d7df",borderRadius:"8px",background:"white",color:"#173e54"}},
     options.map(option=>h("option",{key:option.value,value:option.value},option.label))));
@@ -137,8 +147,12 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
    "إظهار الطلاب ذوي درجات المواد المكتملة فقط (اختياري؛ الافتراضي يشمل جميع الطلاب ذوي الدرجات المرصودة)"),
   h("div",{style:{display:"flex",gap:"10px",flexWrap:"wrap",marginBottom:"16px"}},
    h("button",{type:"button",onClick:()=>setPrepared(true),style:{background:"#087f78",color:"#fff",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},"عرض المراكز العشرة"),
-   h("button",{type:"button",disabled:!canPrint||!prepared||!count,onClick:print,style:{background:canPrint&&prepared&&count?"#884522":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},"معاينة الطباعة / حفظ PDF")
+   h("button",{type:"button",disabled:!canPrint||!prepared||!count,onClick:print,style:{background:canPrint&&prepared&&count?"#884522":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},"معاينة الطباعة / حفظ PDF"),
+   nationalityMode==='split'?list(exportScope,setExportScope,[{value:'both',label:'القطريون ثم المقيمون'},{value:'qatari',label:'القطريون فقط'},{value:'resident',label:'المقيمون فقط'}],'تنزيل فئة الجنسية'):null,
+   h("button",{type:"button",disabled:!canPrint||!prepared||!count||exportBusy,onClick:()=>void download('docx'),style:{background:canPrint&&prepared&&count&&!exportBusy?"#1f6178":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},exportBusy?'جارٍ إعداد التقرير...':'تحميل Word'),
+   h("button",{type:"button",disabled:!canPrint||!prepared||!count||exportBusy,onClick:()=>void download('pdf'),style:{background:canPrint&&prepared&&count&&!exportBusy?"#8b3953":"#adb9be",color:"white",border:0,borderRadius:"9px",padding:"10px 18px",cursor:"pointer"}},exportBusy?'جارٍ إعداد التقرير...':'تحميل PDF')
   ),
+  exportError?h("p",{role:"alert",className:"sr67-year-alert"},exportError):null,
   h("p",{className:"sr67-year-method"},method+" "+note),
   (!Object.keys(workspace.studentNationalities||{}).length?h('p',{role:'status',className:'sr67-year-note'},'لم يتم رفع بيانات الجنسيات بعد. افتح لوحة الإدارة ← جنسيات الطلاب وارفع نموذج Excel أولًا.'):null),
    nationalityMode==='split'&&prepared&&groups.some(g=>g.unclassifiedCount>0)?h('p',{role:'status',className:'sr67-year-note'},'تنبيه: توجد جنسيات غير محددة، ولا يدخل أصحابها في أي من قائمتي الأوائل.'):null,
