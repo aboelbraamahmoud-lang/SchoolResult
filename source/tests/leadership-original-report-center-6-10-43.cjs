@@ -15,7 +15,7 @@ assert.match(portalSrc,/h\(xde,\{key:'original-report-center-'\+profile\.role\+'
 assert.match(reportSrc,/function xde\(\{workspace:e,onExportExcel:t,readOnly=false,canPrint=true,onSchoolSummary=null,reportScope='school',canCompareSubjects=false\}\)/);
 assert.match(reportSrc,/!readOnly&&!specialMode&&\(0,q\.jsxs\)\(dA,\{variant:`outline`,onClick:t/);
 assert.equal((reportSrc.match(/disabled:!canPrint\|\|!prepared/g)||[]).length,2,'only print controls require a prepared preview');
-assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,4,'Word, vector PDF, raster PDF and ZIP share export permission and work without preview');
+assert.equal((reportSrc.match(/disabled:!canPrint\|\|!!downloadState/g)||[]).length,5,'Word, vector PDF, raster PDF, ZIP and direct report-card Word share permission and do not require preview');
 assert.match(reportSrc,/const saveVectorPDF=async\(\)=>/,'vector PDF remains available to authorized school leaders');
 assert.match(reportSrc,/printBatch=async\(\)=>\{\s*if\(!canPrint\|\|!prepared\|\|!D.length\|\|!!rangeError\|\|subjectBlocked\|\|subjectBusy\|\|departmentMode&&!subjectMode&&!fixedSubject\)return;/,'guard printing only when a coordinator has an assigned subject');
 assert.match(reportSrc,/renderReportHTML\(D,isLandscape/,'print must render every selected page for the authorized leader');

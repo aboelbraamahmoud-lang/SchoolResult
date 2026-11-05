@@ -15,6 +15,9 @@ const ui=inSrc('patches/ui.js'),word=inSrc('report-word-export.js'),contrast=inS
 const pdf=inSrc('report-download-pdf.js'),print=inSrc('report-print-batch.js');
 for(const role of ['admin','vice_principal','coordinator'])assert.ok(/downloadWordReport/.test(ui),'all roles share the original report center');
 assert.match(ui,/تحميل Word \(\.docx\) — نفس التقرير/);
+assert.match(ui,/sr-word-report-card-action/,'each regular report card has its own Word action');
+assert.match(ui,/setPendingWordReport\(t.id\)/,'card must choose its own report');
+assert.match(ui,/pendingWordReport\|\|n!==pendingWordReport/,'export must wait for the selected card');
 assert.match(ui,/children:`تنزيل Word`/,'Word export appears beside PDF in the report center header');
 const webRoot=path.join(__dirname,'../..'),indexHTML=fs.readFileSync(path.join(webRoot,'index.html'),'utf8');
 const releaseVersion=JSON.parse(fs.readFileSync(path.join(webRoot,'version.json'),'utf8')).version;
