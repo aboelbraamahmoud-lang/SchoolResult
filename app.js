@@ -2,7 +2,7 @@ var SR72Canvas=(()=>{var L=Object.defineProperty;var et=Object.getOwnPropertyDes
 `)}async function Z(t,e){let r=e.fontEmbedCSS!=null?e.fontEmbedCSS:e.skipFonts?null:await U(t,e);if(r){let n=document.createElement("style"),i=document.createTextNode(r);n.appendChild(i),t.firstChild?t.insertBefore(n,t.firstChild):t.appendChild(n)}}async function N(t,e={}){let{width:r,height:n}=C(t,e),i=await b(t,e,!0);return await Z(i,e),await F(i,e),G(i,e),await O(i,r,n)}async function S(t,e={}){let{width:r,height:n}=C(t,e),i=await N(t,e),o=await d(i),a=document.createElement("canvas"),s=a.getContext("2d"),c=e.pixelRatio||H(),m=e.canvasWidth||r,h=e.canvasHeight||n;return a.width=m*c,a.height=h*c,e.skipAutoScale||M(a),a.style.width=`${m}`,a.style.height=`${h}`,e.backgroundColor&&(s.fillStyle=e.backgroundColor,s.fillRect(0,0,a.width,a.height)),s.drawImage(o,0,0,a.width,a.height),a}async function _t(t,e={}){let{width:r,height:n}=C(t,e);return(await S(t,e)).getContext("2d").getImageData(0,0,r,n).data}async function qt(t,e={}){return(await S(t,e)).toDataURL()}async function Bt(t,e={}){return(await S(t,e)).toDataURL("image/jpeg",e.quality||1)}async function jt(t,e={}){let r=await S(t,e);return await V(r)}async function zt(t,e={}){return U(t,e)}return at(Gt);})();
 
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.94', release:'2026-11-05', formDirty:false};
+var SR63 = {version:'6.10.95', release:'2026-11-05', formDirty:false};
 /* 6.10.89 — Unified and persisted enabled grade bands. */
 SR63.activeBands=function(bands){
  const enabled=(Array.isArray(bands)?bands:[]).filter(b=>b&&b.enabled!==false).slice().sort((a,b)=>a.min-b.min);
@@ -825,6 +825,68 @@ SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',o
   (d.showStamp&&/^data:image\/(png|jpeg|webp);base64,/i.test(d.stampDataUrl||'')?'<img class="report-stamp-image" alt="ختم التقرير" src="'+esc(d.stampDataUrl)+'">':'')+'</footer>';
 };
 
+/* 6.10.95 — readability safeguard for ALL school report surfaces.
+   Preserve grade-band background colors and change only unreadable foreground text. */
+(function(){
+ const rgba=function(value){
+  const s=String(value||'').trim();
+  const rgb=s.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)$/i);
+  if(rgb)return [+rgb[1],+rgb[2],+rgb[3],rgb[4]===undefined?1:+rgb[4]];
+  const h=s.match(/^#([a-f\d]{3,8})$/i);
+  if(h){let v=h[1];if(v.length===3||v.length===4)v=v.split('').map(c=>c+c).join('');if(v.length===6||v.length===8)return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16),v.length===8?parseInt(v.slice(6,8),16)/255:1];}
+  return null;
+ };
+ const blend=(front,back)=>{const alpha=front?.[3]??1;return [0,1,2].map(i=>(front?.[i]??back[i])*alpha+back[i]*(1-alpha)).concat([1]);};
+ const lum=color=>[.2126,.7152,.0722].reduce((n,weight,i)=>{let v=color[i]/255;return n+weight*(v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));},0);
+ const ratio=(a,b)=>{const la=lum(a),lb=lum(b);return (Math.max(la,lb)+.05)/(Math.min(la,lb)+.05)};
+ const rgbString=a=>'rgb('+a.slice(0,3).map(v=>Math.max(0,Math.min(255,Math.round(v)))).join(',')+')';
+ const bgColor=(el)=>{
+  let color=[255,255,255,1],stack=[];
+  for(let node=el;node?.nodeType===1;node=node.parentElement)stack.push(node);
+  for(let i=stack.length-1;i>=0;i--){
+   const style=stack[i].ownerDocument.defaultView.getComputedStyle(stack[i]),bg=rgba(style.backgroundColor);
+   if(bg&&bg[3]>0)color=blend(bg,color);
+   const gradients=String(style.backgroundImage||'').match(/(?:rgba?\([^)]+\)|#[0-9a-f]{3,8})/gi);
+   if(gradients&&/gradient/i.test(style.backgroundImage)){
+    const samples=gradients.map(rgba).filter(Boolean);
+    if(samples.length){
+     // If every gradient stop is dark, white text is correct; otherwise use average surface.
+     const avg=[0,1,2].map(c=>samples.reduce((sum,item)=>sum+item[c],0)/samples.length).concat([1]);
+     color=blend(avg,color);
+    }
+   }
+  }
+  return color;
+ };
+ SR63.readableReportColor=function(foreground,background){
+  const fg=rgba(foreground),bg=rgba(background);
+  if(!fg||!bg)return foreground;
+  const painted=blend(fg,bg);
+  if(ratio(painted,bg)>=4.5)return foreground;
+  const light=[255,255,255,1],dark=[22,49,65,1];
+  return ratio(light,bg)>ratio(dark,bg)?'#ffffff':'#163141';
+ };
+ SR63.ensureReportContrast=function(root){
+  if(!root||typeof getComputedStyle!=='function')return 0;
+  const candidates=[...(root.nodeType===1?[root]:[]),...(root.querySelectorAll?.('*')||[])];
+  let changed=0;
+  for(const el of candidates){
+   if(!el||!/^(?!SCRIPT$|STYLE$|NOSCRIPT$|IMG$|SVG$|PATH$|RECT$|STOP$|CANVAS$|INPUT$|OPTION$|TEXTAREA$)[A-Z][A-Z0-9]*$/.test(el.tagName||''))continue;
+   // Change only actual text-bearing elements, not an outer card whose inherited color would change everything.
+   if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
+   const style=el.ownerDocument.defaultView.getComputedStyle(el);
+   if(style.display==='none'||style.visibility==='hidden')continue;
+   const fg=style.color,background=bgColor(el),painted=blend(rgba(fg)||[0,0,0,1],background);
+   if(ratio(painted,background)>=4.5)continue;
+   const replacement=ratio([255,255,255],background)>ratio([22,49,65],background)?'#ffffff':'#163141';
+   el.style.setProperty('color',replacement,'important');
+   if(el.tagName==='TH'||el.tagName==='TD')el.style.setProperty('text-shadow','none','important');
+   changed++;
+  }
+  return changed;
+ };
+})();
+
 /* 6.10.8: Non-destructive, snapshot-gated repair of legacy subject aliases. */
 SR63.subjectLinkRepairPreview=function(workspace){
   const catalog=SR63.ensureCatalog(workspace),canonical=new Map(catalog.subjects.map(s=>[SR63.subjectAliasKey(s.name),s]));
@@ -944,6 +1006,11 @@ SR63.studentResultPages=function(workspace,exam,filters={}){
   return pages.sort((a,b)=>SR63.gradeOrder(a.grade)-SR63.gradeOrder(b.grade)||lj(a.className).localeCompare(lj(b.className),'en',{numeric:true})||String(a.studentName).localeCompare(String(b.studentName),'ar',{numeric:true}));
 };
 // The printed student statement is the same React DOM as the on-screen preview.
+SR63.downloadStudentResultsWord=async function(){
+ const pages=[...(document.getElementById('printable-reports')?.querySelectorAll('.student-result-page')||[])];
+ if(!pages.length)throw Error('جهّز معاينة النتائج قبل تحميل Word.');
+ return await SR63.downloadWordReport(pages,{landscape:false,title:'بيان نتائج الطلاب',filename:'بيان نتائج الطلاب'});
+};
 SR63.printStudentResults=async function(){
   const report=document.getElementById('printable-reports');
   const pages=[...(report?.querySelectorAll?.('.student-result-page')||[])];
@@ -968,7 +1035,7 @@ SR63.StudentResultsPrint=function({workspace}){
   const pages=(0,v.useMemo)(()=>prepared?SR63.studentResultPages(workspace,exam,{grade,className,studentId}):[],[prepared,workspace,exam,grade,className,studentId]);
   const invalidate=()=>setPrepared(false),select=(label,value,setter,items,allLabel)=>(0,q.jsxs)('label',{className:'student-results-filter',children:[(0,q.jsx)('span',{children:label}),(0,q.jsxs)('select',{value,onChange:event=>{setter(event.target.value);invalidate()},children:[allLabel?(0,q.jsx)('option',{value:'الكل',children:allLabel}):null,...items.map(item=>(0,q.jsx)('option',{value:item.value,children:item.label},item.value))]})]}),scoreText=item=>item.status==='present'&&Number.isFinite(item.score)?SR63.reportWestern(Number(item.score).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:false})):Dj(item.status),totalText=item=>Number.isFinite(item.total)?SR63.reportWestern(Number(item.total).toLocaleString('en-US',{maximumFractionDigits:2,useGrouping:false})):'—';
   return (0,q.jsxs)('div',{className:'space-y-6 student-results-print-screen',children:[
-    (0,q.jsxs)('section',{className:'student-results-command',children:[(0,q.jsxs)('div',{children:[(0,q.jsx)('span',{children:'نتيجة الطالب الرسمية'}),(0,q.jsx)('h1',{children:'طباعة نتائج الطلاب حسب التقييم'}),(0,q.jsx)('p',{children:'حدد التقييم والنطاق أولًا ثم جهّز المعاينة. لا يتم إنشاء مئات صفحات الطباعة بمجرد فتح الشاشة.'})]}),(0,q.jsxs)('div',{className:'student-results-command-actions',children:[(0,q.jsx)('button',{type:'button',onClick:()=>setPrepared(true),children:'تجهيز المعاينة'}),(0,q.jsx)('button',{type:'button',disabled:!prepared||!pages.length,onClick:()=>void SR63.printStudentResults(),children:prepared?`طباعة ${pages.length===1?'نتيجة الطالب':`${pages.length} نتيجة`}`:'الطباعة بعد التجهيز'})]})]}),
+    (0,q.jsxs)('section',{className:'student-results-command',children:[(0,q.jsxs)('div',{children:[(0,q.jsx)('span',{children:'نتيجة الطالب الرسمية'}),(0,q.jsx)('h1',{children:'طباعة نتائج الطلاب حسب التقييم'}),(0,q.jsx)('p',{children:'حدد التقييم والنطاق أولًا ثم جهّز المعاينة. لا يتم إنشاء مئات صفحات الطباعة بمجرد فتح الشاشة.'})]}),(0,q.jsxs)('div',{className:'student-results-command-actions',children:[(0,q.jsx)('button',{type:'button',onClick:()=>setPrepared(true),children:'تجهيز المعاينة'}),(0,q.jsx)('button',{type:'button',disabled:!prepared||!pages.length,onClick:()=>void SR63.printStudentResults(),children:prepared?`طباعة ${pages.length===1?'نتيجة الطالب':`${pages.length} نتيجة`}`:'الطباعة بعد التجهيز'}),(0,q.jsx)('button',{type:'button',disabled:!prepared||!pages.length,onClick:()=>void SR63.downloadStudentResultsWord().catch(error=>eb.error(error.message||'تعذر تحميل Word.')),children:'تحميل Word لنتائج الطلاب'})]})]}),
     (0,q.jsxs)('section',{className:'student-results-controls',children:[
       select('التقييم',exam,value=>{setExam(value);setGrade('الكل');setClassName('الكل');setStudentId('الكل')},workspace.settings.exams.map(item=>({value:item.key,label:item.name})),null),
       select('الصف',grade,value=>{setGrade(value);setClassName('الكل');setStudentId('الكل')},grades.map(value=>({value,label:value})),'كل الصفوف'),
@@ -1822,7 +1889,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
 };
 SR63.prepareReportPreview=function(page){
  if(!page)return;
- const fit=()=>{if(!page.isConnected)return;try{
+ const fit=()=>{if(!page.isConnected)return;try{SR63.ensureReportContrast?.(page);
   const landscape=page.dataset.orientation==='landscape';
   SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
   delete page.dataset.fitError;
@@ -1874,6 +1941,7 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
     const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');
+    SR63.ensureReportContrast?.(win.document);
     const fit=SR63.fitReportPagesForPrint(win.document,landscape);
     if(fit.some(page=>page.zoom<.35))throw Error('عرض التقرير يتجاوز مساحة A4 بشكل كبير؛ اختر صفًا أو معلمًا أو عددًا أقل من الأعمدة.');
     win.focus();win.print();
@@ -1985,6 +2053,7 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  for(const img of element.querySelectorAll('img')){
   await img.decode();if(!img.naturalWidth)throw Error('تعذر تحميل شعار أو صورة التقرير.');
  }
+ SR63.ensureReportContrast?.(element);
  SR63.planReportSheet(element,w,h);
  // Rasterize the original DOM/CSS without hand-positioning text or replacing colors.
  const canvas=await SR72Canvas.toCanvas(element,{pixelRatio:300/96,backgroundColor:'#fff',
@@ -1994,6 +2063,179 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  if(dataUrl.length<5000)throw Error('لم يتم رسم تقرير PDF كاملًا.');
  return {dataUrl,width:canvas.width,height:canvas.height,landscape};
 };
+
+/* 6.10.95 — Editable, offline DOCX renderer for existing school report DOM.
+   Source is the same page HTML used by PDF/print, never a second data query. */
+(function(){
+ const esc=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+ const rgb=s=>{
+  const m=String(s||'').match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
+  if(m){if(/rgba\(/i.test(String(s))&&/[,/]\s*0(?:\.0+)?\s*\)$/.test(String(s)))return null;return [m[1],m[2],m[3]].map(n=>Math.max(0,Math.min(255,Math.round(+n))).toString(16).padStart(2,'0')).join('').toUpperCase();}
+  const h=String(s||'').match(/^#([0-9a-f]{6})$/i);return h?h[1].toUpperCase():null;
+ };
+ const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
+ const isBlock=el=>/^(?:DIV|P|SECTION|ARTICLE|HEADER|FOOTER|MAIN|H[1-6]|UL|OL|LI|FIGURE|FIGCAPTION|ASIDE|BLOCKQUOTE|PRE)$/i.test(el?.tagName||'');
+ const visible=el=>{const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden';};
+ const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi/><w:jc w:val="'+align+'"/><w:spacing w:after="65" w:line="245" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
+ function fontStyle(el){
+  const s=getComputedStyle(el),font=Math.min(29,Math.max(14,Math.round((parseFloat(s.fontSize)||12)*1.5)));
+  const color=rgb(s.color)||'19384A';
+  const bold=/bold|bolder/i.test(s.fontWeight)||+s.fontWeight>=600||/^(B|STRONG|TH|H[1-6])$/.test(el.tagName);
+  return '<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl/><w:sz w:val="'+font+'"/><w:szCs w:val="'+font+'"/><w:color w:val="'+color+'"/>'+(bold?'<w:b/>':'')+'</w:rPr>';
+ }
+ const txt=(s,el)=>'<w:r>'+fontStyle(el)+'<w:t xml:space="preserve">'+esc(s)+'</w:t></w:r>';
+ const inline=node=>{
+  if(node.nodeType===3)return clean(node.nodeValue)?txt(node.nodeValue,node.parentElement):'';
+  if(node.nodeType!==1||!visible(node))return '';
+  if(node.tagName==='BR')return '<w:r><w:br/></w:r>';
+  return [...node.childNodes].map(inline).join('');
+ };
+ const tagP=el=>para([...el.childNodes].map(inline).join(''),['center','left','right','justify'].includes(getComputedStyle(el).textAlign)?getComputedStyle(el).textAlign:'right');
+ const wordWidth=landscape=>landscape?15000:10400;
+ const docHeader=()=>'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>';
+ const partsXml=(body,landscape)=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+docHeader()+body+'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/>'+
+  '<w:pgMar w:top="640" w:bottom="640" w:right="700" w:left="700" w:header="340" w:footer="340" w:gutter="0"/></w:sectPr></w:body></w:document>';
+ const contentTypes=types=>'<?xml version="1.0" encoding="UTF-8"?>'+
+   '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
+   types.map(([ext,mime])=>'<Default Extension="'+ext+'" ContentType="'+mime+'"/>').join('')+
+   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
+ const rootRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
+ function imageRun(id,number,width,height){
+  const cx=Math.round(width*9525),cy=Math.round(height*9525);
+  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+number+'" name="صورة التقرير '+number+'"/>'+
+   '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>'+
+   '<pic:nvPicPr><pic:cNvPr id="'+number+'" name="صورة التقرير"/><pic:cNvPicPr/></pic:nvPicPr>'+
+   '<pic:blipFill><a:blip r:embed="'+id+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'+
+   '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'+
+   '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
+ }
+ async function embed(element,context){
+  let type='png',blob,uri;
+  if(element.tagName==='IMG'){
+   uri=element.getAttribute('src')||'';
+   if(!uri)return '';
+   const link=new URL(uri,document.baseURI);
+   if(link.protocol!=='data:'&&link.origin!==document.location.origin)return para(txt('صورة مصدر خارجي غير متاح',element));
+   const response=await fetch(link.href,{credentials:'same-origin'});
+   if(!response.ok)return '';
+   blob=await response.blob();
+   type=/jpe?g/i.test(blob.type)?'jpeg':/webp/i.test(blob.type)?'webp':'png';
+  }else{
+   if(typeof SR72Canvas==='undefined'||!SR72Canvas.toCanvas)return '';
+   const bounds=element.getBoundingClientRect();
+   if(bounds.width<10||bounds.height<10)return '';
+   const canvas=await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
+   const data=canvas.toDataURL('image/png');
+   blob=await(await fetch(data)).blob();
+  }
+  const key=uri&&uri.length<4000?uri:null;
+  if(key&&context.imageCache.has(key))return context.imageCache.get(key);
+  const number=++context.imagesNumber,id='rId'+number,name='word/media/report-'+number+'.'+type;
+  context.imageFiles.push({name,blob});context.imageRelations.push({id,name:'media/report-'+number+'.'+type});
+  context.usedTypes.set(type,type==='jpeg'?'image/jpeg':type==='webp'?'image/webp':'image/png');
+  const rect=element.getBoundingClientRect(),maxWidth=context.landscape?675:450;
+  const measuredWidth=rect.width||180,measuredHeight=rect.height||75;
+  const width=Math.max(30,Math.min(maxWidth,measuredWidth)),height=Math.max(14,Math.min(context.landscape?220:280,measuredHeight*(width/measuredWidth)));
+  const output=para(imageRun(id,number,width,height),'center');
+  if(key)context.imageCache.set(key,output);
+  return output;
+ }
+ function wordTable(table,context){
+  const lines=[...table.rows];if(!lines.length)return '';
+  const maxCols=Math.max(1,...lines.map(tr=>[...tr.cells].reduce((sum,td)=>sum+Math.max(1,td.colSpan||1),0)));
+  const width=wordWidth(context.landscape),colWidth=Math.floor(width/maxCols);
+  const grid='<w:tblGrid>'+Array.from({length:maxCols},()=>'<w:gridCol w:w="'+colWidth+'"/>').join('')+'</w:tblGrid>';
+  const border='<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>'<w:'+x+' w:val="single" w:sz="4" w:color="BFCFD6"/>').join('')+'</w:tblBorders>';
+  const rows=lines.map((tr,rowIndex)=>{
+   const heads=tr.closest('thead')!==null;
+   const cells=[...tr.cells].map(td=>{
+    const span=Math.max(1,td.colSpan||1),style=getComputedStyle(td);
+    const bg=rgb(style.backgroundColor)|| (heads?'D9E9EE':rowIndex%2?'FFFFFF':'F5FAFB');
+    const value=clean(td.textContent)||' ';
+    const sp=span>1?'<w:gridSpan w:val="'+span+'"/>':'';
+    const props='<w:tcPr><w:tcW w:w="'+(colWidth*span)+'" w:type="dxa"/>'+sp+'<w:shd w:val="clear" w:fill="'+bg+'"/>'+
+     '<w:tcMar><w:top w:w="74" w:type="dxa"/><w:bottom w:w="74" w:type="dxa"/><w:right w:w="68" w:type="dxa"/><w:left w:w="68" w:type="dxa"/></w:tcMar></w:tcPr>';
+    return '<w:tc>'+props+para(txt(value,td))+'</w:tc>';
+   }).join('');
+   return '<w:tr><w:trPr><w:cantSplit/>'+(heads?'<w:tblHeader/>':'')+'</w:trPr>'+cells+'</w:tr>';
+  }).join('');
+  return '<w:tbl><w:tblPr><w:tblW w:w="'+width+'" w:type="dxa"/><w:tblLayout w:type="fixed"/><w:bidiVisual/>'+border+'</w:tblPr>'+grid+rows+'</w:tbl>';
+ }
+ async function walk(el,context,depth=0){
+  if(depth>24||!el||el.nodeType!==1||!visible(el))return '';
+  const name=el.tagName;
+  if(['SCRIPT','STYLE','BUTTON','SELECT','INPUT','TEXTAREA','NOSCRIPT'].includes(name))return '';
+  if(name==='TABLE')return wordTable(el,context);
+  if(name==='IMG'||name==='SVG'||name==='CANVAS')return await embed(el,context);
+  const children=[...el.children].filter(visible);
+  const hasBlocks=children.some(child=>isBlock(child)||['TABLE','IMG','SVG','CANVAS'].includes(child.tagName));
+  if(!hasBlocks){
+   const value=clean(el.textContent);
+   if(!value)return '';
+   return tagP(el);
+  }
+  let out='';
+  for(const node of el.childNodes){
+   if(node.nodeType===3){if(clean(node.nodeValue))out+=para(txt(node.nodeValue,el));}
+   else if(node.nodeType===1)out+=await walk(node,context,depth+1);
+  }
+  return out;
+ }
+ SR63.wordReportBlob=async function(pages,options={}){
+  if(!Array.isArray(pages)||!pages.length)throw Error('لا توجد صفحات جاهزة لتصدير Word.');
+  if(pages.length>250)throw Error('حدد نطاقًا لا يزيد على 250 صفحة.');
+  const context={landscape:options.landscape===true,imageFiles:[],imageRelations:[],imagesNumber:0,imageCache:new Map(),usedTypes:new Map()};
+  const stage=document.createElement('div');
+  stage.style.cssText='position:fixed;left:-25000px;top:0;z-index:-1;background:#fff;pointer-events:none;width:'+(context.landscape?'297mm':'210mm');
+  document.body.appendChild(stage);
+  const body=[];
+  try{
+   const css=await SR63.getReportStyleText();
+   const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(css)+'\n'+String(options.css||'');stage.appendChild(style);
+   await(document.fonts?.ready||Promise.resolve());
+   for(let i=0;i<pages.length;i++){
+    const holder=document.createElement('div');holder.innerHTML=typeof pages[i]==='string'?pages[i]:pages[i].outerHTML;
+    stage.appendChild(holder);
+    const node=holder.firstElementChild;
+    if(!node)throw Error('إحدى صفحات التقرير فارغة.');
+    SR63.ensureReportContrast?.(node);
+    if(i>0)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
+    body.push(await walk(node,context));
+    holder.remove();
+    options.onProgress?.(i+1,pages.length);
+    if(i%4===0)await new Promise(resolve=>setTimeout(resolve,0));
+   }
+   const mimeTypes=[...context.usedTypes.entries()];
+   const mediaRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
+    context.imageRelations.map(x=>'<Relationship Id="'+x.id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+x.name+'"/>').join('')+'</Relationships>';
+   const files=[
+    {name:'[Content_Types].xml',blob:new Blob([contentTypes(mimeTypes)])},
+    {name:'_rels/.rels',blob:new Blob([rootRels])},
+    {name:'word/document.xml',blob:new Blob([partsXml(body.join(''),context.landscape)])},
+    {name:'word/_rels/document.xml.rels',blob:new Blob([mediaRels])},
+    ...context.imageFiles
+   ];
+   const compressed=await SR63.reportZipFromPdfs(files,true);
+   return new Blob([compressed],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  }finally{stage.remove();}
+ };
+ SR63.downloadStaffReportWord=async function(report,meta={}){
+  const source=SR63.staffReportDocument(report,meta);
+  const parsed=new DOMParser().parseFromString(source,'text/html');
+  const styles=[...parsed.querySelectorAll('style')].map(node=>node.textContent).join('\n');
+  const main='<div dir="rtl" class="sr-word-staff-container">'+parsed.body.innerHTML+'</div>';
+  const landscape=!/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i.test(styles);
+  return await SR63.downloadWordReport([main],{css:styles,landscape,title:report.title,
+   filename:report.title+' - '+(meta.schoolName||'المدرسة')});
+ };
+ SR63.downloadWordReport=async function(pages,options={}){
+  const blob=await SR63.wordReportBlob(pages,options);
+  const name=SR63.safeReportFilename(String(options.filename||options.title||'تقرير المدرسة')+'.docx');
+  SR63.downloadReportFile(blob,name);
+  return {filename:name,bytes:blob.size,pages:pages.length};
+ };
+})();
 
 /* SchoolResult 6.10.40 — self-contained, print-safe school staff reports.
    All input data comes from the server-scoped staff workspace. Never clone the application DOM;
@@ -2086,6 +2328,7 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
    for(const img of prepared.images)await SR63.reportEmbedImage(img);
    if(win.closed)return;
    win.document.open();win.document.write('<!doctype html>'+prepared.documentElement.outerHTML);win.document.close();
+   SR63.ensureReportContrast?.(win.document);
    const images=[...win.document.images];
    await Promise.race([Promise.all([win.document.fonts?.ready||Promise.resolve(),...images.map(img=>img.decode())]),new Promise((_,reject)=>setTimeout(()=>reject(Error('لم يكتمل تحميل خطوط أو صور التقرير.')),15000))]);
    if(win.closed)return;
@@ -4280,6 +4523,16 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
    setMessage('اكتملت المعاينة.');
   }catch(e){try{win?.close();}catch{}setMessage('تعذرت المعاينة: '+(e?.message||e));}finally{setLoading(false);}
  };
+ const word=async()=>{
+  if(!canPrint||loading||!active)return;
+  try{
+   if(!reportModel.pages.length||reportModel.pages.length>200)throw Error('اختر تقريرًا يحتوي من 1 إلى 200 صفحة.');
+   setLoading(true);setMessage('جارٍ تجهيز Word بنفس صفحات تقرير المهارات…');
+   await SR63.downloadWordReport(reportModel.pages,{landscape:true,title:'تحليل مهارات '+active.subject,filename:'تحليل مهارات '+active.subject});
+   setMessage('تم تنزيل تحليل المهارات بصيغة Word.');
+  }catch(error){setMessage('تعذر تصدير Word: '+(error?.message||error));}
+  finally{setLoading(false);}
+ };
  const pdf=async()=>{
   if(!canPrint)return;let stage=null;try{
    if(!reportModel.pages.length||reportModel.pages.length>200)throw Error('اختر تقريرًا يحتوي من 1 إلى 200 صفحة.');
@@ -4373,7 +4626,7 @@ SR63.SkillCenter=function({workspace,setWorkspace=null,readOnly=false,canPrint=t
    ['weak','comparison'].includes(report)?control('المهارة',skill?.key||'',setWantedSkill,active.skills.map(s=>[s.key,s.label])):null,
    report==='comparison'?control('الاختبار السابق',prior?.id||'',setWantedPrior,otherTests.length?otherTests.map(x=>[x.id,(settings.exams||[]).find(e=>e.key===x.exam)?.name||x.exam]):[['','لا توجد بيانات مقارنة']]):null),
    h('div',{className:'srskill-actions'},btn('معاينة وطباعة',()=>void print(),!canPrint||!reportModel.pages.length),
-    btn('تنزيل PDF',()=>void pdf(),!canPrint||!reportModel.pages.length),btn('تقارير الشعب ZIP',()=>void zipByClass(),!canPrint||!reportModel.pages.length),btn('تصدير Excel (CSV)',csvReport,!canPrint),h('span',{},'عدد الصفحات: '+reportModel.pages.length)),
+    btn('تنزيل PDF',()=>void pdf(),!canPrint||!reportModel.pages.length),btn('تنزيل Word',()=>void word(),!canPrint||!reportModel.pages.length),btn('تقارير الشعب ZIP',()=>void zipByClass(),!canPrint||!reportModel.pages.length),btn('تصدير Excel (CSV)',csvReport,!canPrint),h('span',{},'عدد الصفحات: '+reportModel.pages.length)),
    report==='comparison'&&!prior?h('p',{},'يلزم وجود درجات مهارات محفوظة للاختبار السابق للمقارنة.'):null,
    reportModel.pages.length?h('section',{className:'srskill-preview'},
     h('div',{className:'srskill-preview-navigation'},btn('صفحة سابقة',()=>setReportPage(n=>Math.max(0,n-1)),currentReportPage===0),
@@ -4554,7 +4807,13 @@ SR63.CoordinatorDashboard=function({profile}){
  const otherExam=exams.some(x=>x.key===previousExam&&x.key!==exam)?previousExam:(exams.find(x=>x.key!==exam&&exams.indexOf(x)<exams.findIndex(y=>y.key===exam))?.key||exams.find(x=>x.key!==exam)?.key||'');
  const chronological=SR63.staffExamChronology(settings,exam,otherExam),canCompare=!!chronological;
  const compared=(0,v.useMemo)(()=>workspace&&chronological&&page==='comparison'?SR63.staffExamComparison(workspace,chronological.older,chronological.later):[],[workspace,chronological?.older,chronological?.later,page]);
- const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,{schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace:active,subject:isLeadership?'':(profile.departments||[])[0]||''});}catch(error){setError(error.message||'تعذرت الطباعة.');}};
+ const staffReportMeta={schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace:active,subject:isLeadership?'':(profile.departments||[])[0]||''};
+ const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,staffReportMeta);}catch(error){setError(error.message||'تعذرت الطباعة.');}};
+ const staffWord=async(type,args)=>{try{if(!perms.export)return;
+  const report=SR63.staffReportBuild(type,args);
+  await SR63.downloadStaffReportWord(report,staffReportMeta);
+  eb.success('تم تنزيل التقرير بصيغة Word.');
+ }catch(error){setError(error.message||'تعذر تنزيل Word.');}};
  const fmt=n=>typeof n==='number'&&Number.isFinite(n)?n.toFixed(1)+'%':'—';
  const h=(tag,props,children)=>(0,q.jsx)(tag,{...props,children});
  const liveChart=html=>h('div',{className:'sr640-chart-live',dangerouslySetInnerHTML:{__html:html}});
@@ -4658,7 +4917,7 @@ SR63.CoordinatorDashboard=function({profile}){
     h('div',{className:'srstaff-level-controls'},[
       h('label',{},['الشعبة',h('select',{value:scopedClasses.includes(levelClass)?levelClass:'الكل',onChange:e=>setLevelClass(e.target.value)},[h('option',{value:'الكل'},'كل الشعب'),...scopedClasses.map(x=>h('option',{key:x,value:x},x))])]),
       h('label',{},['المادة',h('select',{value:scopedSubjects.includes(levelSubject)?levelSubject:'الكل',onChange:e=>setLevelSubject(e.target.value)},[h('option',{value:'الكل'},'كل مواد '+scopeLabel),...scopedSubjects.map(x=>h('option',{key:x,value:x},x))])]),
-      h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('levels',{groups:levelGroups,examName,className:levelClass,subject:levelSubject})},'طباعة المستويات والرسوم البيانية')
+      h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('levels',{groups:levelGroups,examName,className:levelClass,subject:levelSubject})},'طباعة المستويات والرسوم البيانية'),h('button',{type:'button',disabled:!perms.export,onClick:()=>void staffWord('levels',{groups:levelGroups,examName,className:levelClass,subject:levelSubject})},'تحميل Word للمستويات')
     ]),
     liveChart(SR63.staffReportLevelChart(levelGroups)),
     h('div',{className:'srstaff-band-grid'},levelGroups.map(group=>h('article',{key:group.id,className:'srstaff-band-card',style:{borderTopColor:group.color}},[
@@ -4668,14 +4927,14 @@ SR63.CoordinatorDashboard=function({profile}){
       ]))),group.students.length>140?h('p',{},'تعرض المعاينة أول 140 طالبًا؛ اختر شعبة لعرض القائمة كاملة.'):null
     ])))
    ]):null,
-   page==='failed'&&perms.failedStudents?h('section',{className:'srstaff-panel'},[h('h2',{},'الطلاب المتعثرون في '+scopeLabel),h('p',{},'يتم استبعاد الغياب والدرجات غير المرصودة من حساب الرسوب.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failed',{failed:data.failed,examName,scopeLabel})},'طباعة المتعثرين مع الرسوم البيانية'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failedGrade',{failed:data.failed,examName,scopeLabel})},'كشف مجمع لكل صف ومادة — PDF / طباعة'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failedTeacher',{failed:data.failed,examName,scopeLabel})},'كشف مجمع لكل معلم — PDF / طباعة'),liveChart(SR63.staffReportBarChart('عدد حالات التعثر حسب المادة — طول الشريط نسبي للأكثر حالات',(()=>{const tally=new Map;for(const item of data.failed)tally.set(item.subject,(tally.get(item.subject)||0)+1);const values=[...tally];const max=Math.max(1,...values.map(x=>x[1]));return values.map(([name,count])=>({name,value:100*count/max,label:count+' نتيجة',color:'#df784e'}));})(),{limit:14})),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الطالب','الشعبة','المادة','المعلم','درجة الاختبار','درجة الشهادة','النسبة الأصلية'].map((x,i)=>h('th',{key:x},[x,i===4?h('small',{className:'sr685-maximum'},'الدرجة العظمى '+SR63.staffGradeMax(data.failed,'total')):i===5?h('small',{className:'sr685-maximum'},'الدرجة العظمى '+SR63.staffGradeMax(data.failed,'certificateTotal')):null])))),h('tbody',{},data.failed.map((r,i)=>h('tr',{key:(r.studentId||r.name)+'|'+r.subject+'|'+i},[r.name,r.className,r.subject,r.teacher,r.score,r.certificateScore??r.score,fmt(r.percentage)].map((x,j)=>h('td',{key:j,className:j===0?'sr685-staff-name':''},x)))))])),!data.failed.length?h('p',{},'لا توجد نتائج أقل من حد النجاح في الاختبار المحدد.'):null]):null,
-   page==='teachers'&&perms.teacherAnalysis?h('section',{className:'srstaff-panel'},[h('h2',{},'تحصيل ونجاح نتائج معلمي '+scopeLabel),h('p',{},'تُظهر الأشرطة نسب النجاح والتحصيل وحجم النتائج المرصودة، ولا تُعد وحدها تقييمًا مهنيًا للمعلم.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('teachers',{teachers:data.teachers,examName,scopeLabel})},'طباعة تقرير شامل للمعلمين مع الرسوم البيانية'),liveChart(SR63.staffReportBarChart('مقارنة نسبة التحصيل والنجاح للمعلمين',data.teachers.slice(0,14).map(t=>({name:t.name,value:t.achievement,second:t.successRate})),{two:true,secondColor:'#c39130',firstLabel:'نسبة التحصيل',secondLabel:'نسبة النجاح'})),h('div',{className:'srcoord-teacher-grid'},data.teachers.map(t=>h('article',{key:t.name,className:'srcoord-teacher-card'},[h('span',{},t.name),h('strong',{},fmt(t.achievement)),chart('نسبة النجاح',t.successRate),h('small',{},`${t.results} نتيجة مرصودة`)]))) ]):null,
+   page==='failed'&&perms.failedStudents?h('section',{className:'srstaff-panel'},[h('h2',{},'الطلاب المتعثرون في '+scopeLabel),h('p',{},'يتم استبعاد الغياب والدرجات غير المرصودة من حساب الرسوب.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failed',{failed:data.failed,examName,scopeLabel})},'طباعة المتعثرين مع الرسوم البيانية'),h('button',{type:'button',disabled:!perms.export,onClick:()=>void staffWord('failed',{failed:data.failed,examName,scopeLabel})},'تحميل Word للمتعثرين'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failedGrade',{failed:data.failed,examName,scopeLabel})},'كشف مجمع لكل صف ومادة — PDF / طباعة'),h('button',{type:'button',disabled:!perms.export,onClick:()=>void staffWord('failedGrade',{failed:data.failed,examName,scopeLabel})},'Word — كشف الصف والمادة'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('failedTeacher',{failed:data.failed,examName,scopeLabel})},'كشف مجمع لكل معلم — PDF / طباعة'),h('button',{type:'button',disabled:!perms.export,onClick:()=>void staffWord('failedTeacher',{failed:data.failed,examName,scopeLabel})},'Word — كشف المعلم'),liveChart(SR63.staffReportBarChart('عدد حالات التعثر حسب المادة — طول الشريط نسبي للأكثر حالات',(()=>{const tally=new Map;for(const item of data.failed)tally.set(item.subject,(tally.get(item.subject)||0)+1);const values=[...tally];const max=Math.max(1,...values.map(x=>x[1]));return values.map(([name,count])=>({name,value:100*count/max,label:count+' نتيجة',color:'#df784e'}));})(),{limit:14})),h('div',{className:'srstaff-scroll'},h('table',{},[h('thead',{},h('tr',{},['الطالب','الشعبة','المادة','المعلم','درجة الاختبار','درجة الشهادة','النسبة الأصلية'].map((x,i)=>h('th',{key:x},[x,i===4?h('small',{className:'sr685-maximum'},'الدرجة العظمى '+SR63.staffGradeMax(data.failed,'total')):i===5?h('small',{className:'sr685-maximum'},'الدرجة العظمى '+SR63.staffGradeMax(data.failed,'certificateTotal')):null])))),h('tbody',{},data.failed.map((r,i)=>h('tr',{key:(r.studentId||r.name)+'|'+r.subject+'|'+i},[r.name,r.className,r.subject,r.teacher,r.score,r.certificateScore??r.score,fmt(r.percentage)].map((x,j)=>h('td',{key:j,className:j===0?'sr685-staff-name':''},x)))))])),!data.failed.length?h('p',{},'لا توجد نتائج أقل من حد النجاح في الاختبار المحدد.'):null]):null,
+   page==='teachers'&&perms.teacherAnalysis?h('section',{className:'srstaff-panel'},[h('h2',{},'تحصيل ونجاح نتائج معلمي '+scopeLabel),h('p',{},'تُظهر الأشرطة نسب النجاح والتحصيل وحجم النتائج المرصودة، ولا تُعد وحدها تقييمًا مهنيًا للمعلم.'),h('button',{type:'button',disabled:!perms.export,onClick:()=>staffPrint('teachers',{teachers:data.teachers,examName,scopeLabel})},'طباعة تقرير شامل للمعلمين مع الرسوم البيانية'),h('button',{type:'button',disabled:!perms.export,onClick:()=>void staffWord('teachers',{teachers:data.teachers,examName,scopeLabel})},'تحميل Word للمعلمين'),liveChart(SR63.staffReportBarChart('مقارنة نسبة التحصيل والنجاح للمعلمين',data.teachers.slice(0,14).map(t=>({name:t.name,value:t.achievement,second:t.successRate})),{two:true,secondColor:'#c39130',firstLabel:'نسبة التحصيل',secondLabel:'نسبة النجاح'})),h('div',{className:'srcoord-teacher-grid'},data.teachers.map(t=>h('article',{key:t.name,className:'srcoord-teacher-card'},[h('span',{},t.name),h('strong',{},fmt(t.achievement)),chart('نسبة النجاح',t.successRate),h('small',{},`${t.results} نتيجة مرصودة`)]))) ]):null,
    page==='comparison'&&perms.compare?h('section',{className:'srstaff-panel sr644-comparison',id:'srstaff-comparison'},[
     h('h2',{},'مقارنة تحصيل شعب '+(isLeadership?'المدرسة':'القسم')+' بين اختبارين'),
     h('div',{className:'srstaff-level-controls'},[
      h('label',{},['اختبار المقارنة',h('select',{value:otherExam,onChange:e=>setPreviousExam(e.target.value)},exams.filter(x=>x.key!==exam).map(x=>h('option',{key:x.key,value:x.key},x.name)))]),
      h('span',{},'الاختبار المختار: '+examName),
-     h('button',{type:'button',disabled:!perms.export||!canCompare,onClick:()=>canCompare&&staffPrint('comparison',{rows:compared,benchmarks:isLeadership?[]:benchmarks,fromName:chronological.olderName,toName:chronological.laterName,scopeLabel})},'طباعة المقارنة والرسوم البيانية')
+     h('button',{type:'button',disabled:!perms.export||!canCompare,onClick:()=>canCompare&&staffPrint('comparison',{rows:compared,benchmarks:isLeadership?[]:benchmarks,fromName:chronological.olderName,toName:chronological.laterName,scopeLabel})},'طباعة المقارنة والرسوم البيانية'),h('button',{type:'button',disabled:!perms.export||!canCompare,onClick:()=>canCompare&&void staffWord('comparison',{rows:compared,benchmarks:isLeadership?[]:benchmarks,fromName:chronological.olderName,toName:chronological.laterName,scopeLabel})},'تحميل Word للمقارنة')
     ]),
     chronological?h('p',{className:'sr644-comparison-explainer'},'ترتيب المقارنة زمنيًا: '+chronological.olderName+' (الأقدم) ← '+chronological.laterName+' (الأحدث). الفارق = تحصيل الأحدث ناقص الأقدم، وليس قيمة مضافة للطلاب أنفسهم.'):
       h('p',{className:'srstaff-alert'},'يلزم وجود اختبارين مختلفين لإجراء المقارنة.'),
@@ -4822,6 +5081,14 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
     '<p class="sr640-note">المصدر: بيانات العام الحالي في النظام والأرشيف السنوي للعام السابق. آخر حفظ للأرشيف: '+
      esc(r.archiveAt?new Date(r.archiveAt).toLocaleDateString('ar-EG'):'—')+'.</p>'};
  }
+ const doWord=async()=>{
+  if(!canPrint||!canReport)return;
+  try{
+   const report=documentReport();
+   await SR63.downloadStaffReportWord(report,{schoolName:r.schoolName,academicYear:r.previousYear+' / '+r.currentYear,
+    principalName:r.principalName,workspace});
+  }catch(error){setState(x=>({...x,error:String(error.message||error)}));}
+ };
  const doPrint=()=>{
   if(!canPrint||!canReport)return;
   try{SR63.staffPrintHtml(documentReport(),{schoolName:r.schoolName,academicYear:r.previousYear+' / '+r.currentYear,
@@ -4844,7 +5111,7 @@ SR63.YearComparisonCenter=function({workspace,canPrint=true}){
      h('option',{value:'الكل'},'المدرسة بالكامل'),
      grades.map(x=>h('option',{key:x.grade,value:x.grade},x.label)))),
    h('button',{type:'button',disabled:state.loading,onClick:()=>setRefresh(n=>n+1)},'تحديث المقارنة'),
-   h('button',{type:'button',disabled:!canPrint||!canReport,onClick:doPrint},'معاينة الطباعة / حفظ PDF')),
+   h('button',{type:'button',disabled:!canPrint||!canReport,onClick:doPrint},'معاينة الطباعة / حفظ PDF'),h('button',{type:'button',disabled:!canPrint||!canReport,onClick:()=>void doWord()},'تنزيل Word')),
   state.loading?h('p',{className:'sr67-year-status',role:'status'},'جارٍ قراءة بيانات العام الحالي والأرشيف السنوي السابق…'):null,
   state.error?h('p',{className:'sr67-year-alert',role:'alert'},state.error):null,
   warning?h('p',{className:'sr67-year-alert',role:'alert'},warning):null,
@@ -5198,11 +5465,11 @@ SR63.printStrugglingReport=async function(workspace,model,preparedWindow){
   const generatedAt=new Date().toLocaleString('ar-EG'),html=[];
   stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:297mm;pointer-events:none;';document.body.append(stage);root=y.createRoot(stage);
   for(let pageIndex=0;pageIndex<model.pages.length;pageIndex++){
-   if(preparedWindow.closed)return 0;
+   if(preparedWindow?.closed)return 0;
    await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(Error('تعذر تجهيز التقرير. أعد المحاولة.')),15000);root.render(v.createElement(SR63.StrugglingReportPage,{key:pageIndex,workspace,model,page:model.pages[pageIndex],pageIndex,generatedAt,pageRef:node=>{if(node){clearTimeout(timer);resolve();}}}));});
    html.push(stage.querySelector('.school-report-page').outerHTML);
   }
-  return await SR63.printReportBatch(html,'تقرير الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow);
+  return preparedWindow?await SR63.printReportBatch(html,'تقرير الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow):await SR63.downloadWordReport(html,{landscape:true,title:'تقرير الطلاب المتعثرين',filename:'تقرير الطلاب المتعثرين - '+tj(workspace.settings,model.exam).name});
  }catch(error){if(preparedWindow&&!preparedWindow.closed)preparedWindow.close();throw error;}
  finally{root?.unmount();stage?.remove();}
 };
@@ -5215,7 +5482,16 @@ SR63.StrugglingPrintButton=function({workspace,minimum,maximum,canPrint=true}){
   popup.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><title>تجهيز تقرير المتعثرين</title><body>جارٍ تجهيز جميع صفحات التقرير…</body></html>');popup.document.close();
   setBusy(true);try{await SR63.printStrugglingReport(workspace,model,popup);}catch(error){eb.error(error.message||'تعذر تجهيز التقرير.');}finally{setBusy(false);}
  };
- return v.createElement('div',{className:'sr678-print-action'},v.createElement(dA,{onClick:print,disabled:busy||!!model.error||!model.pages.length,title:'طباعة كل الطلاب المطابقين للنطاق وجميع مواد رسوبهم، وليس صفحة القائمة الحالية فقط'},v.createElement(Fy,{}),busy?'جارٍ تجهيز التقرير…':'طباعة تقرير المتعثرين'),v.createElement('small',{role:model.error?'alert':undefined},model.error||(!model.students.length?'لا توجد مواد رسوب ضمن النطاق المحدد.':Q(model.students.length)+' طالب · '+Q(model.subjectCount)+' مادة راسبة · طباعة / حفظ PDF')));
+ const word=async()=>{
+  if(busy||model.error||!model.pages.length)return;setBusy(true);
+  try{await SR63.printStrugglingReport(workspace,model,null);}
+  catch(error){eb.error(error.message||'تعذر تنزيل Word.');}
+  finally{setBusy(false);}
+ };
+ return v.createElement('div',{className:'sr678-print-action'},
+  v.createElement(dA,{onClick:print,disabled:busy||!!model.error||!model.pages.length,title:'طباعة كل الطلاب المطابقين للنطاق وجميع مواد رسوبهم، وليس صفحة القائمة الحالية فقط'},v.createElement(Fy,{}),busy?'جارٍ تجهيز التقرير…':'طباعة تقرير المتعثرين'),
+  v.createElement(dA,{onClick:()=>void word(),disabled:busy||!!model.error||!model.pages.length},'تحميل Word'),
+  v.createElement('small',{role:model.error?'alert':undefined},model.error||(!model.students.length?'لا توجد مواد رسوب ضمن النطاق المحدد.':Q(model.students.length)+' طالب · '+Q(model.subjectCount)+' مادة راسبة · طباعة / حفظ PDF / Word')));
 };
 
 
@@ -5317,7 +5593,7 @@ SR63.printStrugglingStatistics=async function(workspace,preparedWindow){
   stage=document.createElement('div');stage.style.cssText='position:fixed;left:-20000px;top:0;width:297mm;pointer-events:none;';
   document.body.append(stage);root=y.createRoot(stage);
   for(let pageIndex=0;pageIndex<pages.length;pageIndex++){
-   if(preparedWindow.closed)return 0;
+   if(preparedWindow?.closed)return 0;
    await new Promise((resolve,reject)=>{
     const timer=setTimeout(()=>reject(Error('تعذر تجهيز الإحصاء المجمع للطباعة.')),15000);
     root.render(v.createElement(SR63.StrugglingStatisticsPrintPage,{
@@ -5329,7 +5605,7 @@ SR63.printStrugglingStatistics=async function(workspace,preparedWindow){
    if(!pageNode)throw Error('تعذر إنشاء صفحة الإحصاء للطباعة.');
    html.push(pageNode.outerHTML);
   }
-  return await SR63.printReportBatch(html,'إحصاء الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow);
+  return preparedWindow?await SR63.printReportBatch(html,'إحصاء الطلاب المتعثرين — '+tj(workspace.settings,model.exam).name,true,preparedWindow):await SR63.downloadWordReport(html,{landscape:true,title:'إحصاء الطلاب المتعثرين',filename:'إحصاء الطلاب المتعثرين - '+tj(workspace.settings,model.exam).name});
  }catch(error){if(preparedWindow&&!preparedWindow.closed)preparedWindow.close();throw error;}
  finally{root?.unmount();stage?.remove();}
 };
@@ -5346,7 +5622,15 @@ SR63.StrugglingStatsPrintButton=function({workspace,canPrint=true}){
   catch(error){eb.error(error.message||'تعذر طباعة الإحصاء المجمع.');}
   finally{setBusy(false);}
  };
- return v.createElement(dA,{onClick:print,disabled:busy,className:'sr681-print-button',title:'طباعة الإحصاء المجمع لكامل المدرسة والمواد والشعب بصيغة A4 وحفظه PDF'},v.createElement(Fy,{}),busy?'جارٍ تجهيز الطباعة…':'طباعة الإحصاء المجمع');
+ const word=async()=>{
+  if(busy)return;setBusy(true);
+  try{await SR63.printStrugglingStatistics(workspace,null);}
+  catch(error){eb.error(error.message||'تعذر تحميل Word للإحصاء.');}
+  finally{setBusy(false);}
+ };
+ return v.createElement('div',{className:'sr681-print-actions'},
+  v.createElement(dA,{onClick:print,disabled:busy,className:'sr681-print-button',title:'طباعة الإحصاء المجمع لكامل المدرسة والمواد والشعب بصيغة A4 وحفظه PDF'},v.createElement(Fy,{}),busy?'جارٍ تجهيز الطباعة…':'طباعة الإحصاء المجمع'),
+  v.createElement(dA,{onClick:()=>void word(),disabled:busy,className:'sr681-print-button'},'تحميل Word للإحصاء'));
 };
 
 /* Complete portable backups. Archive lists carry metadata only; bodies are fetched on demand. */
@@ -7165,6 +7449,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
     const node=stage.querySelector('.school-report-page');
     if(!node)throw Error('تعذر تجهيز إحدى صفحات التقرير للطباعة.');
     await Promise.all([...node.querySelectorAll('img')].map(img=>img.decode()));
+    SR63.ensureReportContrast?.(node);
     SR63.planReportSheet(node,(isLandscape?297:210)*96/25.4,(isLandscape?210:297)*96/25.4);
     pageHTML.push(capture?await capture(node,page,pIndex):node.outerHTML);
    }
@@ -7231,6 +7516,26 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   }
  };
 
+ const exportWord=async()=>{
+  if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
+  if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
+  const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
+  if(!exportPages.length){eb.error('لا توجد صفحات لهذا التقرير حسب الاختيارات الحالية.');return;}
+  if(exportPages.length>250){eb.error('اختر نطاقًا أصغر؛ الحد الأقصى 250 صفحة.');return;}
+  try{
+   const landscape=SR63.reportPageIsLandscape(n);
+   const reportName=e.settings.reportDesign.reportNames[n]||'تقرير المدرسة';
+   const examName=w?(tj(e.settings,f).name+' - '+tj(e.settings,m).name):tj(e.settings,u).name;
+   const html=await renderReportHTML(exportPages,landscape,
+    index=>setDownloadState('جارٍ تجهيز Word: صفحة '+index+' من '+exportPages.length));
+   setDownloadState('جارٍ إنشاء ملف Word القابل للتحرير…');
+   await SR63.downloadWordReport(html,{landscape,title:reportName,filename:reportName+' - '+examName,
+    onProgress:(index,total)=>setDownloadState('تحويل صفحة '+index+' من '+total+' إلى Word…')});
+   eb.success('تم تنزيل '+exportPages.length+' صفحة بصيغة Word.');
+   if(!prepared)setPrepared(true);
+  }catch(error){eb.error('تعذّر تنزيل Word: '+String(error?.message||error));}
+  finally{setDownloadState('');}
+ };
  const exportPDF=async(split=false)=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل المقارنة.');return;}
@@ -7277,6 +7582,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
  (0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{htmlFor:`sr-range-max`,children:`الحد الأعلى (%) — غير شامل إلا إذا كان 100%`}),(0,q.jsx)(fA,{id:`sr-range-max`,className:`mt-2`,type:`number`,min:`0`,max:`100`,step:`any`,value:upperLimit,'aria-invalid':!!rangeError,onChange:e=>{_(e.target.value);invalidate()}})]}),
  (0,q.jsx)(`p`,{className:`col-span-full text-sm font-bold`,role:rangeError?`alert`:undefined,children:rangeError||`يشمل الحد الأدنى، والحد الأعلى غير شامل إلا 100% فتُحسب الدرجة الكاملة. مثال: من 90% إلى 100% شاملًا.`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 flex flex-wrap items-center gap-2`,children:[prepared?(0,q.jsx)(uA,{className:reportOverflowCount?`bg-rose-50 text-rose-700`:`bg-emerald-50 text-emerald-700`,children:reportOverflowCount?`فحص الطباعة: ${reportOverflowCount.toLocaleString(`ar-EG`)} صفحة تحتاج مراجعة`:`المعاينة جاهزة — راجع معاينة PDF`}):(0,q.jsx)(uA,{className:`bg-sky-50 text-sky-800`,children:`المعاينة لم تُجهز بعد`}),(0,q.jsxs)(uA,{className:`bg-slate-100 text-slate-700`,children:[prepared?D.length.toLocaleString(`ar-EG`):`0`,` صفحة`]}),O>0&&(0,q.jsxs)(uA,{className:`bg-amber-50 text-amber-800`,children:[O.toLocaleString(`ar-EG`),` اسم طويل — راجع المعاينة`]}),w&&f===m&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-700`,children:`اختر اختبارين مختلفين`}),(0,q.jsxs)(dA,{onClick:()=>void preparePreview(),disabled:w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`mr-auto bg-teal-700`,children:[subjectBusy?`جارٍ تحميل مقارنة المواد…`:`تجهيز المعاينة`]}),(previewError||subjectError||subjectBlocked)&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-800`,children:`${subjectBlocked?'مقارنة المواد تتطلب صلاحية مقارنة القسم بالأقسام الأخرى.':subjectError||('تعذر تجهيز المعاينة: '+previewError)}`}),!specialMode&&(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#123247]`,children:[(0,q.jsx)(Fy,{}),`طباعة التقرير الحالي`]}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(false),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-teal-700`,children:`تنزيل PDF كامل — ملف واحد`}),
+ (0,q.jsx)(dA,{onClick:()=>void exportWord(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#285c76] text-white`,children:`تنزيل Word — نفس التقرير`}),
   (0,q.jsx)(dA,{onClick:()=>void saveVectorPDF(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`حفظ PDF متجهي — بدون بكسلة عند التكبير`}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(true),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`تنزيل تقارير مفردة ZIP — حسب ${i===`teacher`?'المعلم':'الصف'}`}),
  downloadState&&(0,q.jsx)(`span`,{role:`status`,className:`sr646-export-status`,children:downloadState}),
@@ -7345,4 +7651,4 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   try{const result=SR63.rollback(e,batchId,exam);ue(await qj());if(!await _e(result.workspace))return;srRawSet(result.workspace);eb.success(`تم التراجع عن ${result.restored} نتيجة؛ حُفظت ${result.skipped} نتيجة معدّلة لاحقًا.`);}catch(error){eb.error(error.message);}
 }async function $e(snapshot){
   try{const full=await SR63.getSnapshot(snapshot),checked=LN(full.workspace);if(!window.confirm(`استعادة «${full.reason}»؟ ستُحفظ نقطة لبياناتك الحالية.`))return;if(!await Kj(e,'قبل استعادة نقطة محفوظة'))throw new Error('تعذر إنشاء نقطة حماية.');const next=jj(checked.workspace,'استعادة نقطة',full.reason);ue(await qj());if(!await _e(next))return;srRawSet(next);r(structuredClone(next.settings));a(false);eb.success('تمت استعادة النقطة وحفظها.');}catch(error){eb.error(error.message);}
-}function et(){return (0,q.jsx)(SR63.Archives,{workspace:e,snapshots:le,status:c,bytes:u,onSave:()=>_e(),onBackup:Oe,onRestore:ke,onSnapshot:$e,onRollback:Qe,onNewYear:Ie,onClear:Ze,onRefresh:async()=>ue(await qj()),onChange:t});}function tt(){let t=Ej(n.bands),o=e=>{r(t=>({...t,...e})),a(!0)};return(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(p9,{kicker:`إدارة قواعد النظام`,title:`الإعدادات والمعادلات والتقارير`,desc:`عدّل القيم ثم اضغط «حفظ الإعدادات». لا تُطبّق التغييرات على التحليلات والتقارير قبل الحفظ.`,action:(0,q.jsxs)(`div`,{className:`flex flex-wrap gap-2`,children:[(0,q.jsx)(uA,{className:t.length?`bg-rose-50 text-rose-700`:i?`bg-amber-50 text-amber-700`:`bg-emerald-50 text-emerald-700`,children:t.length?`${t.length} ملاحظة`:i?`تعديلات غير محفوظة`:`الإعدادات محفوظة`}),(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1),eb.info(`تم التراجع عن التعديلات غير المحفوظة`)},children:[(0,q.jsx)(Iy,{}),`تراجع`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات`]})]})}),(0,q.jsxs)(`div`,{className:`grid gap-5 xl:grid-cols-2`,children:[(0,q.jsx)(m9,{title:`هوية المدرسة والتقرير`,children:(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-2`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolName,onChange:e=>o({schoolName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`العام الأكاديمي`}),(0,q.jsx)(fA,{className:`mt-2 bg-slate-50`,value:n.academicYear,readOnly:!0}),(0,q.jsx)(`small`,{className:`mt-1 block text-amber-700`,children:`غيّره بأمان من «النسخ والأرشيف ← بدء عام جديد» حتى لا تتغير هوية النتائج القديمة.`})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مدير/مديرة المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.principalName,onChange:e=>o({principalName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`النائب/النائبة الأكاديمية`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.academicViceName,onChange:e=>o({academicViceName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المنسق الافتراضي عند عدم وجود ربط للمادة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.coordinatorName,onChange:e=>o({coordinatorName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`رؤية المدرسة في تذييل التقارير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolVision,onChange:e=>o({schoolVision:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`البرمجة والتصميم`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.programmerDesignerName,onChange:e=>o({programmerDesignerName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم البرنامج الذي طبع التقرير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reportSystemName,onChange:e=>o({reportSystemName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`إعداد التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.preparedByName,onChange:e=>o({preparedByName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مراجعة التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reviewedByName,onChange:e=>o({reviewedByName:e.target.value})})]})]})}),(0,q.jsxs)(m9,{title:`قواعد الحساب`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-3`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`حد النجاح (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,value:n.pass,onChange:e=>o({pass:Math.max(0,Math.min(100,Number(e.target.value)))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`هامش الثبات في المقارنة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,step:`.1`,value:n.stable,onChange:e=>o({stable:Math.max(0,Number(e.target.value))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الحد الأدنى للعينة العادلة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`1`,value:n.minSampleSize,onChange:e=>o({minSampleSize:Math.max(1,Number(e.target.value))})})]})]}),(0,q.jsxs)(`div`,{className:`mt-5 grid gap-3 text-sm`,children:[(0,q.jsxs)(`p`,{className:`rounded-xl bg-teal-50 p-3 text-teal-900`,children:[(0,q.jsx)(`b`,{children:`نسبة النجاح:`}),` عدد الناجحين ÷ عدد الطلاب المقيمين.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-sky-50 p-3 text-sky-900`,children:[(0,q.jsx)(`b`,{children:`نسبة التحصيل:`}),` مجموع الدرجات ÷ مجموع الدرجات الممكنة.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-amber-50 p-3 text-amber-900`,children:[(0,q.jsx)(`b`,{children:`القيمة المضافة:`}),` متوسط فرق النسب المئوية للعينة المشتركة الحاضرة.`]})]})]})]}),(0,q.jsx)(m9,{title:`إجماليات الاختبارات الأربعة`,desc:`يمكن أن تكون الدرجة الكلية مختلفة في كل اختبار دون أن تتأثر المقارنة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-4`,children:n.exams.map((e,t)=>(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-slate-50 p-4`,children:[(0,q.jsxs)(`b`,{className:`text-sm text-teal-700`,children:[`الاختبار `,t+1]}),(0,q.jsx)(J,{className:`mt-3`,children:`الاسم`}),(0,q.jsx)(fA,{className:`mt-2`,value:e.name,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,name:t.target.value}:n)})}),(0,q.jsx)(J,{className:`mt-3`,children:`الدرجة الكلية`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`.01`,step:`.5`,value:e.total,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,total:Math.max(.01,Number(t.target.value))}:n)})})]},e.key))})}),(0,q.jsxs)(m9,{title:`حدود مستويات الأداء`,desc:`فعّل من ثلاثة إلى ستة مستويات. تغطي المستويات المختارة جميع النسب من 0 إلى 100 دون فجوات.`,children:[t.length>0&&(0,q.jsx)(`div`,{className:`mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800`,children:t.join(` `)}),(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`,children:(0,q.jsxs)(pA,{children:[(0,q.jsx)(mA,{children:(0,q.jsxs)(gA,{children:[(0,q.jsx)(_A,{children:`تفعيل`}),(0,q.jsx)(_A,{children:`اللون`}),(0,q.jsx)(_A,{className:`text-right`,children:`المستوى`}),(0,q.jsx)(_A,{children:`من`}),(0,q.jsx)(_A,{children:`إلى`}),(0,q.jsx)(_A,{className:`text-right`,children:`التجميع`})]})}),(0,q.jsx)(hA,{children:n.bands.map(e=>(0,q.jsxs)(gA,{children:[(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`checkbox`,checked:e.enabled!==false,disabled:e.enabled!==false&&n.bands.filter(b=>b.enabled!==false).length<=3,onChange:t=>o({bands:n.bands.map(b=>b.id===e.id?{...b,enabled:t.target.checked}:b)}),title:`إدراج ${e.label} في كل تقارير ومستويات التقدير`})}),(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`color`,value:e.color,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,color:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{value:e.label,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,label:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.min,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,min:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.max,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,max:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(g9,{value:e.macro,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,macro:t}:n)}),items:[{value:`above`,label:`فوق المستوى`},{value:`average`,label:`في المتوسط`},{value:`below`,label:`دون المستوى`}]})})]},e.id))})]})})]}),(0,q.jsx)(m9,{title:`التحكم في عناوين أعمدة الاستيراد`,desc:`اكتب جميع الأسماء التي قد تأتي بها الأعمدة في ملفات Excel وافصل بينها بفاصلة؛ سيستخدمها النظام في الاكتشاف التلقائي.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`studentId`,label:`عناوين رقم الطالب`},{key:`studentName`,label:`عناوين اسم الطالب`},{key:`className`,label:`عناوين الصف والشعبة`},{key:`teacher`,label:`عناوين اسم المعلم`},{key:`subject`,label:`عناوين المادة`},{key:`department`,label:`عناوين القسم`},{key:`coordinator`,label:`عناوين منسق المادة`},{key:`classes`,label:`عناوين صفوف المعلم`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.importAliases[e.key].join(`، `),onChange:t=>o({importAliases:{...n.importAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsx)(SR63.CertificateExamSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`,desc:`أضف الصيغ المستخدمة في ملفات المدرسة مثل غائب أو معذور أو محروم؛ افصل بينها بفاصلة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`absent`,label:`الغائب`},{key:`excused`,label:`المعذور`},{key:`unexcused`,label:`الغياب دون عذر`},{key:`deprived`,label:`المحروم`},{key:`not_enrolled`,label:`غير المقيد`},{key:`unentered`,label:`لم تُرصد بعد`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.statusAliases[e.key].join(`، `),onChange:t=>o({statusAliases:{...n.statusAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsxs)(`div`,{className:`sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur`,children:[(0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:i?`لديك تعديلات لم تُحفظ بعد.`:`لا توجد تعديلات معلقة.`}),(0,q.jsxs)(`div`,{className:`flex gap-2`,children:[(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1)},children:[(0,q.jsx)(Iy,{}),`إلغاء التعديلات`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات الجديدة`]})]})]})]})}function nt(){return (0,q.jsxs)('section',{className:'executive-hero sr63-start',children:[(0,q.jsx)('span',{className:'sr63-kicker',children:`برنامج نتائج المدرسة · الإصدار السحابي ${SR63.version}`}),(0,q.jsx)('h1',{children:SR63.storage.blocked?'استعادة بياناتك المحفوظة':'جهّز قاعدة حسابك السحابية'}),(0,q.jsx)('p',{children:SR63.storage.blocked?'تعذّر الاتصال أو التحقق من بيانات حسابك. أعد الاتصال ثم أعد تحميل الصفحة؛ لن نستبدل البيانات السحابية بقاعدة فارغة.':'اختر قاعدة فارغة لإدخال نتائج مدرستك، أو استعد نسخة احتياطية، أو افتح البيانات التجريبية.'}),SR63.storage.blocked&&(0,q.jsx)('p',{role:'alert',children:SR63.storage.error}),(0,q.jsxs)('div',{className:'sr63-actions',children:[!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('empty'),children:'قاعدة فارغة'}),!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('demo'),children:'جولة تجريبية'}),(0,q.jsxs)('label',{className:'sr63-button',children:['استعادة نسخة JSON',(0,q.jsx)('input',{type:'file',accept:'.json',className:'sr63-file',onChange:event=>{const file=event.target.files?.[0];if(file)ke(file);event.target.value='';}})]}),SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:async()=>{const raw=await Yj();SR63.storage.block('لم يتم اعتماد البيانات بعد.');if(raw)SR63.download(raw,'بيانات-للفحص.json');},children:'تنزيل البيانات للفحص'})]})]});}let rt;return rt=f?m?nt():o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`staffUsers`?(0,q.jsx)(SR63.StaffAdminPage,{}):o===`departmentQuant`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e,initialView:`department`}):o===`teacherPerformance`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e}):o===`aiPlans`?(0,q.jsx)(SR63.AIPlans,{workspace:e,setWorkspace:t}):o===`nationalities`?(0,q.jsx)(SR63.StudentNationalityAdmin,{workspace:e,setWorkspace:t}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):o===`teacherData`?ze():o===`data`?Be():o===`quality`?Ve():["classes","teachers","departments","school","comparison","value","levels","struggling"].includes(o)?(0,q.jsx)(SR63.OriginalAnalytics,{workspace:e,page:o,onNavigate:s}):o===`reports`?Je():o===`customReports`?Xe():o===`reportDesign`?Ye():o===`backups`?et():tt():(0,q.jsx)(`div`,{className:`grid min-h-[60vh] place-items-center`,children:(0,q.jsxs)(`div`,{className:`text-center`,children:[(0,q.jsx)(Iy,{className:`mx-auto size-8 animate-spin text-teal-700`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`جارٍ تحميل مساحة العمل الآمنة…`})]})}),(0,q.jsxs)(LA,{style:{"--sidebar-width":`19rem`},dir:`rtl`,children:[(0,q.jsxs)(RA,{side:`right`,collapsible:`icon`,className:`results-sidebar border-l-0 text-white`,children:[(0,q.jsxs)(VA,{className:`relative border-b border-white/10 px-4 pb-5 pt-6`,children:[(0,q.jsx)(`div`,{className:`absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-[#d49a2f] via-[#f5d37b] to-[#2dd4bf]`}),(0,q.jsxs)(`div`,{className:`flex items-center gap-3`,children:[(0,q.jsx)(`span`,{className:`grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#f6cf69] shadow-lg shadow-black/10`,children:(0,q.jsx)(cy,{className:`size-6`})}),(0,q.jsxs)(`div`,{className:`min-w-0 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-base`,children:`مرصد النتائج المدرسية`}),(0,q.jsx)(`small`,{className:`mt-1 block truncate text-white/55`,children:`إدارة التحليل وصناعة القرار`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 rounded-2xl border border-white/10 bg-white/[.065] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-sm`,children:e.settings.schoolName}),(0,q.jsx)(`span`,{className:`mt-2 inline-flex rounded-full bg-[#d49a2f]/15 px-2.5 py-1 text-xs font-bold text-[#f6cf69]`,children:e.settings.academicYear})]}),(0,q.jsxs)(`div`,{className:`relative mt-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(By,{className:`absolute right-3 top-3 size-4 text-white/45`}),(0,q.jsx)(fA,{value:ce,onChange:e=>V(e.target.value),placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),(0,q.jsx)(UA,{className:`min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:#5b8094_transparent] [scrollbar-width:thin]`,children:[`الرئيسية`,`التحليلات`,`القياس`,`الإدارة`].map(e=>{let t=Q9.filter(t=>t.group===e&&(!ce||ij(t.label).includes(ij(ce))));return t.length?(0,q.jsx)(Mde,{group:e,items:t,page:o,critical:be.critical,forceOpen:!!ce,onSelect:e=>{if((i||SR63.formDirty)&&!window.confirm(`توجد تعديلات لم تعتمدها. مغادرة الصفحة وإلغاء هذه التعديلات؟`))return;a(false);SR63.formDirty=false;s(e);E(`الكل`)}},`${e}-${ce?`search`:`normal`}`):null})}),(0,q.jsx)(HA,{className:`border-t border-white/10 bg-black/10 p-3`,children:(0,q.jsxs)(`div`,{className:`rounded-2xl border border-white/10 bg-white/[.06] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsxs)(`span`,{className:`flex items-center gap-2 text-xs font-bold text-emerald-300`,children:[(0,q.jsx)(py,{className:`size-4`}),c]}),(0,q.jsxs)(`div`,{className:`mt-2 flex items-center justify-between text-[11px] text-white/45`,children:[(0,q.jsx)(`span`,{children:`آخر نقاط الاستعادة`}),(0,q.jsxs)(`b`,{children:[le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`]})]}),(0,q.jsxs)(`button`,{onClick:Oe,className:`mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white`,children:[(0,q.jsx)(_y,{className:`size-4`}),`تنزيل نسخة احتياطية`]}),(0,q.jsx)(`small`,{className:`mt-3 block text-center text-white/35`,children:`الإصدار 6.10.94 — نسخة مستقرة`})]})})]}),(0,q.jsxs)(BA,{className:`min-w-0 bg-[#f6f8f7]`,children:[(0,q.jsxs)(`header`,{className:`sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6`,children:[(0,q.jsx)(zA,{}),(0,q.jsx)(`span`,{className:`hidden truncate text-sm font-bold text-slate-700 sm:inline`,children:Q9.find(e=>e.id===o)?.label}),(0,q.jsxs)(`div`,{className:`mr-auto flex min-w-0 items-center gap-2`,children:[(0,q.jsx)(g9,{className:`max-w-40 sm:max-w-none`,value:e.activeExam,onChange:e=>t(t=>({...t,activeExam:e})),items:e.settings.exams.map(e=>({value:e.key,label:e.name}))}),(0,q.jsx)(dA,{variant:`ghost`,size:`icon`,title:`ملء الشاشة`,onClick:()=>void SR63.fullscreen(),children:(0,q.jsx)(Sy,{})}),(0,q.jsxs)(dA,{size:`sm`,onClick:()=>s(`import`),className:`hidden bg-teal-700 sm:flex`,children:[(0,q.jsx)(Ky,{}),`استيراد`]})]})]}),g&&(0,q.jsxs)(`div`,{className:`sticky top-16 z-20 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6`,children:[(0,q.jsx)(`b`,{children:`يوجد تعارض في الحفظ بين النوافذ.`}),(0,q.jsx)(`span`,{children:`حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.`}),(0,q.jsx)(dA,{size:`sm`,variant:`outline`,className:`mr-auto`,onClick:()=>void Ne(),children:`تحميل أحدث نسخة سحابية`}),(0,q.jsx)(dA,{size:`sm`,className:`bg-amber-700`,onClick:()=>void Pe(),children:`اعتماد نسخة هذه النافذة`})]}),(0,q.jsx)(`main`,{className:`mx-auto w-full max-w-[1700px] flex-1 p-4 sm:p-6 lg:p-8`,children:rt})]}),(0,q.jsx)(ab,{position:`top-center`,richColors:!0})]})}var $9=document.getElementById(`root`);if(!$9)throw Error(`تعذر تشغيل واجهة البرنامج`);(0,y.createRoot)($9).render((0,q.jsx)(v.StrictMode,{children:(0,q.jsx)(SR63.CloudApp,{})}));
+}function et(){return (0,q.jsx)(SR63.Archives,{workspace:e,snapshots:le,status:c,bytes:u,onSave:()=>_e(),onBackup:Oe,onRestore:ke,onSnapshot:$e,onRollback:Qe,onNewYear:Ie,onClear:Ze,onRefresh:async()=>ue(await qj()),onChange:t});}function tt(){let t=Ej(n.bands),o=e=>{r(t=>({...t,...e})),a(!0)};return(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(p9,{kicker:`إدارة قواعد النظام`,title:`الإعدادات والمعادلات والتقارير`,desc:`عدّل القيم ثم اضغط «حفظ الإعدادات». لا تُطبّق التغييرات على التحليلات والتقارير قبل الحفظ.`,action:(0,q.jsxs)(`div`,{className:`flex flex-wrap gap-2`,children:[(0,q.jsx)(uA,{className:t.length?`bg-rose-50 text-rose-700`:i?`bg-amber-50 text-amber-700`:`bg-emerald-50 text-emerald-700`,children:t.length?`${t.length} ملاحظة`:i?`تعديلات غير محفوظة`:`الإعدادات محفوظة`}),(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1),eb.info(`تم التراجع عن التعديلات غير المحفوظة`)},children:[(0,q.jsx)(Iy,{}),`تراجع`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات`]})]})}),(0,q.jsxs)(`div`,{className:`grid gap-5 xl:grid-cols-2`,children:[(0,q.jsx)(m9,{title:`هوية المدرسة والتقرير`,children:(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-2`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolName,onChange:e=>o({schoolName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`العام الأكاديمي`}),(0,q.jsx)(fA,{className:`mt-2 bg-slate-50`,value:n.academicYear,readOnly:!0}),(0,q.jsx)(`small`,{className:`mt-1 block text-amber-700`,children:`غيّره بأمان من «النسخ والأرشيف ← بدء عام جديد» حتى لا تتغير هوية النتائج القديمة.`})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مدير/مديرة المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.principalName,onChange:e=>o({principalName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`النائب/النائبة الأكاديمية`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.academicViceName,onChange:e=>o({academicViceName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المنسق الافتراضي عند عدم وجود ربط للمادة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.coordinatorName,onChange:e=>o({coordinatorName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`رؤية المدرسة في تذييل التقارير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolVision,onChange:e=>o({schoolVision:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`البرمجة والتصميم`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.programmerDesignerName,onChange:e=>o({programmerDesignerName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم البرنامج الذي طبع التقرير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reportSystemName,onChange:e=>o({reportSystemName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`إعداد التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.preparedByName,onChange:e=>o({preparedByName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مراجعة التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reviewedByName,onChange:e=>o({reviewedByName:e.target.value})})]})]})}),(0,q.jsxs)(m9,{title:`قواعد الحساب`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-3`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`حد النجاح (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,value:n.pass,onChange:e=>o({pass:Math.max(0,Math.min(100,Number(e.target.value)))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`هامش الثبات في المقارنة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,step:`.1`,value:n.stable,onChange:e=>o({stable:Math.max(0,Number(e.target.value))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الحد الأدنى للعينة العادلة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`1`,value:n.minSampleSize,onChange:e=>o({minSampleSize:Math.max(1,Number(e.target.value))})})]})]}),(0,q.jsxs)(`div`,{className:`mt-5 grid gap-3 text-sm`,children:[(0,q.jsxs)(`p`,{className:`rounded-xl bg-teal-50 p-3 text-teal-900`,children:[(0,q.jsx)(`b`,{children:`نسبة النجاح:`}),` عدد الناجحين ÷ عدد الطلاب المقيمين.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-sky-50 p-3 text-sky-900`,children:[(0,q.jsx)(`b`,{children:`نسبة التحصيل:`}),` مجموع الدرجات ÷ مجموع الدرجات الممكنة.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-amber-50 p-3 text-amber-900`,children:[(0,q.jsx)(`b`,{children:`القيمة المضافة:`}),` متوسط فرق النسب المئوية للعينة المشتركة الحاضرة.`]})]})]})]}),(0,q.jsx)(m9,{title:`إجماليات الاختبارات الأربعة`,desc:`يمكن أن تكون الدرجة الكلية مختلفة في كل اختبار دون أن تتأثر المقارنة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-4`,children:n.exams.map((e,t)=>(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-slate-50 p-4`,children:[(0,q.jsxs)(`b`,{className:`text-sm text-teal-700`,children:[`الاختبار `,t+1]}),(0,q.jsx)(J,{className:`mt-3`,children:`الاسم`}),(0,q.jsx)(fA,{className:`mt-2`,value:e.name,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,name:t.target.value}:n)})}),(0,q.jsx)(J,{className:`mt-3`,children:`الدرجة الكلية`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`.01`,step:`.5`,value:e.total,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,total:Math.max(.01,Number(t.target.value))}:n)})})]},e.key))})}),(0,q.jsxs)(m9,{title:`حدود مستويات الأداء`,desc:`فعّل من ثلاثة إلى ستة مستويات. تغطي المستويات المختارة جميع النسب من 0 إلى 100 دون فجوات.`,children:[t.length>0&&(0,q.jsx)(`div`,{className:`mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800`,children:t.join(` `)}),(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`,children:(0,q.jsxs)(pA,{children:[(0,q.jsx)(mA,{children:(0,q.jsxs)(gA,{children:[(0,q.jsx)(_A,{children:`تفعيل`}),(0,q.jsx)(_A,{children:`اللون`}),(0,q.jsx)(_A,{className:`text-right`,children:`المستوى`}),(0,q.jsx)(_A,{children:`من`}),(0,q.jsx)(_A,{children:`إلى`}),(0,q.jsx)(_A,{className:`text-right`,children:`التجميع`})]})}),(0,q.jsx)(hA,{children:n.bands.map(e=>(0,q.jsxs)(gA,{children:[(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`checkbox`,checked:e.enabled!==false,disabled:e.enabled!==false&&n.bands.filter(b=>b.enabled!==false).length<=3,onChange:t=>o({bands:n.bands.map(b=>b.id===e.id?{...b,enabled:t.target.checked}:b)}),title:`إدراج ${e.label} في كل تقارير ومستويات التقدير`})}),(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`color`,value:e.color,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,color:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{value:e.label,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,label:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.min,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,min:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.max,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,max:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(g9,{value:e.macro,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,macro:t}:n)}),items:[{value:`above`,label:`فوق المستوى`},{value:`average`,label:`في المتوسط`},{value:`below`,label:`دون المستوى`}]})})]},e.id))})]})})]}),(0,q.jsx)(m9,{title:`التحكم في عناوين أعمدة الاستيراد`,desc:`اكتب جميع الأسماء التي قد تأتي بها الأعمدة في ملفات Excel وافصل بينها بفاصلة؛ سيستخدمها النظام في الاكتشاف التلقائي.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`studentId`,label:`عناوين رقم الطالب`},{key:`studentName`,label:`عناوين اسم الطالب`},{key:`className`,label:`عناوين الصف والشعبة`},{key:`teacher`,label:`عناوين اسم المعلم`},{key:`subject`,label:`عناوين المادة`},{key:`department`,label:`عناوين القسم`},{key:`coordinator`,label:`عناوين منسق المادة`},{key:`classes`,label:`عناوين صفوف المعلم`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.importAliases[e.key].join(`، `),onChange:t=>o({importAliases:{...n.importAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsx)(SR63.CertificateExamSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`,desc:`أضف الصيغ المستخدمة في ملفات المدرسة مثل غائب أو معذور أو محروم؛ افصل بينها بفاصلة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`absent`,label:`الغائب`},{key:`excused`,label:`المعذور`},{key:`unexcused`,label:`الغياب دون عذر`},{key:`deprived`,label:`المحروم`},{key:`not_enrolled`,label:`غير المقيد`},{key:`unentered`,label:`لم تُرصد بعد`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.statusAliases[e.key].join(`، `),onChange:t=>o({statusAliases:{...n.statusAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsxs)(`div`,{className:`sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur`,children:[(0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:i?`لديك تعديلات لم تُحفظ بعد.`:`لا توجد تعديلات معلقة.`}),(0,q.jsxs)(`div`,{className:`flex gap-2`,children:[(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1)},children:[(0,q.jsx)(Iy,{}),`إلغاء التعديلات`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات الجديدة`]})]})]})]})}function nt(){return (0,q.jsxs)('section',{className:'executive-hero sr63-start',children:[(0,q.jsx)('span',{className:'sr63-kicker',children:`برنامج نتائج المدرسة · الإصدار السحابي ${SR63.version}`}),(0,q.jsx)('h1',{children:SR63.storage.blocked?'استعادة بياناتك المحفوظة':'جهّز قاعدة حسابك السحابية'}),(0,q.jsx)('p',{children:SR63.storage.blocked?'تعذّر الاتصال أو التحقق من بيانات حسابك. أعد الاتصال ثم أعد تحميل الصفحة؛ لن نستبدل البيانات السحابية بقاعدة فارغة.':'اختر قاعدة فارغة لإدخال نتائج مدرستك، أو استعد نسخة احتياطية، أو افتح البيانات التجريبية.'}),SR63.storage.blocked&&(0,q.jsx)('p',{role:'alert',children:SR63.storage.error}),(0,q.jsxs)('div',{className:'sr63-actions',children:[!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('empty'),children:'قاعدة فارغة'}),!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('demo'),children:'جولة تجريبية'}),(0,q.jsxs)('label',{className:'sr63-button',children:['استعادة نسخة JSON',(0,q.jsx)('input',{type:'file',accept:'.json',className:'sr63-file',onChange:event=>{const file=event.target.files?.[0];if(file)ke(file);event.target.value='';}})]}),SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:async()=>{const raw=await Yj();SR63.storage.block('لم يتم اعتماد البيانات بعد.');if(raw)SR63.download(raw,'بيانات-للفحص.json');},children:'تنزيل البيانات للفحص'})]})]});}let rt;return rt=f?m?nt():o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`staffUsers`?(0,q.jsx)(SR63.StaffAdminPage,{}):o===`departmentQuant`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e,initialView:`department`}):o===`teacherPerformance`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e}):o===`aiPlans`?(0,q.jsx)(SR63.AIPlans,{workspace:e,setWorkspace:t}):o===`nationalities`?(0,q.jsx)(SR63.StudentNationalityAdmin,{workspace:e,setWorkspace:t}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):o===`teacherData`?ze():o===`data`?Be():o===`quality`?Ve():["classes","teachers","departments","school","comparison","value","levels","struggling"].includes(o)?(0,q.jsx)(SR63.OriginalAnalytics,{workspace:e,page:o,onNavigate:s}):o===`reports`?Je():o===`customReports`?Xe():o===`reportDesign`?Ye():o===`backups`?et():tt():(0,q.jsx)(`div`,{className:`grid min-h-[60vh] place-items-center`,children:(0,q.jsxs)(`div`,{className:`text-center`,children:[(0,q.jsx)(Iy,{className:`mx-auto size-8 animate-spin text-teal-700`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`جارٍ تحميل مساحة العمل الآمنة…`})]})}),(0,q.jsxs)(LA,{style:{"--sidebar-width":`19rem`},dir:`rtl`,children:[(0,q.jsxs)(RA,{side:`right`,collapsible:`icon`,className:`results-sidebar border-l-0 text-white`,children:[(0,q.jsxs)(VA,{className:`relative border-b border-white/10 px-4 pb-5 pt-6`,children:[(0,q.jsx)(`div`,{className:`absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-[#d49a2f] via-[#f5d37b] to-[#2dd4bf]`}),(0,q.jsxs)(`div`,{className:`flex items-center gap-3`,children:[(0,q.jsx)(`span`,{className:`grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#f6cf69] shadow-lg shadow-black/10`,children:(0,q.jsx)(cy,{className:`size-6`})}),(0,q.jsxs)(`div`,{className:`min-w-0 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-base`,children:`مرصد النتائج المدرسية`}),(0,q.jsx)(`small`,{className:`mt-1 block truncate text-white/55`,children:`إدارة التحليل وصناعة القرار`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 rounded-2xl border border-white/10 bg-white/[.065] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-sm`,children:e.settings.schoolName}),(0,q.jsx)(`span`,{className:`mt-2 inline-flex rounded-full bg-[#d49a2f]/15 px-2.5 py-1 text-xs font-bold text-[#f6cf69]`,children:e.settings.academicYear})]}),(0,q.jsxs)(`div`,{className:`relative mt-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(By,{className:`absolute right-3 top-3 size-4 text-white/45`}),(0,q.jsx)(fA,{value:ce,onChange:e=>V(e.target.value),placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),(0,q.jsx)(UA,{className:`min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:#5b8094_transparent] [scrollbar-width:thin]`,children:[`الرئيسية`,`التحليلات`,`القياس`,`الإدارة`].map(e=>{let t=Q9.filter(t=>t.group===e&&(!ce||ij(t.label).includes(ij(ce))));return t.length?(0,q.jsx)(Mde,{group:e,items:t,page:o,critical:be.critical,forceOpen:!!ce,onSelect:e=>{if((i||SR63.formDirty)&&!window.confirm(`توجد تعديلات لم تعتمدها. مغادرة الصفحة وإلغاء هذه التعديلات؟`))return;a(false);SR63.formDirty=false;s(e);E(`الكل`)}},`${e}-${ce?`search`:`normal`}`):null})}),(0,q.jsx)(HA,{className:`border-t border-white/10 bg-black/10 p-3`,children:(0,q.jsxs)(`div`,{className:`rounded-2xl border border-white/10 bg-white/[.06] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsxs)(`span`,{className:`flex items-center gap-2 text-xs font-bold text-emerald-300`,children:[(0,q.jsx)(py,{className:`size-4`}),c]}),(0,q.jsxs)(`div`,{className:`mt-2 flex items-center justify-between text-[11px] text-white/45`,children:[(0,q.jsx)(`span`,{children:`آخر نقاط الاستعادة`}),(0,q.jsxs)(`b`,{children:[le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`]})]}),(0,q.jsxs)(`button`,{onClick:Oe,className:`mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white`,children:[(0,q.jsx)(_y,{className:`size-4`}),`تنزيل نسخة احتياطية`]}),(0,q.jsx)(`small`,{className:`mt-3 block text-center text-white/35`,children:`الإصدار 6.10.95 — نسخة مستقرة`})]})})]}),(0,q.jsxs)(BA,{className:`min-w-0 bg-[#f6f8f7]`,children:[(0,q.jsxs)(`header`,{className:`sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6`,children:[(0,q.jsx)(zA,{}),(0,q.jsx)(`span`,{className:`hidden truncate text-sm font-bold text-slate-700 sm:inline`,children:Q9.find(e=>e.id===o)?.label}),(0,q.jsxs)(`div`,{className:`mr-auto flex min-w-0 items-center gap-2`,children:[(0,q.jsx)(g9,{className:`max-w-40 sm:max-w-none`,value:e.activeExam,onChange:e=>t(t=>({...t,activeExam:e})),items:e.settings.exams.map(e=>({value:e.key,label:e.name}))}),(0,q.jsx)(dA,{variant:`ghost`,size:`icon`,title:`ملء الشاشة`,onClick:()=>void SR63.fullscreen(),children:(0,q.jsx)(Sy,{})}),(0,q.jsxs)(dA,{size:`sm`,onClick:()=>s(`import`),className:`hidden bg-teal-700 sm:flex`,children:[(0,q.jsx)(Ky,{}),`استيراد`]})]})]}),g&&(0,q.jsxs)(`div`,{className:`sticky top-16 z-20 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6`,children:[(0,q.jsx)(`b`,{children:`يوجد تعارض في الحفظ بين النوافذ.`}),(0,q.jsx)(`span`,{children:`حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.`}),(0,q.jsx)(dA,{size:`sm`,variant:`outline`,className:`mr-auto`,onClick:()=>void Ne(),children:`تحميل أحدث نسخة سحابية`}),(0,q.jsx)(dA,{size:`sm`,className:`bg-amber-700`,onClick:()=>void Pe(),children:`اعتماد نسخة هذه النافذة`})]}),(0,q.jsx)(`main`,{className:`mx-auto w-full max-w-[1700px] flex-1 p-4 sm:p-6 lg:p-8`,children:rt})]}),(0,q.jsx)(ab,{position:`top-center`,richColors:!0})]})}var $9=document.getElementById(`root`);if(!$9)throw Error(`تعذر تشغيل واجهة البرنامج`);(0,y.createRoot)($9).render((0,q.jsx)(v.StrictMode,{children:(0,q.jsx)(SR63.CloudApp,{})}));
