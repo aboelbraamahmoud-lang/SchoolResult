@@ -315,6 +315,7 @@
     const node=holder.firstElementChild;
     if(!node)throw Error('إحدى صفحات التقرير فارغة.');
     SR63.ensureReportContrast?.(node);
+    await Promise.all([...node.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})));
     if(i>0)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
     body.push(await walk(node,context));
     holder.remove();
