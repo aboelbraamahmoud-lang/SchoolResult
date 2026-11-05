@@ -44,24 +44,85 @@
    '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'+
    '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
  }
+ /* Data/image conversion must not use fetch(data:). It can be rejected by
+    Content-Security-Policy connect-src on the production website. */
+ const dataURLBlob=value=>{
+  const match=String(value||'').match(/^data:([^;,]*)(;base64)?,([\s\S]*)$/i);
+  if(!match)throw Error('صيغة الصورة المرفقة غير صالحة.');
+  const mime=match[1]||'image/png';
+  if(match[2]){
+   const bytes=atob(match[3].replace(/\s/g,''));
+   const array=new Uint8Array(bytes.length);
+   for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
+   return new Blob([array],{type:mime});
+  }
+  return new Blob([new TextEncoder().encode(decodeURIComponent(match[3]))],{type:mime});
+ };
+ const canvasBlob=canvas=>new Promise((resolve,reject)=>canvas.toBlob(
+  blob=>blob?resolve(blob):reject(Error('تعذر تحويل الرسم إلى صورة داخل Word.')),'image/png'));
+ const localImageCanvas=async image=>{
+  if(!image?.complete||!image.naturalWidth||!image.naturalHeight)return null;
+  const c=document.createElement('canvas');
+  c.width=image.naturalWidth;c.height=image.naturalHeight;
+  c.getContext('2d').drawImage(image,0,0);
+  return await canvasBlob(c);
+ };
+ const inlineSVGBlob=async svg=>{
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  const bounds=svg.getBoundingClientRect();
+  const w=Math.max(2,Math.round(bounds.width||parseFloat(svg.getAttribute('width'))||360));
+  const h=Math.max(2,Math.round(bounds.height||parseFloat(svg.getAttribute('height'))||180));
+  clone.setAttribute('width',String(w));clone.setAttribute('height',String(h));
+  if(!clone.getAttribute('viewBox'))clone.setAttribute('viewBox','0 0 '+w+' '+h);
+  const source=new XMLSerializer().serializeToString(clone);
+  const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
+  try{
+   const image=new Image();image.src=url;await image.decode();
+   const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
+   const context=canvas.getContext('2d');
+   context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
+   context.drawImage(image,0,0,canvas.width,canvas.height);
+   return await canvasBlob(canvas);
+  }finally{URL.revokeObjectURL(url);}
+ };
  async function embed(element,context){
   let type='png',blob,uri;
   if(element.tagName==='IMG'){
    uri=element.getAttribute('src')||'';
    if(!uri)return '';
    const link=new URL(uri,document.baseURI);
-   if(link.protocol!=='data:'&&link.origin!==document.location.origin)return para(txt('صورة مصدر خارجي غير متاح',element));
-   const response=await fetch(link.href,{credentials:'same-origin'});
-   if(!response.ok)return '';
-   blob=await response.blob();
-   type=/jpe?g/i.test(blob.type)?'jpeg':/webp/i.test(blob.type)?'webp':'png';
+   if(link.protocol==='data:'){
+    blob=dataURLBlob(link.href);
+   }else{
+    if(link.origin!==document.location.origin)return '';
+    // Reuse an image already loaded in the report before attempting a request.
+    const cached=[...document.images].find(img=>{
+     const current=img.currentSrc||img.src;
+     return img.complete&&img.naturalWidth&&current===link.href;
+    });
+    if(cached){try{blob=await localImageCanvas(cached);}catch(_error){blob=null;}}
+    if(!blob){
+     // A transient network failure should never prevent downloading the report.
+     try{
+      const response=await fetch(link.href,{credentials:'same-origin',cache:'force-cache'});
+      if(response.ok)blob=await response.blob();
+     }catch(_error){blob=null;}
+    }
+    if(!blob){try{blob=await localImageCanvas(element);}catch(_error){blob=null;}}
+    if(!blob)return '';
+   }
+   const mime=String(blob.type||'').toLowerCase();
+   type=mime.includes('jpeg')||mime.includes('jpg')?'jpeg':mime.includes('webp')?'webp':'png';
   }else{
-   if(typeof SR72Canvas==='undefined'||!SR72Canvas.toCanvas)return '';
-   const bounds=element.getBoundingClientRect();
-   if(bounds.width<10||bounds.height<10)return '';
-   const canvas=await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
-   const data=canvas.toDataURL('image/png');
-   blob=await(await fetch(data)).blob();
+   try{
+    const canvas=element.tagName==='CANVAS'?element:
+     await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
+    blob=await canvasBlob(canvas);
+   }catch(error){
+    if(element.tagName!=='SVG')throw Error('تعذر تحويل رسم التقرير إلى Word: '+String(error?.message||error));
+    blob=await inlineSVGBlob(element);
+   }
   }
   const key=uri&&uri.length<4000?uri:null;
   if(key&&context.imageCache.has(key))return context.imageCache.get(key);
@@ -125,8 +186,9 @@
   document.body.appendChild(stage);
   const body=[];
   try{
-   const css=await SR63.getReportStyleText();
-   const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(css)+'\n'+String(options.css||'');stage.appendChild(style);
+   // The site's stylesheet is already active in this document. Re-fetching it
+   // is unnecessary and used to make Word exports fail with "Failed to fetch".
+   if(options.css){const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(String(options.css));stage.appendChild(style);}
    await(document.fonts?.ready||Promise.resolve());
    for(let i=0;i<pages.length;i++){
     const holder=document.createElement('div');holder.innerHTML=typeof pages[i]==='string'?pages[i]:pages[i].outerHTML;
