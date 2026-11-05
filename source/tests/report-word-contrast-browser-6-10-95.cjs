@@ -52,6 +52,26 @@ async function main(){
   assert.equal(invalid,0,'Word OOXML must be valid');
   const duplicate=doc.match(/<w:t xml:space="preserve">طالب تجريبي<\/w:t>/g)||[];
   assert.equal(duplicate.length,1,'no duplicate student content');
+  // Reproduce the user's "Failed to fetch" symptom: Word export must work
+  // with all additional network fetches rejected under the production CSP.
+  const offlineEvent=page.waitForEvent('download',{timeout:30000});
+  await page.evaluate(async()=>{
+   const original=window.fetch;
+   window.fetch=async()=>{throw new TypeError('Failed to fetch');};
+   try{
+    const tinyPng='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/BzwAAAAASUVORK5CYII=';
+    const example='<article dir="rtl"><h2>تقرير الطلاب المتعثرين</h2>'+
+      '<p>طالب اختبار دون بيانات حقيقية</p><img width="100" height="40" src="data:image/png;base64,'+tinyPng+'">'+
+      '<table><thead><tr><th>الطالب</th></tr></thead><tbody><tr><td>طالب اختبار</td></tr></tbody></table></article>';
+    await SR63.downloadWordReport([example],{landscape:true,title:'اختبار تنزيل بدون شبكة',filename:'offline-word-test'});
+   }finally{window.fetch=original;}
+  });
+  const offline=await offlineEvent,offlinePath=await offline.path();
+  cp.execFileSync('unzip',['-t',offlinePath],{stdio:'pipe'});
+  const entries=cp.execFileSync('unzip',['-Z','-1',offlinePath],{encoding:'utf8'});
+  assert.match(entries,/word\/media\/report-\d+\.png/,'embedded picture must survive without fetch');
+  const offlineXML=cp.execFileSync('unzip',['-p',offlinePath,'word/document.xml'],{encoding:'utf8'});
+  assert.ok(offlineXML.includes('تقرير الطلاب المتعثرين')&&offlineXML.includes('طالب اختبار'));
   assert.deepEqual(errs,[]);
   console.log('PASS 6.10.95 browser: WCAG contrast, real editable DOCX, logo embedded, table cells, landscape and valid Word XML');
   await ctx.close();
