@@ -1852,10 +1852,6 @@
   }
 }
 
-/* 6.10.100 — always-visible direct Word buttons on the regular report cards. */
-.sr-word-report-card-wrap{display:flex;flex-direction:column;min-width:0;gap:8px}
+/* 6.10.101: export toolbar is below report settings, not under cards. */
+.sr-word-report-card-wrap{display:flex;flex-direction:column;min-width:0}
 .sr-word-report-card-wrap>.sr644-report-card{flex:1;min-width:0}
-.sr-word-report-card-wrap>.sr-word-report-card-action{display:flex;align-items:center;justify-content:center;width:100%;min-height:40px;border:1px solid #245c76;border-radius:11px;background:#245c76;color:#fff;font-weight:800;font-size:13px;line-height:1.4;direction:rtl;cursor:pointer;transition:background .16s,border-color .16s,box-shadow .16s}
-.sr-word-report-card-wrap>.sr-word-report-card-action:hover:not(:disabled){background:#173e55;border-color:#173e55;box-shadow:0 4px 12px #102e4430}
-.sr-word-report-card-wrap>.sr-word-report-card-action:focus-visible{outline:3px solid #f59e0b;outline-offset:2px}
-.sr-word-report-card-wrap>.sr-word-report-card-action:disabled{opacity:.55;cursor:not-allowed}
