@@ -67,6 +67,25 @@
   c.getContext('2d').drawImage(image,0,0);
   return await canvasBlob(c);
  };
+ const inlineSVGBlob=async svg=>{
+  const clone=svg.cloneNode(true);
+  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  const bounds=svg.getBoundingClientRect();
+  const w=Math.max(2,Math.round(bounds.width||parseFloat(svg.getAttribute('width'))||360));
+  const h=Math.max(2,Math.round(bounds.height||parseFloat(svg.getAttribute('height'))||180));
+  clone.setAttribute('width',String(w));clone.setAttribute('height',String(h));
+  if(!clone.getAttribute('viewBox'))clone.setAttribute('viewBox','0 0 '+w+' '+h);
+  const source=new XMLSerializer().serializeToString(clone);
+  const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
+  try{
+   const image=new Image();image.src=url;await image.decode();
+   const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
+   const context=canvas.getContext('2d');
+   context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
+   context.drawImage(image,0,0,canvas.width,canvas.height);
+   return await canvasBlob(canvas);
+  }finally{URL.revokeObjectURL(url);}
+ };
  async function embed(element,context){
   let type='png',blob,uri;
   if(element.tagName==='IMG'){
@@ -96,9 +115,14 @@
    const mime=String(blob.type||'').toLowerCase();
    type=mime.includes('jpeg')||mime.includes('jpg')?'jpeg':mime.includes('webp')?'webp':'png';
   }else{
-   const canvas=element.tagName==='CANVAS'?element:
-    await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
-   blob=await canvasBlob(canvas);
+   try{
+    const canvas=element.tagName==='CANVAS'?element:
+     await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
+    blob=await canvasBlob(canvas);
+   }catch(error){
+    if(element.tagName!=='SVG')throw Error('تعذر تحويل رسم التقرير إلى Word: '+String(error?.message||error));
+    blob=await inlineSVGBlob(element);
+   }
   }
   const key=uri&&uri.length<4000?uri:null;
   if(key&&context.imageCache.has(key))return context.imageCache.get(key);
