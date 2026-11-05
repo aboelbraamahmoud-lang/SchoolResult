@@ -237,18 +237,30 @@
  async function wordHeader(el,context,depth){
   const images=[...el.querySelectorAll('img')].filter(visible);
   if(!images.length)return null;
-  const maxWidth=context.landscape?wordWidth(true):wordWidth(false);
-  const logoWidth=context.landscape?2950:2600;
-  const previous=context.maxImageWidth;
-  context.maxImageWidth=logoWidth/16;
-  let media='';
-  try{for(const image of images.slice(0,3))media+=await embed(image,context);}
-  finally{context.maxImageWidth=previous;}
+  const pageWidth=wordWidth(context.landscape);
+  const official=images.find(img=>/moehe\.png|report-ministry/i.test(
+   (img.getAttribute('src')||'')+' '+String(img.className||'')))||images[0];
+  const school=images.find(img=>img!==official)||null;
+  const imageWord=async(img,cap)=>{
+   if(!img)return '';
+   const previous=context.maxImageWidth;context.maxImageWidth=cap/16;
+   try{return await embed(img,context);}
+   finally{context.maxImageWidth=previous;}
+  };
+  const schoolPic=await imageWord(school,1750);
+  const ministryPic=await imageWord(official,2750);
   const content=await walk(el,context,depth+1,true,true);
   const textBody=content||para(txt(clean(el.textContent),el));
-  return tableStart(maxWidth,[maxWidth-logoWidth,logoWidth])+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
-   wordCell(textBody,maxWidth-logoWidth,'FFFFFF')+wordCell(media||para(''),logoWidth,'FFFFFF')+
-   '</w:tr></w:tbl>';
+  if(schoolPic){
+   const widths=[1750,pageWidth-4500,2750]; // RTL: school emblem | Arabic school details | ministry emblem
+   return tableStart(pageWidth,widths)+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
+    wordCell(schoolPic,widths[0])+wordCell(textBody,widths[1])+wordCell(ministryPic,widths[2])+
+    '</w:tr></w:tbl>';
+  }
+  const ministryWidth=2750;
+  return tableStart(pageWidth,[pageWidth-ministryWidth,ministryWidth])+
+   '<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
+   wordCell(textBody,pageWidth-ministryWidth)+wordCell(ministryPic,ministryWidth)+'</w:tr></w:tbl>';
  }
  async function horizontalGroup(el,context,depth){
   const children=[...el.children].filter(visible);
