@@ -20,27 +20,32 @@ async function main(){
    rangeRoot.render(v.createElement(xde,{workspace:ws,onExportExcel:()=>{},readOnly:role!=='admin',onSchoolSummary:role==='admin'?null:()=>{},reportScope:role==='coordinator'?'department':'school',canCompareSubjects:true,canPrint:true}));
   },{ws,role,aggregates});
   const host=page.locator('#range-test');await host.locator('button').filter({has:page.getByText('الطلاب ضمن نسبة',{exact:true})}).first().click();
-  // One-click Word must be visibly available on every regular report card.
-  const directCards=host.locator('.sr-word-report-card-action');
-  assert.ok(await directCards.count()>=5,'Word actions must be visible on regular report cards');
-  const quickSummary=host.locator('.sr-word-report-card-wrap[data-report-id="summary"] .sr-word-report-card-action');
-  await quickSummary.waitFor({state:'visible'});
-  assert.equal(await quickSummary.isEnabled(),true,'summary Word action must work before preview');
-  const quickPromise=page.waitForEvent('download',{timeout:30000});
-  await quickSummary.click();
-  const quickDownload=await quickPromise,quickPath=await quickDownload.path();
-  assert.match(quickDownload.suggestedFilename(),/\.docx$/i);
-  assert.equal(fs.readFileSync(quickPath).subarray(0,2).toString('latin1'),'PK');
-  const quickXML=cp.execFileSync('unzip',['-p',quickPath,'word/document.xml'],{encoding:'utf8'});
-  assert.match(quickXML,/w:bidiVisual w:val="1"/);
-  assert.ok(quickXML.includes('طالب النطاق'),'the selected report includes the right student data');
-  const wordButton=host.getByRole('button',{name:'تحميل Word (.docx) — نفس التقرير',exact:true});
-  const pdfButton=host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true});
-  await wordButton.waitFor({state:'visible'});
-  assert.equal(await wordButton.isVisible(),true,'Word button must be visible in the exact report settings panel for role '+role);
-  assert.equal(await pdfButton.isVisible(),true,'PDF button must remain visible beside Word for role '+role);
-  assert.equal(await wordButton.isEnabled(),true,'Word download must be available before preparing preview for role '+role);
-  assert.equal(await host.getByRole('button',{name:'تنزيل Word',exact:true}).isVisible(),true,'header shortcut also visible for role '+role);
+   // Export controls must be grouped beneath the report options, not under cards.
+   assert.equal(await host.locator('.sr-word-report-card-action').count(),0,'cards have no Word action');
+   const wordButton=host.getByRole('button',{name:'تحميل Word مطابق PDF (.docx)',exact:true});
+   const editableButton=host.getByRole('button',{name:'Word قابل للتعديل (.docx)',exact:true});
+   const pdfButton=host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true});
+   const zipButton=host.getByRole('button',{name:/تنزيل تقارير مفردة ZIP/});
+   for(const button of [wordButton,editableButton,pdfButton,zipButton])
+    assert.equal(await button.isVisible(),true,'export button must be visible in settings for '+role);
+   assert.equal(await wordButton.isEnabled(),true,'PDF-identical Word is available before preview');
+   assert.equal(await editableButton.isEnabled(),true,'editable Word is still available');
+   assert.equal(await host.getByRole('button',{name:'تنزيل Word',exact:true}).count(),0,'no top toolbar Word duplicate');
+   if(role==='admin'){
+    const event=page.waitForEvent('download',{timeout:90000});
+    await wordButton.click();
+    const visual=await event,filepath=await visual.path();
+    cp.execFileSync('unzip',['-t',filepath],{stdio:'pipe'});
+    assert.match(visual.suggestedFilename(),/\.docx$/i);
+    const names=cp.execFileSync('unzip',['-Z','-1',filepath],{encoding:'utf8'});
+    assert.match(names,/word\/media\/report-page-1\.jpg/,'DOCX contains a rendered PDF page');
+    const xml=cp.execFileSync('unzip',['-p',filepath,'word/document.xml'],{encoding:'utf8'});
+    const pages=(xml.match(/<w:p><w:pPr>/g)||[]).length;
+    const pictures=(names.match(/word\/media\/report-page-\d+\.jpg/g)||[]).length;
+    assert.equal(pages,pictures,'one PDF page per A4 Word sheet');
+    assert.equal((xml.match(/<w:pageBreakBefore\/>/g)||[]).length,pages-1);
+    assert.match(xml,/w:pgSz w:w="11906" w:h="16838"/,'A4 portrait page geometry');
+   }
 
   for(const [min,max,indices] of [[90,100,[10,11,12]],[50,60,[2,3]],[0,60,[0,1,2,3]],[70,80,[6,7]]]){
    await host.locator('#sr-range-min').fill(String(min));await host.locator('#sr-range-max').fill(String(max));
@@ -48,7 +53,7 @@ async function main(){
    await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.school-report-page').first().waitFor();
    if(role==='admin'&&min===90&&max===100){
     const downloadPromise=page.waitForEvent('download',{timeout:45000});
-    await wordButton.click();
+    await editableButton.click();
     const downloaded=await downloadPromise;
     assert.match(downloaded.suggestedFilename(),/\.docx$/i);
     const fullPath=await downloaded.path(),bytes=fs.readFileSync(fullPath);
