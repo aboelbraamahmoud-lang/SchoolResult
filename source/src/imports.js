@@ -157,6 +157,29 @@ SR63.importIdentityReviewDetails=function(workspace,items){
   }
   return details;
 };
+/* Count unresolved name mismatches only for IDs in the current upload.
+   A correction applies solely when its exact student-name fingerprint still matches. */
+SR63.importUnresolvedIdentityCount=function(workspace,items){
+  const fromSaved=new Map(),fromFile=new Map(),nameKey=name=>SR63.studentNameKey(name);
+  const add=(store,row)=>{
+    const id=SR63.nationalityId(row?.studentId),name=nameKey(row?.studentName);
+    if(!id||!name)return;
+    if(!store.has(id))store.set(id,new Set());
+    store.get(id).add(name);
+  };
+  for(const row of workspace?.rows??[])add(fromSaved,row);
+  for(const student of workspace?.students??[])add(fromSaved,student);
+  for(const row of items??[])add(fromFile,row);
+  let unresolved=0;
+  for(const [id,incoming] of fromFile){
+    const existing=fromSaved.get(id)??new Set(),all=new Set([...existing,...incoming]);
+    if(all.size<=1)continue;
+    const reviewed=SR63.pendingImportIdentityChoices?.get(id);
+    const fingerprint=[...incoming].sort().join('|')+'::'+[...existing].sort().join('|');
+    if(!SR63.isVerifiedAcademicId(id)||!reviewed||reviewed.fingerprint!==fingerprint||!String(reviewed.name??'').trim())unresolved++;
+  }
+  return unresolved;
+};
 SR63.showImportIdentityReview=function(workspace,items){
   const mismatches=SR63.importIdentityReviewDetails(workspace,items);
   const nameFixes=SR63.resolveImportIdentityConflicts(workspace,items);
