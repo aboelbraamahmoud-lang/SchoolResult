@@ -3,7 +3,7 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const path=require('node:path');
 const source=fs.readFileSync(path.join(__dirname,'../src/imports.js'),'utf8');
-const start=source.indexOf('SR63.resolveImportIdentityConflicts=function');
+const start=source.indexOf('SR63.isVerifiedAcademicId=value=>');
 const end=source.indexOf('SR63.commitImport=function',start);
 assert(start>=0&&end>start,'identity preflight must exist');
 const SR63={
