@@ -175,7 +175,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   }
  };
 
- const exportWordEditable=async()=>{
+ const exportWord=async()=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
   const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
@@ -188,15 +188,15 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
    const html=await renderReportHTML(exportPages,landscape,
     index=>setDownloadState('جارٍ تجهيز Word: صفحة '+index+' من '+exportPages.length));
    setDownloadState('جارٍ إنشاء ملف Word القابل للتحرير…');
-   await SR63.downloadWordReport(html,{landscape,title:reportName,filename:reportName+' - '+examName,
+   await SR63.downloadWordReport(html,{landscape,fitA4:true,title:reportName,filename:reportName+' - '+examName+' - قابل للتعديل',
     onProgress:(index,total)=>setDownloadState('تحويل صفحة '+index+' من '+total+' إلى Word…')});
-   eb.success('تم تنزيل '+exportPages.length+' صفحة بصيغة Word.');
+   eb.success('تم تنزيل التقرير في Word بجداول ونصوص قابلة للتعديل وبمقاس A4.');
    if(!prepared)setPrepared(true);
   }catch(error){eb.error('تعذّر تنزيل Word: '+String(error?.message||error));}
   finally{setDownloadState('');}
  };
 
- const exportWord=async()=>{
+ const exportWordVisual=async()=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
   const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
@@ -281,15 +281,11 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
  (0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{htmlFor:`sr-range-max`,children:`الحد الأعلى (%) — غير شامل إلا إذا كان 100%`}),(0,q.jsx)(fA,{id:`sr-range-max`,className:`mt-2`,type:`number`,min:`0`,max:`100`,step:`any`,value:upperLimit,'aria-invalid':!!rangeError,onChange:e=>{_(e.target.value);invalidate()}})]}),
  (0,q.jsx)(`p`,{className:`col-span-full text-sm font-bold`,role:rangeError?`alert`:undefined,children:rangeError||`يشمل الحد الأدنى، والحد الأعلى غير شامل إلا 100% فتُحسب الدرجة الكاملة. مثال: من 90% إلى 100% شاملًا.`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 flex flex-wrap items-center gap-2`,children:[prepared?(0,q.jsx)(uA,{className:reportOverflowCount?`bg-rose-50 text-rose-700`:`bg-emerald-50 text-emerald-700`,children:reportOverflowCount?`فحص الطباعة: ${reportOverflowCount.toLocaleString(`ar-EG`)} صفحة تحتاج مراجعة`:`فحص الطباعة: جاهز`}):(0,q.jsx)(uA,{className:`bg-sky-50 text-sky-800`,children:`المعاينة لم تُجهز بعد`}),(0,q.jsxs)(uA,{className:`bg-slate-100 text-slate-700`,children:[prepared?D.length.toLocaleString(`ar-EG`):`0`,` صفحة`]}),O>0&&(0,q.jsxs)(uA,{className:`bg-amber-50 text-amber-800`,children:[O.toLocaleString(`ar-EG`),` اسم طويل — راجع المعاينة`]}),w&&f===m&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-700`,children:`اختر اختبارين مختلفين`}),(0,q.jsxs)(dA,{onClick:()=>void preparePreview(),disabled:w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`mr-auto bg-teal-700`,children:[subjectBusy?`جارٍ تحميل مقارنة المواد…`:`تجهيز المعاينة`]}),(previewError||subjectError||subjectBlocked)&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-800`,children:`${subjectBlocked?'مقارنة المواد تتطلب صلاحية مقارنة القسم بالأقسام الأخرى.':subjectError||('تعذر تجهيز المعاينة: '+previewError)}`}),!specialMode&&(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#123247]`,children:[(0,q.jsx)(Fy,{}),`طباعة التقرير الحالي`]}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(false),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-teal-700`,children:`تنزيل PDF كامل — ملف واحد`}),
- (0,q.jsx)(dA,{onClick:()=>void exportWord(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#285c76] text-white`,title:`مطابق تمامًا لشكل PDF — كل صفحة تقرير في صفحة Word واحدة، لكن المحتوى محفوظ كصورة`,children:`تحميل Word (.docx) — مطابق لـPDF، صفحة A4 لكل صفحة`}),
+ (0,q.jsx)(dA,{onClick:()=>void exportWord(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#285c76] text-white`,title:`ملف Word حقيقي بخلايا وجداول ونصوص وألوان قابلة للتعديل، مقاس A4`,children:`تحميل Word (.docx) — جداول ونصوص قابلة للتعديل`}),
  
   (0,q.jsx)(dA,{onClick:()=>void saveVectorPDF(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`حفظ PDF متجهي — بدون بكسلة عند التكبير`}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(true),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`تنزيل تقارير مفردة ZIP — حسب ${i===`teacher`?'المعلم':'الصف'}`}),
- (0,q.jsxs)(`details`,{className:`w-full mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700`,children:[
- (0,q.jsx)(`summary`,{className:`cursor-pointer font-bold`,children:`خيارات متقدمة لملف Word — النسخة النصية غير مطابقة لـPDF`}),
- (0,q.jsx)(`p`,{className:`my-2`,children:`هذه النسخة قابلة لتعديل النص والجداول، لكنها قد تمتد لأكثر من صفحة. للحصول على نفس صفحة PDF استخدم زر تحميل Word الأزرق بالأعلى.`}),
- (0,q.jsx)(dA,{onClick:()=>void exportWordEditable(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`Word نصي قابل للتعديل — قد يختلف عن PDF`})
- ]}),
+
  downloadState&&(0,q.jsx)(`span`,{role:`status`,className:`sr646-export-status`,children:downloadState}),
  (0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:`الدفعة ${D.length?Math.floor(printStart/8)+1:0} من ${Math.ceil(D.length/8)} — تعرض المعاينة 8 صفحات، والطباعة تشمل جميع الصفحات المحددة`}),(0,q.jsx)(dA,{variant:`outline`,disabled:printStart<8,onClick:()=>setPrintStart(v=>Math.max(0,v-8)),children:`الدفعة السابقة`}),(0,q.jsx)(dA,{variant:`outline`,disabled:printStart+8>=D.length,onClick:()=>setPrintStart(v=>v+8),children:`الدفعة التالية`})]})]})]}),n===`yearComparison`?(0,q.jsx)(SR63.YearComparisonCenter,{workspace:e,canPrint}):n===`topGrade`||n===`topSubject`?(0,q.jsx)(SR63.StudentTopRanksCenter,{key:n,workspace:e,mode:n===`topGrade`?`grade`:`subject`,canPrint,departmentMode}):(0,q.jsx)(`div`,{className:`report-preview-shell`,children:(0,q.jsx)(`div`,{id:`printable-reports`,className:`print-zone`,children:!prepared?(0,q.jsxs)(`div`,{className:`sr610-report-lazy`,children:[(0,q.jsx)(zy,{className:`size-10`}),(0,q.jsx)(`b`,{children:`المعاينة تُنشأ عند الطلب`}),(0,q.jsx)(`p`,{children:`حدد التقرير والنطاق والتقييم، ثم اضغط «تجهيز المعاينة». هذا يجعل مركز التقارير أسرع عند الفتح.`})]}):D.length?visible.map((t,r)=>renderReportPage(t,printStart+r+1,D.length)):(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-white p-12 text-center`,children:[(0,q.jsx)(zy,{className:`mx-auto size-10 text-slate-300`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`لا توجد بيانات تطابق الاختيارات`})]})})})]})}
 

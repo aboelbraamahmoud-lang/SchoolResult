@@ -10,12 +10,14 @@
  const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
  const isBlock=el=>/^(?:DIV|P|SECTION|ARTICLE|HEADER|FOOTER|MAIN|H[1-6]|UL|OL|LI|FIGURE|FIGCAPTION|ASIDE|BLOCKQUOTE|PRE)$/i.test(el?.tagName||'');
  const visible=el=>{const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden';};
- const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+align+'"/><w:spacing w:after="70" w:line="260" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
+ // Compact A4 paragraphs retain editable Word text and cells.
+ let compactA4=false,activePageFontScale=1;
+ const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+align+'"/><w:spacing w:before="0" w:after="'+(compactA4?'0':'70')+'" w:line="'+(compactA4?'240':'260')+'" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
  // Word handles RTL numerals best when Arabic and numeric runs are isolated.
  const textTokens=value=>String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean);
  function fontStyle(el,value=''){
   const style=getComputedStyle(el);
-  const font=Math.min(40,Math.max(13,Math.round((parseFloat(style.fontSize)||12)*1.5)));
+  const font=Math.min(40,Math.max(12,Math.round((parseFloat(style.fontSize)||12)*1.5*activePageFontScale)));
   const color=rgb(style.color)||'19384A';
   const bold=/bold|bolder/i.test(style.fontWeight)||+style.fontWeight>=600||/^(B|STRONG|TH|H[1-6])$/.test(el.tagName);
   const family=/tahoma/i.test(style.fontFamily)?'Tahoma':'Arial';
@@ -27,20 +29,35 @@
  }
  const txt=(value,element)=>textTokens(value).map(part=>
   '<w:r>'+fontStyle(element,part)+'<w:t xml:space="preserve">'+esc(part)+'</w:t></w:r>').join('');
+ // Preserve spacing between distinct text labels and grade badges.
+ function inlineChildren(parent){
+  let result='',previous=null;
+  const flex=/^(?:flex|inline-flex|grid|inline-grid)$/.test(getComputedStyle(parent).display);
+  for(const node of parent.childNodes){
+   const token=inline(node);
+   if(!token)continue;
+   if(previous&&previous.nodeType===1&&node.nodeType===1&&
+      (flex||(previous.tagName==='SPAN'&&node.tagName==='B'))&&
+      clean(previous.textContent)&&clean(node.textContent))
+    result+='<w:r><w:t xml:space="preserve"> </w:t></w:r>';
+   result+=token;previous=node;
+  }
+  return result;
+ }
  const inline=node=>{
   if(node.nodeType===3)return clean(node.nodeValue)?txt(node.nodeValue,node.parentElement):'';
   if(node.nodeType!==1||!visible(node))return '';
   if(node.tagName==='BR')return '<w:r><w:br/></w:r>';
-  return [...node.childNodes].map(inline).join('');
+  return inlineChildren(node);
  };
  const tagP=el=>{
   const alignment=String(getComputedStyle(el).textAlign||'').toLowerCase();
-  return para([...el.childNodes].map(inline).join(''),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
+  return para(inlineChildren(el),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
  };
  const wordWidth=landscape=>landscape?15360:10460;
  const docHeader=()=>'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>';
- const partsXml=(body,landscape)=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+docHeader()+body+'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/>'+
-  '<w:pgMar w:top="640" w:bottom="640" w:right="700" w:left="700" w:header="340" w:footer="340" w:gutter="0"/></w:sectPr></w:body></w:document>';
+ const partsXml=(body,landscape,fitA4=false)=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+docHeader()+body+'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/>'+
+  '<w:pgMar w:top="'+(fitA4?'300':'640')+'" w:bottom="'+(fitA4?'300':'640')+'" w:right="'+(fitA4?'450':'700')+'" w:left="'+(fitA4?'450':'700')+'" w:header="200" w:footer="200" w:gutter="0"/></w:sectPr></w:body></w:document>';
  const contentTypes=types=>'<?xml version="1.0" encoding="UTF-8"?>'+
    '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
    types.map(([ext,mime])=>'<Default Extension="'+ext+'" ContentType="'+mime+'"/>').join('')+
@@ -204,10 +221,10 @@
     const merged=merge?'<w:vMerge w:val="'+merge+'"/>':'';
     const prop='<w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+sp+merged+
      '<w:shd w:val="clear" w:fill="'+bg+'"/><w:vAlign w:val="center"/>'+
-     '<w:tcMar><w:top w:w="78" w:type="dxa"/><w:bottom w:w="78" w:type="dxa"/>'+
+     '<w:tcMar><w:top w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/><w:bottom w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/>'+
      '<w:right w:w="76" w:type="dxa"/><w:left w:w="76" w:type="dxa"/></w:tcMar></w:tcPr>';
     const align=style&&style.textAlign==='center'?'center':style&&style.textAlign==='left'?'left':'right';
-    const val=td?([...td.childNodes].map(inline).join('')||txt(' ',td)):'';
+    const val=td?(inlineChildren(td)||txt(' ',td)):'';
     return '<w:tc>'+prop+para(val,align)+'</w:tc>';
    };
    function continuation(){
@@ -311,7 +328,8 @@
  SR63.wordReportBlob=async function(pages,options={}){
   if(!Array.isArray(pages)||!pages.length)throw Error('لا توجد صفحات جاهزة لتصدير Word.');
   if(pages.length>250)throw Error('حدد نطاقًا لا يزيد على 250 صفحة.');
-  const context={landscape:options.landscape===true,imageFiles:[],imageRelations:[],imagesNumber:0,imageCache:new Map(),usedTypes:new Map()};
+  const context={landscape:options.landscape===true,fitA4:options.fitA4===true,imageFiles:[],imageRelations:[],imagesNumber:0,imageCache:new Map(),usedTypes:new Map()};
+  compactA4=context.fitA4;activePageFontScale=1;
   const stage=document.createElement('div');
   stage.style.cssText='position:fixed;left:-25000px;top:0;z-index:-1;background:#fff;pointer-events:none;width:'+(context.landscape?'297mm':'210mm');
   document.body.appendChild(stage);
@@ -327,6 +345,11 @@
     const node=holder.firstElementChild;
     if(!node)throw Error('إحدى صفحات التقرير فارغة.');
     SR63.ensureReportContrast?.(node);
+    if(context.fitA4){
+     const fit=Number.parseFloat(node.dataset.reportScale||'1');
+     const rows=node.querySelectorAll('tbody tr').length;
+     activePageFontScale=Math.max(.8,Math.min(1,Number.isFinite(fit)?fit:1,rows>30?.86:rows>24?.93:1));
+    }
     await Promise.all([...node.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})));
     if(i>0)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
     body.push(await walk(node,context));
@@ -340,13 +363,13 @@
    const files=[
     {name:'[Content_Types].xml',blob:new Blob([contentTypes(mimeTypes)])},
     {name:'_rels/.rels',blob:new Blob([rootRels])},
-    {name:'word/document.xml',blob:new Blob([partsXml(body.join(''),context.landscape)])},
+    {name:'word/document.xml',blob:new Blob([partsXml(body.join(''),context.landscape,context.fitA4)])},
     {name:'word/_rels/document.xml.rels',blob:new Blob([mediaRels])},
     ...context.imageFiles
    ];
    const compressed=await SR63.reportZipFromPdfs(files,true);
    return new Blob([compressed],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-  }finally{stage.remove();}
+  }finally{stage.remove();compactA4=false;activePageFontScale=1;}
  };
  SR63.downloadStaffReportWord=async function(report,meta={}){
   const source=SR63.staffReportDocument(report,meta);
