@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.102",
+  "version": "6.10.103",
   "released": "2026-11-06",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تمييز Word المطابق لـPDF كخيار التصدير الأساسي؛ كل صفحة PDF تظهر كاملة في صفحة Word واحدة A4 كصورة عالية الدقة. نقل Word النصي القابل للتحرير إلى خيارات متقدمة مع توضيح اختلاف التنسيق. لم تتغير درجات الطلاب أو صلاحيات التقارير."
+  "notes": "تصدير Word حقيقي قابل للتعديل كخيار رئيسي في مركز التقارير، مع خلايا وجداول وألوان وترويسة وشعارات، وضبط التباعد وهوامش الخلايا وRTL للتحجيم في صفحة A4 لكل صفحة تقرير، دون إدخال صور لصفحات PDF. لم تُعدَّل نتائج أو درجات الطلاب."
 }
