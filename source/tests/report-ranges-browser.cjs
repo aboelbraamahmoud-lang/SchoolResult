@@ -22,32 +22,29 @@ async function main(){
   const host=page.locator('#range-test');await host.locator('button').filter({has:page.getByText('الطلاب ضمن نسبة',{exact:true})}).first().click();
    // Export controls must be grouped beneath the report options, not under cards.
    assert.equal(await host.locator('.sr-word-report-card-action').count(),0,'cards have no Word action');
-   const wordButton=host.getByRole('button',{name:'تحميل Word (.docx) — مطابق لـPDF، صفحة A4 لكل صفحة',exact:true});
-   const editableButton=host.getByRole('button',{name:'Word نصي قابل للتعديل — قد يختلف عن PDF',exact:true});
+   const wordButton=host.getByRole('button',{name:'تحميل Word (.docx) — جداول ونصوص قابلة للتعديل',exact:true});
    const pdfButton=host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true});
    const zipButton=host.getByRole('button',{name:/تنزيل تقارير مفردة ZIP/});
    for(const button of [wordButton,pdfButton,zipButton])
     assert.equal(await button.isVisible(),true,'export button must be visible in settings for '+role);
-   assert.equal(await wordButton.isEnabled(),true,'PDF-identical Word is available before preview');
-   assert.equal(await editableButton.isVisible(),false,'editable Word is hidden in advanced options until explicitly requested');
-   await host.locator('details').filter({hasText:'خيارات متقدمة لملف Word'}).locator('summary').click();
-   assert.equal(await editableButton.isVisible(),true,'editable Word stays available but distinct from PDF-identical Word');
-   assert.equal(await editableButton.isEnabled(),true,'editable Word is still available');
+   assert.equal(await wordButton.isEnabled(),true,'editable A4 Word is available before preview');
+   assert.equal(await host.locator('details').filter({hasText:'خيارات متقدمة لملف Word'}).count(),0,'no image-only Word option');
    assert.equal(await host.getByRole('button',{name:'تنزيل Word',exact:true}).count(),0,'no top toolbar Word duplicate');
    if(role==='admin'){
     const event=page.waitForEvent('download',{timeout:90000});
     await wordButton.click();
-    const visual=await event,filepath=await visual.path();
+    const downloaded=await event,filepath=await downloaded.path();
     cp.execFileSync('unzip',['-t',filepath],{stdio:'pipe'});
-    assert.match(visual.suggestedFilename(),/مطابق PDF\.docx$/i,'main Word button must save the faithful PDF version, never the old editable DOCX');
+    assert.match(downloaded.suggestedFilename(),/قابل للتعديل\.docx$/i,'the main Word download is editable');
     const names=cp.execFileSync('unzip',['-Z','-1',filepath],{encoding:'utf8'});
-    assert.match(names,/word\/media\/report-page-1\.jpg/,'DOCX contains a rendered PDF page');
+    assert.doesNotMatch(names,/word\/media\/report-page-\d+\.jpg/,'the report is not a picture');
     const xml=cp.execFileSync('unzip',['-p',filepath,'word/document.xml'],{encoding:'utf8'});
-    const pages=(xml.match(/<w:p><w:pPr>/g)||[]).length;
-    const pictures=(names.match(/word\/media\/report-page-\d+\.jpg/g)||[]).length;
-    assert.equal(pages,pictures,'one PDF page per A4 Word sheet');
-    assert.equal((xml.match(/<w:pageBreakBefore\/>/g)||[]).length,pages-1);
-    assert.match(xml,/w:pgSz w:w="11906" w:h="16838"/,'A4 portrait page geometry');
+    assert.ok((xml.match(/<w:tbl>/g)||[]).length>=2,'real editable Word tables');
+    assert.ok((xml.match(/<w:tc>/g)||[]).length>3,'real editable table cells');
+    assert.match(xml,/w:pgSz w:w="11906" w:h="16838"/,'A4 portrait Word');
+    assert.match(xml,/w:spacing w:before="0" w:after="0" w:line="240"/,'compact A4 fit');
+    assert.ok(xml.includes('طالب النطاق'),'the actual report is editable text');
+
    }
 
   for(const [min,max,indices] of [[90,100,[10,11,12]],[50,60,[2,3]],[0,60,[0,1,2,3]],[70,80,[6,7]]]){
@@ -56,7 +53,7 @@ async function main(){
    await host.getByRole('button',{name:'تجهيز المعاينة',exact:true}).click();await host.locator('.school-report-page').first().waitFor();
    if(role==='admin'&&min===90&&max===100){
     const downloadPromise=page.waitForEvent('download',{timeout:45000});
-    await editableButton.click();
+    await wordButton.click();
     const downloaded=await downloadPromise;
     assert.match(downloaded.suggestedFilename(),/\.docx$/i);
     const fullPath=await downloaded.path(),bytes=fs.readFileSync(fullPath);
