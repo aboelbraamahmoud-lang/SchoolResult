@@ -175,7 +175,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   }
  };
 
- const exportWordVisual=async()=>{
+ const exportWord=async()=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
   const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
@@ -196,7 +196,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   finally{setDownloadState('');}
  };
 
- const exportWord=async()=>{
+ const exportWordVisual=async()=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
   const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
