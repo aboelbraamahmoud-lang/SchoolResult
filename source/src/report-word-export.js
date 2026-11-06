@@ -29,15 +29,30 @@
  }
  const txt=(value,element)=>textTokens(value).map(part=>
   '<w:r>'+fontStyle(element,part)+'<w:t xml:space="preserve">'+esc(part)+'</w:t></w:r>').join('');
+ // Preserve spacing between distinct text labels and grade badges.
+ function inlineChildren(parent){
+  let result='',previous=null;
+  const flex=/^(?:flex|inline-flex|grid|inline-grid)$/.test(getComputedStyle(parent).display);
+  for(const node of parent.childNodes){
+   const token=inline(node);
+   if(!token)continue;
+   if(previous&&previous.nodeType===1&&node.nodeType===1&&
+      (flex||(previous.tagName==='SPAN'&&node.tagName==='B'))&&
+      clean(previous.textContent)&&clean(node.textContent))
+    result+='<w:r><w:t xml:space="preserve"> </w:t></w:r>';
+   result+=token;previous=node;
+  }
+  return result;
+ }
  const inline=node=>{
   if(node.nodeType===3)return clean(node.nodeValue)?txt(node.nodeValue,node.parentElement):'';
   if(node.nodeType!==1||!visible(node))return '';
   if(node.tagName==='BR')return '<w:r><w:br/></w:r>';
-  return [...node.childNodes].map(inline).join('');
+  return inlineChildren(node);
  };
  const tagP=el=>{
   const alignment=String(getComputedStyle(el).textAlign||'').toLowerCase();
-  return para([...el.childNodes].map(inline).join(''),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
+  return para(inlineChildren(el),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
  };
  const wordWidth=landscape=>landscape?15360:10460;
  const docHeader=()=>'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>';
@@ -209,7 +224,7 @@
      '<w:tcMar><w:top w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/><w:bottom w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/>'+
      '<w:right w:w="76" w:type="dxa"/><w:left w:w="76" w:type="dxa"/></w:tcMar></w:tcPr>';
     const align=style&&style.textAlign==='center'?'center':style&&style.textAlign==='left'?'left':'right';
-    const val=td?([...td.childNodes].map(inline).join('')||txt(' ',td)):'';
+    const val=td?(inlineChildren(td)||txt(' ',td)):'';
     return '<w:tc>'+prop+para(val,align)+'</w:tc>';
    };
    function continuation(){
