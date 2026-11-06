@@ -1,7 +1,7 @@
 {
   "product": "مرصد النتائج المدرسية",
   "edition": "cloud",
-  "version": "6.10.101",
+  "version": "6.10.102",
   "released": "2026-11-06",
   "updateFiles": [
     "app.js",
@@ -17,5 +17,5 @@
   "dataStorage": "Supabase Postgres with Auth, RLS, revision checks, protected write RPCs and on-demand archive hydration",
   "project": "school-results",
   "workspaceSchema": 7,
-  "notes": "تنزيل Word المطابق لصفحات PDF بمقاس A4 صفحة مقابل صفحة، وزر Word نصّي قابل للتعديل، ووضعهما داخل إعداد التقرير مع PDF والطباعة وZIP بدل بطاقات التقارير. بدون تعديل الدرجات أو الصلاحيات."
+  "notes": "تمييز Word المطابق لـPDF كخيار التصدير الأساسي؛ كل صفحة PDF تظهر كاملة في صفحة Word واحدة A4 كصورة عالية الدقة. نقل Word النصي القابل للتحرير إلى خيارات متقدمة مع توضيح اختلاف التنسيق. لم تتغير درجات الطلاب أو صلاحيات التقارير."
 }

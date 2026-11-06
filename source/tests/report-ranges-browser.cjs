@@ -22,13 +22,16 @@ async function main(){
   const host=page.locator('#range-test');await host.locator('button').filter({has:page.getByText('الطلاب ضمن نسبة',{exact:true})}).first().click();
    // Export controls must be grouped beneath the report options, not under cards.
    assert.equal(await host.locator('.sr-word-report-card-action').count(),0,'cards have no Word action');
-   const wordButton=host.getByRole('button',{name:'تحميل Word مطابق PDF (.docx)',exact:true});
-   const editableButton=host.getByRole('button',{name:'Word قابل للتعديل (.docx)',exact:true});
+   const wordButton=host.getByRole('button',{name:'تحميل Word (.docx) — مطابق لـPDF، صفحة A4 لكل صفحة',exact:true});
+   const editableButton=host.getByRole('button',{name:'Word نصي قابل للتعديل — قد يختلف عن PDF',exact:true});
    const pdfButton=host.getByRole('button',{name:'تنزيل PDF كامل — ملف واحد',exact:true});
    const zipButton=host.getByRole('button',{name:/تنزيل تقارير مفردة ZIP/});
-   for(const button of [wordButton,editableButton,pdfButton,zipButton])
+   for(const button of [wordButton,pdfButton,zipButton])
     assert.equal(await button.isVisible(),true,'export button must be visible in settings for '+role);
    assert.equal(await wordButton.isEnabled(),true,'PDF-identical Word is available before preview');
+   assert.equal(await editableButton.isVisible(),false,'editable Word is hidden in advanced options until explicitly requested');
+   await host.locator('details').filter({hasText:'خيارات متقدمة لملف Word'}).locator('summary').click();
+   assert.equal(await editableButton.isVisible(),true,'editable Word stays available but distinct from PDF-identical Word');
    assert.equal(await editableButton.isEnabled(),true,'editable Word is still available');
    assert.equal(await host.getByRole('button',{name:'تنزيل Word',exact:true}).count(),0,'no top toolbar Word duplicate');
    if(role==='admin'){
@@ -36,7 +39,7 @@ async function main(){
     await wordButton.click();
     const visual=await event,filepath=await visual.path();
     cp.execFileSync('unzip',['-t',filepath],{stdio:'pipe'});
-    assert.match(visual.suggestedFilename(),/\.docx$/i);
+    assert.match(visual.suggestedFilename(),/مطابق PDF\.docx$/i,'main Word button must save the faithful PDF version, never the old editable DOCX');
     const names=cp.execFileSync('unzip',['-Z','-1',filepath],{encoding:'utf8'});
     assert.match(names,/word\/media\/report-page-1\.jpg/,'DOCX contains a rendered PDF page');
     const xml=cp.execFileSync('unzip',['-p',filepath,'word/document.xml'],{encoding:'utf8'});
