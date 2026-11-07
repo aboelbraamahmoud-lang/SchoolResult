@@ -1,389 +1,284 @@
-/* 6.10.95 — Editable, offline DOCX renderer for existing school report DOM.
-   Source is the same page HTML used by PDF/print, never a second data query. */
+/* 6.10.104 — measured, editable OOXML export.
+ * The fitted PDF DOM is the design specification. No PDF/table screenshots.
+ * Each A4 page owns positioned native Word tables, paragraphs and vector shapes.
+ * This avoids a second pagination algorithm and preserves the PDF page boundary.
+ */
 (function(){
- const esc=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
- const rgb=s=>{
-  const m=String(s||'').match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
-  if(m){if(/rgba\(/i.test(String(s))&&/[,/]\s*0(?:\.0+)?\s*\)$/.test(String(s)))return null;return [m[1],m[2],m[3]].map(n=>Math.max(0,Math.min(255,Math.round(+n))).toString(16).padStart(2,'0')).join('').toUpperCase();}
-  const h=String(s||'').match(/^#([0-9a-f]{6})$/i);return h?h[1].toUpperCase():null;
+ 'use strict';
+ const NS='http://schemas.openxmlformats.org/';
+ const esc=v=>String(v??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+ const tw=v=>Math.round(v*15),pt=v=>(v*.75).toFixed(3),num=v=>parseFloat(v)||0;
+ const css=el=>getComputedStyle(el);
+ const onPage=(el,origin)=>{const b=el.getBoundingClientRect();return b.right>origin.x+.5&&b.left<origin.x+origin.width-.5&&b.bottom>origin.y+.5&&b.top<origin.y+origin.height-.5;};
+ const visible=el=>{const s=css(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&num(s.opacity)!==0&&r.width>0&&r.height>0;};
+ const color=value=>{
+  if(!value||value==='transparent')return null;
+  // Let Chromium resolve color-mix(), modern color(), alpha and CSS variables.
+  const canvas=color.canvas||(color.canvas=document.createElement('canvas'));canvas.width=canvas.height=1;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.clearRect(0,0,1,1);ctx.fillStyle=value;ctx.fillRect(0,0,1,1);
+  const [r,g,b,a]=ctx.getImageData(0,0,1,1).data;if(!a)return null;
+  return {hex:[r,g,b].map(n=>n.toString(16).padStart(2,'0')).join('').toUpperCase(),alpha:a/255};
  };
- const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
- const isBlock=el=>/^(?:DIV|P|SECTION|ARTICLE|HEADER|FOOTER|MAIN|H[1-6]|UL|OL|LI|FIGURE|FIGCAPTION|ASIDE|BLOCKQUOTE|PRE)$/i.test(el?.tagName||'');
- const visible=el=>{const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden';};
- // Compact A4 paragraphs retain editable Word text and cells.
- let compactA4=false,activePageFontScale=1;
- const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+align+'"/><w:spacing w:before="0" w:after="'+(compactA4?'0':'70')+'" w:line="'+(compactA4?'240':'260')+'" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
- // Word handles RTL numerals best when Arabic and numeric runs are isolated.
- const textTokens=value=>String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean);
- function fontStyle(el,value=''){
-  const style=getComputedStyle(el);
-  const font=Math.min(40,Math.max(12,Math.round((parseFloat(style.fontSize)||12)*1.5*activePageFontScale)));
-  const color=rgb(style.color)||'19384A';
-  const bold=/bold|bolder/i.test(style.fontWeight)||+style.fontWeight>=600||/^(B|STRONG|TH|H[1-6])$/.test(el.tagName);
-  const family=/tahoma/i.test(style.fontFamily)?'Tahoma':'Arial';
-  const rtl=/[\u0590-\u08FF]/.test(value);
-  return '<w:rPr><w:rFonts w:ascii="'+family+'" w:hAnsi="'+family+'" w:cs="'+family+'"/>'+
-   '<w:rtl w:val="'+(rtl?'1':'0')+'"/><w:lang w:bidi="ar-QA"/>'+
-   '<w:sz w:val="'+font+'"/><w:szCs w:val="'+font+'"/><w:color w:val="'+color+'"/>'+
-   (bold?'<w:b/>':'')+'</w:rPr>';
+ const rect=(node,origin)=>{const b=node.getBoundingClientRect();return {x:b.x-origin.x,y:b.y-origin.y,w:b.width,h:b.height};};
+ const scaleOf=el=>{const b=el.getBoundingClientRect();return el.offsetWidth?b.width/el.offsetWidth:1;};
+ function runStyle(el){
+  const s=css(el),scale=scaleOf(el.closest('.sr-report-fit-content')||el);
+  return {font:s.fontFamily.split(',')[0].replace(/["']/g,'').trim(),size:num(s.fontSize)*scale,
+   bold:num(s.fontWeight)>=600||s.fontWeight==='bold',italic:s.fontStyle==='italic',color:color(s.color)?.hex||'000000'};
  }
- const txt=(value,element)=>textTokens(value).map(part=>
-  '<w:r>'+fontStyle(element,part)+'<w:t xml:space="preserve">'+esc(part)+'</w:t></w:r>').join('');
- // Preserve spacing between distinct text labels and grade badges.
- function inlineChildren(parent){
-  let result='',previous=null;
-  const flex=/^(?:flex|inline-flex|grid|inline-grid)$/.test(getComputedStyle(parent).display);
-  for(const node of parent.childNodes){
-   const token=inline(node);
-   if(!token)continue;
-   if(previous&&previous.nodeType===1&&node.nodeType===1&&
-      (flex||(previous.tagName==='SPAN'&&node.tagName==='B'))&&
-      clean(previous.textContent)&&clean(node.textContent))
-    result+='<w:r><w:t xml:space="preserve"> </w:t></w:r>';
-   result+=token;previous=node;
-  }
-  return result;
- }
- const inline=node=>{
-  if(node.nodeType===3)return clean(node.nodeValue)?txt(node.nodeValue,node.parentElement):'';
-  if(node.nodeType!==1||!visible(node))return '';
-  if(node.tagName==='BR')return '<w:r><w:br/></w:r>';
-  return inlineChildren(node);
- };
- const tagP=el=>{
-  const alignment=String(getComputedStyle(el).textAlign||'').toLowerCase();
-  return para(inlineChildren(el),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
- };
- const wordWidth=landscape=>landscape?15360:10460;
- const docHeader=()=>'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>';
- const partsXml=(body,landscape,fitA4=false)=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+docHeader()+body+'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/>'+
-  '<w:pgMar w:top="'+(fitA4?'300':'640')+'" w:bottom="'+(fitA4?'300':'640')+'" w:right="'+(fitA4?'450':'700')+'" w:left="'+(fitA4?'450':'700')+'" w:header="200" w:footer="200" w:gutter="0"/></w:sectPr></w:body></w:document>';
- const contentTypes=types=>'<?xml version="1.0" encoding="UTF-8"?>'+
-   '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
-   types.map(([ext,mime])=>'<Default Extension="'+ext+'" ContentType="'+mime+'"/>').join('')+
-   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
- const rootRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
-  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
- function imageRun(id,number,width,height){
-  const cx=Math.round(width*9525),cy=Math.round(height*9525);
-  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+number+'" name="صورة التقرير '+number+'"/>'+
-   '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>'+
-   '<pic:nvPicPr><pic:cNvPr id="'+number+'" name="صورة التقرير"/><pic:cNvPicPr/></pic:nvPicPr>'+
-   '<pic:blipFill><a:blip r:embed="'+id+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'+
-   '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'+
-   '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
- }
- /* Data/image conversion must not use fetch(data:). It can be rejected by
-    Content-Security-Policy connect-src on the production website. */
- const dataURLBlob=value=>{
-  const match=String(value||'').match(/^data:([^;,]*)(;base64)?,([\s\S]*)$/i);
-  if(!match)throw Error('صيغة الصورة المرفقة غير صالحة.');
-  const mime=match[1]||'image/png';
-  if(match[2]){
-   const bytes=atob(match[3].replace(/\s/g,''));
-   const array=new Uint8Array(bytes.length);
-   for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
-   return new Blob([array],{type:mime});
-  }
-  return new Blob([new TextEncoder().encode(decodeURIComponent(match[3]))],{type:mime});
- };
- const canvasBlob=canvas=>new Promise((resolve,reject)=>canvas.toBlob(
-  blob=>blob?resolve(blob):reject(Error('تعذر تحويل الرسم إلى صورة داخل Word.')),'image/png'));
- const localImageCanvas=async image=>{
-  if(!image?.complete||!image.naturalWidth||!image.naturalHeight)return null;
-  const c=document.createElement('canvas');
-  c.width=image.naturalWidth;c.height=image.naturalHeight;
-  c.getContext('2d').drawImage(image,0,0);
-  return await canvasBlob(c);
- };
- const inlineSVGBlob=async svg=>{
-  const clone=svg.cloneNode(true);
-  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-  const bounds=svg.getBoundingClientRect();
-  const w=Math.max(2,Math.round(bounds.width||parseFloat(svg.getAttribute('width'))||360));
-  const h=Math.max(2,Math.round(bounds.height||parseFloat(svg.getAttribute('height'))||180));
-  clone.setAttribute('width',String(w));clone.setAttribute('height',String(h));
-  if(!clone.getAttribute('viewBox'))clone.setAttribute('viewBox','0 0 '+w+' '+h);
-  const source=new XMLSerializer().serializeToString(clone);
-  const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
-  try{
-   const image=new Image();image.src=url;await image.decode();
-   const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
-   const context=canvas.getContext('2d');
-   context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
-   context.drawImage(image,0,0,canvas.width,canvas.height);
-   return await canvasBlob(canvas);
-  }finally{URL.revokeObjectURL(url);}
- };
- async function embed(element,context){
-  let type='png',blob,uri;
-  if(element.tagName==='IMG'){
-   uri=element.getAttribute('src')||'';
-   if(!uri)return '';
-   const link=new URL(uri,document.baseURI);
-   if(link.protocol==='data:'){
-    blob=dataURLBlob(link.href);
-   }else{
-    if(link.origin!==document.location.origin)return '';
-    // Reuse an image already loaded in the report before attempting a request.
-    const cached=[...document.images].find(img=>{
-     const current=img.currentSrc||img.src;
-     return img.complete&&img.naturalWidth&&current===link.href;
-    });
-    if(cached){try{blob=await localImageCanvas(cached);}catch(_error){blob=null;}}
-    if(!blob){
-     // A transient network failure should never prevent downloading the report.
-     try{
-      const response=await fetch(link.href,{credentials:'same-origin',cache:'force-cache'});
-      if(response.ok)blob=await response.blob();
-     }catch(_error){blob=null;}
-    }
-    if(!blob){try{blob=await localImageCanvas(element);}catch(_error){blob=null;}}
-    if(!blob)return '';
-   }
-   const mime=String(blob.type||'').toLowerCase();
-   type=mime.includes('jpeg')||mime.includes('jpg')?'jpeg':mime.includes('webp')?'webp':'png';
-  }else{
-   try{
-    const canvas=element.tagName==='CANVAS'?element:
-     await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
-    blob=await canvasBlob(canvas);
-   }catch(error){
-    if(element.tagName!=='SVG')throw Error('تعذر تحويل رسم التقرير إلى Word: '+String(error?.message||error));
-    blob=await inlineSVGBlob(element);
-   }
-  }
-  const key=uri&&uri.length<4000?uri:null;
-  if(key&&context.imageCache.has(key))return context.imageCache.get(key);
-  const number=++context.imagesNumber,id='rId'+number,name='word/media/report-'+number+'.'+type;
-  context.imageFiles.push({name,blob});context.imageRelations.push({id,name:'media/report-'+number+'.'+type});
-  context.usedTypes.set(type,type==='jpeg'?'image/jpeg':type==='webp'?'image/webp':'image/png');
-  const rect=element.getBoundingClientRect(),maxWidth=context.maxImageWidth|| (context.landscape?675:450);
-  const measuredWidth=rect.width||180,measuredHeight=rect.height||75;
-  const width=Math.max(30,Math.min(maxWidth,measuredWidth)),height=Math.max(14,Math.min(context.landscape?220:280,measuredHeight*(width/measuredWidth)));
-  const output=para(imageRun(id,number,width,height),'center');
-  if(key)context.imageCache.set(key,output);
-  return output;
- }
- /* Widths/column order come from the SAME DOM table shown in PDF. */
- function columnWidths(table,count,total){
-  let sizes=[];
-  const cols=table.querySelector(':scope > colgroup');
-  if(cols){
-   for(const col of cols.children){
-    if(col.tagName!=='COL')continue;
-    const span=Math.max(1,Number(col.span)||1);
-    let value=String(col.style.width||col.getAttribute('width')||'').trim();
-    let weight=parseFloat(value)||0;
-    if(value.endsWith('px'))weight=weight||0;
-    if(!weight){const bbox=col.getBoundingClientRect();weight=bbox.width||0;}
-    for(let i=0;i<span;i++)sizes.push(weight||1);
-   }
-  }
-  if(sizes.length!==count||sizes.some(v=>v<=0)){
-   sizes=Array(count).fill(0);
-   const source=[...table.rows].find(row=>[...row.cells].reduce((n,td)=>n+Math.max(1,td.colSpan||1),0)===count);
-   if(source){
-    let index=0;
-    for(const cell of source.cells){
-     const span=Math.max(1,cell.colSpan||1),size=cell.getBoundingClientRect().width||span;
-     for(let n=0;n<span&&index<count;n++,index++)sizes[index]=size/span;
-    }
-   }
-  }
-  if(!sizes.some(Boolean))sizes=Array(count).fill(1);
-  sizes=sizes.map(n=>Math.max(.1,n||1));
-  const sum=sizes.reduce((n,x)=>n+x,0);
-  const widths=sizes.map(v=>Math.max(160,Math.round(total*v/sum)));
-  widths[widths.length-1]+=total-widths.reduce((n,x)=>n+x,0);
-  return widths;
- }
- const tableBorders=()=>'<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>
-  '<w:'+x+' w:val="single" w:sz="5" w:color="BFCFD6"/>').join('')+'</w:tblBorders>';
- const tableStart=(width,widths)=>'<w:tbl><w:tblPr><w:tblW w:w="'+width+'" w:type="dxa"/>'+
-  '<w:tblLayout w:type="fixed"/><w:bidiVisual w:val="1"/><w:jc w:val="right"/>'+tableBorders()+'</w:tblPr>'+
-  '<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
- function wordTable(table,context){
-  const lines=[...table.rows];if(!lines.length)return '';
-  const count=Math.max(1,...lines.map(tr=>[...tr.cells].reduce((sum,td)=>sum+Math.max(1,td.colSpan||1),0)));
-  const width=wordWidth(context.landscape),widths=columnWidths(table,count,width);
-  const pending=Array(count).fill(null);
-  const rowXML=lines.map((tr,rowIndex)=>{
-   const heads=!!tr.closest('thead'),cols=[],alternate=rowIndex%2===0;
-   let col=0;
-   const item=(td,span,merge)=>{
-    const w=widths.slice(col,col+span).reduce((n,x)=>n+x,0);
-    const style=td?getComputedStyle(td):null;
-    const rgbOf=node=>node?rgb(getComputedStyle(node).backgroundColor):null;
-    const bg=(style&&rgb(style.backgroundColor))||rgbOf(tr)||rgbOf(tr.parentElement)||
-     (heads?'D9E9EE':alternate?'F5FAFB':'FFFFFF');
-    const sp=span>1?'<w:gridSpan w:val="'+span+'"/>':'';
-    const merged=merge?'<w:vMerge w:val="'+merge+'"/>':'';
-    const prop='<w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+sp+merged+
-     '<w:shd w:val="clear" w:fill="'+bg+'"/><w:vAlign w:val="center"/>'+
-     '<w:tcMar><w:top w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/><w:bottom w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/>'+
-     '<w:right w:w="76" w:type="dxa"/><w:left w:w="76" w:type="dxa"/></w:tcMar></w:tcPr>';
-    const align=style&&style.textAlign==='center'?'center':style&&style.textAlign==='left'?'left':'right';
-    const val=td?(inlineChildren(td)||txt(' ',td)):'';
-    return '<w:tc>'+prop+para(val,align)+'</w:tc>';
-   };
-   function continuation(){
-    const carry=pending[col];if(!carry||carry.start!==col)return false;
-    cols.push(item(null,carry.span,'continue'));
-    for(let i=0;i<carry.span;i++){
-     if(pending[col+i])pending[col+i].remaining--;
-     if(pending[col+i]?.remaining<=0)pending[col+i]=null;
-    }
-    col+=carry.span;return true;
-   }
-   for(const td of tr.cells){
-    while(col<count&&pending[col])if(!continuation())col++;
-    const span=Math.min(count-col,Math.max(1,td.colSpan||1));if(span<=0)break;
-    const rowSpan=Math.max(1,td.rowSpan||1);
-    cols.push(item(td,span,rowSpan>1?'restart':null));
-    if(rowSpan>1)for(let j=0;j<span;j++)pending[col+j]={start:col,span,remaining:rowSpan-1};
-    col+=span;
-   }
-   while(col<count&&pending[col])if(!continuation())col++;
-   return '<w:tr><w:trPr><w:cantSplit/>'+(heads?'<w:tblHeader/>':'')+'</w:trPr>'+cols.join('')+'</w:tr>';
+ function run(value,style){
+  // Isolate decimal values, percentages and Latin identifiers from Arabic runs.
+  return value.split(/(\d+(?:[.,:/-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean).map(t=>{
+   const rtl=/[\u0590-\u08ff]/.test(t),size=Math.max(2,Math.round(style.size*1.5));
+   return '<w:r><w:rPr><w:rFonts w:ascii="'+esc(style.font)+'" w:hAnsi="'+esc(style.font)+'" w:cs="'+esc(style.font)+'"/>'+
+    (style.bold?'<w:b/><w:bCs/>':'')+(style.italic?'<w:i/><w:iCs/>':'')+
+    '<w:color w:val="'+style.color+'"/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/><w:rtl w:val="'+(rtl?1:0)+'"/><w:lang w:val="en-US" w:bidi="ar-QA"/></w:rPr><w:t xml:space="preserve">'+esc(t)+'</w:t></w:r>';
   }).join('');
-  return tableStart(width,widths)+rowXML+'</w:tbl>';
  }
- const wordCell=(body,width,shading='FFFFFF')=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+
-  '<w:shd w:val="clear" w:fill="'+shading+'"/><w:vAlign w:val="center"/></w:tcPr>'+body+'</w:tc>';
- async function wordHeader(el,context,depth){
-  const images=[...el.querySelectorAll('img')].filter(visible);
-  if(!images.length)return null;
-  const pageWidth=wordWidth(context.landscape);
-  const official=images.find(img=>/moehe\.png|report-ministry/i.test(
-   (img.getAttribute('src')||'')+' '+String(img.className||'')))||images[0];
-  const school=images.find(img=>img!==official)||null;
-  const imageWord=async(img,cap)=>{
-   if(!img)return '';
-   const previous=context.maxImageWidth;context.maxImageWidth=cap/16;
-   try{return await embed(img,context);}
-   finally{context.maxImageWidth=previous;}
+ // Use browser line fragments instead of estimating wraps from string length.
+ function textLines(root,origin,{outsideTables=false,onlyNode=null}={}){
+  const lines=[],walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,order=0;
+  while((node=walker.nextNode())){
+   if(onlyNode&&node!==onlyNode)continue;
+   const parent=node.parentElement;
+   if(!parent||!node.nodeValue.trim()||!visible(parent)||parent.closest('script,style,button,svg,canvas')||
+      (outsideTables&&parent.closest('table')))continue;
+   const style=runStyle(parent),text=node.nodeValue,range=document.createRange();
+   for(const match of text.matchAll(/\s+|\S+/gu)){
+    range.setStart(node,match.index);range.setEnd(node,match.index+match[0].length);
+    const boxes=[...range.getClientRects()].filter(b=>b.width&&b.height);
+    if(!boxes.length)continue;
+    // A long word can wrap under overflow-wrap:anywhere; retain all characters.
+    const pieces=boxes.length>1?Array.from(match[0]).map((c,i)=>({text:c,start:match.index+Array.from(match[0]).slice(0,i).join('').length})): [{text:match[0],start:match.index}];
+    for(const piece of pieces){range.setStart(node,piece.start);range.setEnd(node,piece.start+piece.text.length);const b=range.getBoundingClientRect();if(!b.width||!b.height)continue;
+     if(b.x+b.width/2<origin.x||b.x+b.width/2>origin.x+origin.width||b.y+b.height/2<origin.y||b.y+b.height/2>origin.y+origin.height)continue;
+     const x=b.x-origin.x,y=b.y-origin.y;
+     let line=lines.find(l=>Math.abs((l.y+l.h/2)-(y+b.height/2))<Math.min(2,b.height*.18));
+     if(!line){line={x,y,w:b.width,h:b.height,runs:[]};lines.push(line);}
+     const right=Math.max(line.x+line.w,x+b.width);line.x=Math.min(line.x,x);line.w=right-line.x;line.y=Math.min(line.y,y);line.h=Math.max(line.h,b.height);
+     line.runs.push({text:piece.text,style,order:order++,x,w:b.width});
+    }
+   }
+  }
+  return lines.sort((a,b)=>a.y-b.y);
+ }
+ const emptyP='<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="1" w:lineRule="exact"/></w:pPr></w:p>';
+ function paragraphs(lines,box){
+  let cursor=box.y,out='';
+  for(const line of lines){
+   const before=Math.max(0,line.y-cursor),lg=Math.max(0,line.x-box.x),rg=Math.max(0,box.x+box.w-line.x-line.w);
+   const align=Math.abs(lg-rg)<2?'center':rg<lg?'start':'end',left=align==='end'?Math.max(0,lg-1):0,right=align==='start'?Math.max(0,rg-1):0;
+   const text=line.runs.sort((a,b)=>a.order-b.order).map(r=>run(r.text,r.style)).join('');
+   out+='<w:p><w:pPr><w:widowControl w:val="0"/><w:bidi w:val="1"/><w:snapToGrid w:val="0"/><w:spacing w:before="'+tw(before)+'" w:after="0" w:line="'+tw(line.h)+'" w:lineRule="exact"/><w:ind w:left="'+tw(right)+'" w:right="'+tw(left)+'"/><w:jc w:val="'+align+'"/></w:pPr>'+text+'</w:p>';
+   cursor=line.y+line.h;
+  }
+  return out||emptyP;
+ }
+ function drawing(context,box,graphic){
+  const id=++context.shapeId,emu=v=>Math.round(v*9525),w=emu(Math.max(.1,box.w)),h=emu(Math.max(.1,box.h));
+  return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="'+(251658240+id*1024)+'" behindDoc="0" locked="0" layoutInCell="0" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>'+emu(box.x)+'</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>'+emu(box.y)+'</wp:posOffset></wp:positionV><wp:extent cx="'+w+'" cy="'+h+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="'+id+'" name="Report object '+id+'"/><wp:cNvGraphicFramePr/><a:graphic>'+graphic(w,h,id)+'</a:graphic></wp:anchor></w:drawing></w:r>';
+ }
+ const solid=c=>c?'<a:solidFill><a:srgbClr val="'+c.hex+'"><a:alpha val="'+Math.round(c.alpha*100000)+'"/></a:srgbClr></a:solidFill>':'<a:noFill/>';
+ const xfrm=(w,h)=>'<a:xfrm><a:off x="0" y="0"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm>';
+ function paintedShape(context,box,fill,stroke,extra,radius){
+  const imageId=/r:id="([^"]+)"/.exec(extra)?.[1];
+  if(imageId)return drawing(context,box,(w,h,id)=>'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="'+id+'" name="Original report logo"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+imageId+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr>'+xfrm(w,h)+'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData>');
+  let paint=solid(fill);
+  if(extra.includes('gradient')){
+   const raw=/colors="([^"]+)"/.exec(extra)?.[1]||'',stops=[...raw.matchAll(/([\d.]+)% #(\w+)/g)],vml=Number(/angle="([^"]+)"/.exec(extra)?.[1])||0,cssAngle=(360-vml)%360,angle=((cssAngle+270)%360)*60000;
+   paint='<a:gradFill rotWithShape="1"><a:gsLst>'+stops.map(m=>'<a:gs pos="'+Math.round(Number(m[1])*1000)+'"><a:srgbClr val="'+m[2]+'"/></a:gs>').join('')+'</a:gsLst><a:lin ang="'+angle+'" scaled="1"/></a:gradFill>';
+  }
+  // A zero-radius roundRect is geometrically a rectangle. Explicit adj=0
+  // also avoids readers that discard an implicit, unadjusted rect geometry.
+  const geom='<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val '+Math.round(Math.min(.5,radius/Math.min(box.w,box.h))*100000)+'"/></a:avLst></a:prstGeom>';
+  return drawing(context,box,(w,h)=>'<a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr/><wps:spPr>'+xfrm(w,h)+geom+paint+'<a:ln w="'+Math.round((stroke?.width||0)*9525)+'">'+solid(stroke)+'</a:ln></wps:spPr><wps:bodyPr/></wps:wsp></a:graphicData>');
+ }
+ function shape(context,box,content='',fill=null,stroke=null,extra='',radius=0){
+  if(box.w<=0||box.h<=0)return '';
+  if(!content)return paintedShape(context,box,fill,stroke,extra,radius);
+  const id='srShape'+(++context.shapeId),tag=radius?'roundrect':'rect',arc=radius?' arcsize="'+(100*Math.min(1,2*radius/Math.min(box.w,box.h)))+'%"':'';
+  return '<w:r><w:pict><v:'+tag+arc+' id="'+id+'" style="position:absolute;margin-left:'+pt(box.x)+'pt;margin-top:'+pt(box.y)+'pt;width:'+pt(box.w)+'pt;height:'+pt(box.h)+'pt;z-index:'+context.shapeId+';mso-position-horizontal-relative:page;mso-position-vertical-relative:page" filled="'+(fill||extra.includes('<v:fill')||extra.includes('<v:imagedata')?'t':'f')+'"'+(fill?' fillcolor="#'+fill.hex+'"':'')+' stroked="'+(stroke?'t':'f')+'"'+(stroke?' strokecolor="#'+stroke.hex+'" strokeweight="'+pt(stroke.width)+'pt"':'')+'>'+
+   (fill?'<v:fill opacity="'+fill.alpha+'"/>':'')+extra+
+   (content?'<v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:f"><w:txbxContent>'+content+'</w:txbxContent></v:textbox>':'')+
+   '<w10:wrap type="none"/></v:'+tag+'></w:pict></w:r>';
+ }
+ function decorations(root,origin,context){
+  let out='';const borders=new Set();
+  const paint=(s,box,scale)=>{
+   const fill=color(s.backgroundColor),radius=num(s.borderTopLeftRadius)*scale;
+   if(fill)fill.alpha*=Number(s.opacity);
+   const gradient=s.backgroundImage.match(/(?:rgba?\([^)]*\)|#[0-9a-f]{3,8})/gi);
+   let extra='';if(gradient?.length){
+    const first=color(gradient[0]),last=color(gradient.at(-1)),angle=(360-(Number(/(-?[\d.]+)deg/.exec(s.backgroundImage)?.[1])||180))%360;
+    const stops=[...s.backgroundImage.matchAll(/(rgba?\([^)]*\)|#[0-9a-f]{3,8})\s*([\d.]+%)?/gi)].map((m,i,a)=>(m[2]||100*i/(a.length-1)+'%')+' #'+color(m[1]).hex).join(',');
+    if(first&&last)extra='<v:fill type="gradient" color="#'+first.hex+'" color2="#'+last.hex+'" colors="'+stops+'" angle="'+angle+'"/>';
+   }
+   if(fill||extra)out+=shape(context,box,'',extra?null:fill,null,extra,radius);
   };
-  const schoolPic=await imageWord(school,1750);
-  const ministryPic=await imageWord(official,2750);
-  const content=await walk(el,context,depth+1,true,true);
-  const textBody=content||para(txt(clean(el.textContent),el));
-  if(schoolPic){
-   const widths=[1750,pageWidth-4500,2750]; // RTL: school emblem | Arabic school details | ministry emblem
-   return tableStart(pageWidth,widths)+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
-    wordCell(schoolPic,widths[0])+wordCell(textBody,widths[1])+wordCell(ministryPic,widths[2])+
-    '</w:tr></w:tbl>';
+  for(const el of [root,...root.querySelectorAll('*')]){
+   if(!visible(el)||!onPage(el,origin)||el.tagName==='IMG'||el.closest('svg,canvas'))continue;
+   const s=css(el),scale=scaleOf(el.closest('.sr-report-fit-content')||el);
+   // Fragmented annual-report blocks expose one rectangle for each print column.
+   const fragments=[...el.getClientRects()].filter(r=>r.right>origin.x+.5&&r.left<origin.x+origin.width-.5);
+   for(const r of fragments){const box={x:r.x-origin.x,y:r.y-origin.y,w:r.width,h:r.height};paint(s,box,scale);
+    for(const side of ['Top','Right','Bottom','Left']){
+     const width=num(s['border'+side+'Width'])*scale,c=color(s['border'+side+'Color']);if(!width||!c||s['border'+side+'Style']==='none')continue;
+     const b={...box},collapsed=/^(TD|TH)$/.test(el.tagName)&&css(el.closest('table')).borderCollapse==='collapse';
+     if(side==='Top'||side==='Bottom'){b.h=width;if(side==='Bottom')b.y+=box.h-width;if(collapsed)b.y+=side==='Top'?-width/2:width/2;}
+     else{b.w=width;if(side==='Right')b.x+=box.w-width;if(collapsed)b.x+=side==='Left'?-width/2:width/2;}
+     const key=[b.x,b.y,b.w,b.h].map(v=>v.toFixed(2)).join(',')+c.hex;if(!borders.has(key)){borders.add(key);out+=shape(context,b,'',c);}
+    }
+   }
   }
-  const ministryWidth=2750;
-  return tableStart(pageWidth,[pageWidth-ministryWidth,ministryWidth])+
-   '<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
-   wordCell(textBody,pageWidth-ministryWidth)+wordCell(ministryPic,ministryWidth)+'</w:tr></w:tbl>';
- }
- async function horizontalGroup(el,context,depth){
-  const children=[...el.children].filter(visible);
-  if(!children.length)return null;
-  const cols=children.length,width=wordWidth(context.landscape),colWidth=Math.floor(width/cols);
-  const widths=Array(cols).fill(colWidth);widths[cols-1]+=width-colWidth*cols;
-  const cells=[];
-  for(let i=0;i<cols;i++){
-   const child=children[i];
-   const title=child.querySelector(':scope > b,:scope > strong');
-   const value=child.querySelector(':scope > span,:scope > p');
-   let content='';
-   if(title&&value){
-    content+=para(txt(clean(title.textContent),title),'center','E7F0F3');
-    content+=para(txt(clean(value.textContent),value),'center');
-   }else content=await walk(child,context,depth+1);
-   cells.push(wordCell(content||para(txt(clean(child.textContent),child)),widths[i],i%2===0?'F6FAFB':'FFFFFF'));
-  }
-  return tableStart(width,widths)+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+cells.join('')+'</w:tr></w:tbl>';
- }
- async function walk(el,context,depth=0,skipImages=false,skipHeader=false){
-  if(depth>24||!el||el.nodeType!==1||!visible(el))return '';
-  const name=el.tagName,classes=String(el.className?.baseVal??el.className??'');
-  if(['SCRIPT','STYLE','BUTTON','SELECT','INPUT','TEXTAREA','NOSCRIPT'].includes(name))return '';
-  if(name==='TABLE')return wordTable(el,context);
-  if(skipImages&&name==='IMG')return '';
-  if(name==='IMG'||name==='SVG'||name==='CANVAS')return await embed(el,context);
-  if(!skipHeader&&(/(?:^|\s)(?:report-head|sr640-header|sr-top-export-header|tr-header)(?:\s|$)/.test(classes)||
-     name==='HEADER')&&el.querySelector('img')){
-   const header=await wordHeader(el,context,depth);if(header)return header;
-  }
-  if(/(?:^|\s)(?:report-signatures|sr640-signatures|report-meta-grid)(?:\s|$)/.test(classes)){
-   const result=await horizontalGroup(el,context,depth);if(result)return result;
-  }
-  const children=[...el.children].filter(visible);
-  const hasBlocks=children.some(child=>isBlock(child)||['TABLE','IMG','SVG','CANVAS'].includes(child.tagName));
-  if(!hasBlocks){
-   if(!clean(el.textContent))return '';
-   return tagP(el);
-  }
-  let out='';
-  for(const node of el.childNodes){
-   if(node.nodeType===3){if(clean(node.nodeValue))out+=para(txt(node.nodeValue,el));}
-   else if(node.nodeType===1)out+=await walk(node,context,depth+1,skipImages,skipHeader);
-  }
+  const before=getComputedStyle(root,'::before');
+  if(before.content!=='none'&&before.position==='absolute'&&num(before.height)>0){paint(before,{x:num(before.left),y:num(before.top),w:num(before.width)||origin.width,h:num(before.height)},1);}
   return out;
  }
+ function nativeTable(table,origin){
+  const rows=[...table.rows].filter(tr=>visible(tr)&&onPage(tr,origin));if(!rows.length)return null;
+  const rowBoxes=rows.map(tr=>rect(tr,origin)),box={x:0,w:0,y:Math.min(...rowBoxes.map(r=>r.y)),h:0};box.h=Math.max(...rowBoxes.map(r=>r.y+r.h))-box.y;
+  const edges=[];
+  for(const tr of rows)for(const td of tr.cells){const r=rect(td,origin);edges.push(r.x,r.x+r.w);}
+  const points=edges.sort((a,b)=>a-b).filter((x,i,a)=>!i||x-a[i-1]>1.5);
+  box.x=points[0];box.w=points[points.length-1]-points[0];
+  const widths=points.slice(1).map((x,i)=>tw(x-points[i])).reverse();
+  const pending=Array(widths.length).fill(null);
+  const indexAt=x=>points.reduce((best,p,i)=>Math.abs(p-x)<Math.abs(points[best]-x)?i:best,0);
+  let xml='<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="'+tw(box.w)+'" w:type="dxa"/><w:jc w:val="start"/><w:tblCellSpacing w:w="0" w:type="dxa"/><w:tblInd w:w="0" w:type="dxa"/><w:tblBorders>'+['top','left','bottom','right','insideH','insideV'].map(s=>'<w:'+s+' w:val="nil"/>').join('')+'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar>'+['top','left','bottom','right'].map(s=>'<w:'+s+' w:w="0" w:type="dxa"/>').join('')+'</w:tblCellMar></w:tblPr><w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
+  for(let n=0;n<rows.length;n++){
+   const row=rows[n],rb=rect(row,origin),cells=[...row.cells].sort((a,b)=>b.getBoundingClientRect().right-a.getBoundingClientRect().right);
+   xml+='<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="'+tw(rb.h)+'" w:hRule="exact"/>'+(row.closest('thead')?'<w:tblHeader/>':'')+'</w:trPr>';
+   let col=0;
+   const emit=(td,span,merge,cb)=>{
+    const width=widths.slice(col,col+span).reduce((a,b)=>a+b,0);
+    xml+='<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+(span>1?'<w:gridSpan w:val="'+span+'"/>':'')+(merge?'<w:vMerge w:val="'+merge+'"/>':'')+'<w:tcBorders>'+['top','left','bottom','right'].map(s=>'<w:'+s+' w:val="nil"/>').join('')+'</w:tcBorders><w:tcMar>'+['top','left','bottom','right'].map(s=>'<w:'+s+' w:w="0" w:type="dxa"/>').join('')+'</w:tcMar><w:vAlign w:val="top"/></w:tcPr>'+ (td?paragraphs(textLines(td,origin),cb):emptyP)+'</w:tc>';col+=span;
+   };
+   const carry=()=>{const c=pending[col];if(!c)return false;emit(null,c.span,'continue');for(let k=col-c.span;k<col;k++){pending[k].remaining--;if(!pending[k].remaining)pending[k]=null;}return true;};
+   for(const td of cells){while(pending[col])carry();const cb=rect(td,origin),span=Math.max(1,indexAt(cb.x+cb.w)-indexAt(cb.x)),start=col;emit(td,span,td.rowSpan>1?'restart':'',cb);if(td.rowSpan>1)for(let k=start;k<col;k++)pending[k]={span,remaining:td.rowSpan-1};}
+   while(col<widths.length&&pending[col])carry();xml+='</w:tr>';
+  }
+  return {box,xml:xml+'</w:tbl>'+emptyP};
+ }
+ async function image(el,origin,context){
+  await el.decode();if(!el.naturalWidth)throw Error('تعذر تحميل شعار التقرير.');
+  const src=el.currentSrc||el.src;let id=context.imageCache.get(src);
+  if(!id){
+   // Only original image elements may produce media parts; no table/page capture.
+   const canvas=document.createElement('canvas');canvas.width=el.naturalWidth;canvas.height=el.naturalHeight;canvas.getContext('2d').drawImage(el,0,0);
+   const blob=await new Promise((ok,no)=>canvas.toBlob(b=>b?ok(b):no(Error('تعذر تجهيز شعار التقرير.')),'image/png'));
+   id='image'+(context.images.length+1);context.images.push({id,blob});context.imageCache.set(src,id);
+  }
+  const b=rect(el,origin),style=css(el);
+  if(['contain','scale-down'].includes(style.objectFit)){const fit=Math.min(b.w/el.naturalWidth,b.h/el.naturalHeight,style.objectFit==='scale-down'?1:Infinity),w=el.naturalWidth*fit,h=el.naturalHeight*fit,position=style.objectPosition.split(' ');b.x+=(b.w-w)*(num(position[0]||'50')/100);b.y+=(b.h-h)*(num(position[1]||'50')/100);b.w=w;b.h=h;}
+  return shape(context,b,'',null,null,'<v:imagedata r:id="'+id+'" o:title="'+esc(el.alt||'شعار التقرير')+'"/>');
+ }
+ function vectorPath(context,box,path,fill,stroke){
+  const id=++context.shapeId,emu=v=>Math.round(v*9525),points=[...path.matchAll(/(-?\d+),(-?\d+)/g)],w=Math.max(1,Math.round(box.w*100)),h=Math.max(1,Math.round(box.h*100));
+  const paint=c=>c?'<a:solidFill><a:srgbClr val="'+c.hex+'"><a:alpha val="'+Math.round(c.alpha*100000)+'"/></a:srgbClr></a:solidFill>':'<a:noFill/>';
+  return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="'+id+'" behindDoc="0" locked="0" layoutInCell="0" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>'+emu(box.x)+'</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>'+emu(box.y)+'</wp:posOffset></wp:positionV><wp:extent cx="'+emu(Math.max(.1,box.w))+'" cy="'+emu(Math.max(.1,box.h))+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="'+id+'" name="Report vector '+id+'"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+emu(Math.max(.1,box.w))+'" cy="'+emu(Math.max(.1,box.h))+'"/></a:xfrm><a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst><a:path w="'+w+'" h="'+h+'">'+points.map((p,i)=>'<a:'+(i?'lnTo':'moveTo')+'><a:pt x="'+p[1]+'" y="'+p[2]+'"/></a:'+(i?'lnTo':'moveTo')+'>').join('')+(/x/.test(path)?'<a:close/>':'')+'</a:path></a:pathLst></a:custGeom>'+paint(fill)+'<a:ln w="'+emu(stroke?.width||0)+'">'+paint(stroke)+'</a:ln></wps:spPr><wps:bodyPr/></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>';
+ }
+ function svgShape(svg,origin,context){
+  let result='';
+  for(const el of svg.querySelectorAll('rect,line,circle,ellipse,text,path,polygon,polyline')){
+   if(el.closest('defs,clipPath,mask')||!onPage(el,origin))continue;
+   const b=rect(el,origin),s=css(el),tag=el.tagName.toLowerCase();if((!b.w&&!b.h)||s.display==='none')continue;
+   if(tag==='text'){
+    const style=runStyle(el),room=Math.max(4,b.w*.16),box={...b,x:b.x-room/2,w:b.w+room,h:b.h+2};result+=shape(context,box,paragraphs([{...b,runs:[{text:el.textContent,style,order:0}]}],box));
+   }else if(typeof el.getTotalLength==='function'){
+    const matrix=el.getScreenCTM(),length=el.getTotalLength(),count=Math.max(2,Math.min(1500,Math.ceil(length/1.5))),points=[];
+    for(let i=0;i<=count;i++){const p=el.getPointAtLength(length*i/count),q=new DOMPoint(p.x,p.y).matrixTransform(matrix);points.push(Math.round((q.x-origin.x-b.x)*100)+','+Math.round((q.y-origin.y-b.y)*100));}
+    const fill=s.fill==='none'?null:color(s.fill),stroke=s.stroke==='none'?null:color(s.stroke);
+    if(fill)fill.alpha*=Number(s.fillOpacity)*Number(s.opacity);
+    if(stroke)stroke.width=num(s.strokeWidth)*Math.hypot(matrix.a,matrix.b);
+    const closed=['rect','circle','ellipse','polygon'].includes(tag)||/[zZ]\s*$/.test(el.getAttribute('d')||'');
+    result+=vectorPath(context,b,'m '+points[0]+' l '+points.slice(1).join(' ')+(closed?' x':'')+' e',fill,stroke);
+   }
+  }return result;
+ }
+ const section=landscape=>'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/><w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>';
  SR63.wordReportBlob=async function(pages,options={}){
   if(!Array.isArray(pages)||!pages.length)throw Error('لا توجد صفحات جاهزة لتصدير Word.');
   if(pages.length>250)throw Error('حدد نطاقًا لا يزيد على 250 صفحة.');
-  const context={landscape:options.landscape===true,fitA4:options.fitA4===true,imageFiles:[],imageRelations:[],imagesNumber:0,imageCache:new Map(),usedTypes:new Map()};
-  compactA4=context.fitA4;activePageFontScale=1;
-  const stage=document.createElement('div');
-  stage.style.cssText='position:fixed;left:-25000px;top:0;z-index:-1;background:#fff;pointer-events:none;width:'+(context.landscape?'297mm':'210mm');
-  document.body.appendChild(stage);
-  const body=[];
+  const context={shapeId:0,images:[],imageCache:new Map()},stage=document.createElement('div');
+  stage.style.cssText='position:fixed;left:-25000px;top:0;pointer-events:none;background:white;z-index:-1;';document.body.append(stage);
+  const bodies=[];
   try{
-   // The site's stylesheet is already active in this document. Re-fetching it
-   // is unnecessary and used to make Word exports fail with "Failed to fetch".
-   if(options.css){const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(String(options.css));stage.appendChild(style);}
-   await(document.fonts?.ready||Promise.resolve());
+   if(options.css){const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(options.css);stage.append(style);}
+   await document.fonts.ready;
    for(let i=0;i<pages.length;i++){
-    const holder=document.createElement('div');holder.innerHTML=typeof pages[i]==='string'?pages[i]:pages[i].outerHTML;
-    stage.appendChild(holder);
-    const node=holder.firstElementChild;
-    if(!node)throw Error('إحدى صفحات التقرير فارغة.');
-    SR63.ensureReportContrast?.(node);
-    if(context.fitA4){
-     const fit=Number.parseFloat(node.dataset.reportScale||'1');
-     const rows=node.querySelectorAll('tbody tr').length;
-     activePageFontScale=Math.max(.8,Math.min(1,Number.isFinite(fit)?fit:1,rows>30?.86:rows>24?.93:1));
+    const holder=document.createElement('div');if(!pages[i]?.root)holder.innerHTML=typeof pages[i]==='string'?pages[i]:pages[i].outerHTML;stage.append(holder);
+    const root=pages[i]?.root||holder.firstElementChild;if(!root)throw Error('صفحة تقرير فارغة.');
+    const landscape=SR63.reportPageIsLandscape('',root)||options.landscape===true;
+    holder.style.width=(landscape?'297':'210')+'mm';
+    await Promise.all([...root.querySelectorAll('img')].map(im=>im.decode()));
+    SR63.ensureReportContrast?.(root);
+    if(root.classList.contains('school-report-page'))SR63.planReportSheet(root,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+    const origin=pages[i]?.origin||root.getBoundingClientRect();let objects=decorations(root,origin,context);
+    for(const img of root.querySelectorAll('img'))if(visible(img)&&onPage(img,origin))objects+=await image(img,origin,context);
+    for(const svg of root.querySelectorAll('svg'))objects+=svgShape(svg,origin,context);
+    if(root.querySelector('canvas'))throw Error('الرسم النقطي ليس مدعومًا كتقرير Word قابل للتعديل.');
+    for(const table of root.querySelectorAll('table')){if(table.parentElement.closest('table'))continue;const t=nativeTable(table,origin);if(!t)continue;objects+=shape(context,{...t.box,h:t.box.h+2},t.xml);}
+    // Outside-table content retains its exact text, position, font and color.
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+    while((node=walker.nextNode())){const p=node.parentElement;if(!node.nodeValue.trim()||p.closest('table,svg,script,style,button')||!visible(p))continue;
+     // A temporary wrapper is not used: ranges observe original DOM geometry.
+     const all=textLines(p,origin,{outsideTables:true,onlyNode:node});
+     for(const line of all){const room=Math.max(4,line.w*.16),b={x:line.x-room/2,y:line.y,w:line.w+room,h:line.h+2};objects+=shape(context,b,paragraphs([line],b));}
     }
-    await Promise.all([...node.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})));
-    if(i>0)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
-    body.push(await walk(node,context));
-    holder.remove();
-    options.onProgress?.(i+1,pages.length);
-    if(i%4===0)await new Promise(resolve=>setTimeout(resolve,0));
+    let stack=0;objects=objects.replace(/(z-index:|relativeHeight=")\d+/g,(_,prefix)=>prefix+(251658240+(++stack)*1024));
+    // Own a section per original PDF sheet; anchored objects never repaginate flow.
+    bodies.push('<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="1" w:lineRule="exact"/>'+ (i<pages.length-1?section(landscape):'')+'</w:pPr>'+objects+'</w:p>'+(i===pages.length-1?section(landscape):''));
+    holder.remove();options.onProgress?.(i+1,pages.length);if(i%4===0)await new Promise(r=>setTimeout(r,0));
    }
-   const mimeTypes=[...context.usedTypes.entries()];
-   const mediaRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
-    context.imageRelations.map(x=>'<Relationship Id="'+x.id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+x.name+'"/>').join('')+'</Relationships>';
-   const files=[
-    {name:'[Content_Types].xml',blob:new Blob([contentTypes(mimeTypes)])},
-    {name:'_rels/.rels',blob:new Blob([rootRels])},
-    {name:'word/document.xml',blob:new Blob([partsXml(body.join(''),context.landscape,context.fitA4)])},
-    {name:'word/_rels/document.xml.rels',blob:new Blob([mediaRels])},
-    ...context.imageFiles
-   ];
-   const compressed=await SR63.reportZipFromPdfs(files,true);
-   return new Blob([compressed],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-  }finally{stage.remove();compactA4=false;activePageFontScale=1;}
- };
- SR63.downloadStaffReportWord=async function(report,meta={}){
-  const source=SR63.staffReportDocument(report,meta);
-  const parsed=new DOMParser().parseFromString(source,'text/html');
-  const styles=[...parsed.querySelectorAll('style')].map(node=>node.textContent).join('\n');
-  const main='<div dir="rtl" class="sr-word-staff-container">'+parsed.body.innerHTML+'</div>';
-  const landscape=!/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i.test(styles);
-  return await SR63.downloadWordReport([main],{css:styles,landscape,title:report.title,
-   filename:report.title+' - '+(meta.schoolName||'المدرسة')});
+   const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="'+NS+'wordprocessingml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w10="urn:schemas-microsoft-com:office:word"><w:body>'+bodies.join('')+'</w:body></w:document>';
+   const rel=(id,type,target)=>'<Relationship Id="'+id+'" Type="'+NS+'officeDocument/2006/relationships/'+type+'" Target="'+target+'"/>';
+   const rels=contents=>'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="'+NS+'package/2006/relationships">'+contents+'</Relationships>';
+   const settings='<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="'+NS+'wordprocessingml/2006/main"><w:defaultTabStop w:val="720"/><w:autoHyphenation w:val="0"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>';
+   const types='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="'+NS+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>';
+   const files=[['[Content_Types].xml',types],['_rels/.rels',rels(rel('root','officeDocument','word/document.xml'))],['word/document.xml',xml],['word/settings.xml',settings],['word/_rels/document.xml.rels',rels(rel('settings','settings','settings.xml')+context.images.map(im=>rel(im.id,'image','media/'+im.id+'.png')).join(''))]].map(([name,data])=>({name,blob:new Blob([data])}));
+   files.push(...context.images.map(im=>({name:'word/media/'+im.id+'.png',blob:im.blob})));
+   return new Blob([await SR63.reportZipFromPdfs(files,true)],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  }finally{stage.remove();}
  };
  SR63.downloadWordReport=async function(pages,options={}){
-  const blob=await SR63.wordReportBlob(pages,options);
-  const name=SR63.safeReportFilename(String(options.filename||options.title||'تقرير المدرسة')+'.docx');
-  SR63.downloadReportFile(blob,name);
-  return {filename:name,bytes:blob.size,pages:pages.length};
+  const blob=await SR63.wordReportBlob(pages,options),filename=SR63.safeReportFilename((options.filename||options.title||'تقرير المدرسة')+'.docx');
+  SR63.downloadReportFile(blob,filename);return {filename,bytes:blob.size,pages:pages.length};
+ };
+ SR63.downloadStaffReportWord=async function(report,meta={}){
+  const html=SR63.staffReportDocument(report,meta),frame=document.createElement('iframe');
+  frame.style.cssText='position:fixed;left:-30000px;top:0;width:1123px;height:794px;border:0';
+  document.body.append(frame);
+  try{
+   const doc=frame.contentDocument;doc.open();doc.write(html);doc.close();
+   await Promise.all([doc.fonts.ready,...[...doc.images].map(im=>im.decode())]);
+   SR63.ensureReportContrast?.(doc);
+   const styles=[...doc.querySelectorAll('style')].map(n=>n.textContent).join('\n'),landscape=!/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i.test(styles);
+   const mm=96/25.4,w=(landscape?297:210)*mm,h=(landscape?210:297)*mm,margin=10*mm;
+   // Chromium's column fragmentation uses the same break-inside/row rules as
+   // native print. Its measured fragments are retained as editable Word objects.
+   const flow=doc.createElement('div');while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
+   const print=doc.createElement('style');print.textContent=SR63.reportScreenCSS(styles)+'main{width:auto!important;max-width:none!important;margin:0;direction:rtl}';doc.head.append(print);
+   // Round the printable height to a CSS pixel, as the native print fragment
+   // does; a fractional remainder must not move the last complete row.
+   flow.style.cssText='width:'+(w-2*margin)+'px;height:'+Math.ceil(h-2*margin)+'px;column-width:'+(w-2*margin)+'px;column-gap:'+(2*margin)+'px;column-fill:auto;direction:ltr;';
+   const bounds=flow.getBoundingClientRect();
+   // CSS columns do not repeat THEAD, whereas Chromium's printed pages do.
+   // Add editable copies at each continuation boundary in this isolated Word
+   // layout, then let the same browser fragmentation place the remaining rows.
+   for(const table of flow.querySelectorAll('table')){
+    if(!table.tHead||!table.tBodies.length)continue;
+    for(const row of table.rows){const background=css(row).backgroundColor;row.style.backgroundColor=background;}
+    const firstColumn=Math.floor((table.tHead.getBoundingClientRect().x-bounds.x)/w+.01),done=new Set([firstColumn]);
+    for(let guard=0;guard<250;guard++){
+     const row=[...table.rows].find(r=>!r.closest('thead')&&!r.dataset.wordRepeatedHeader&&!done.has(Math.floor((r.getBoundingClientRect().x-bounds.x)/w+.01)));
+     if(!row)break;
+     const column=Math.floor((row.getBoundingClientRect().x-bounds.x)/w+.01);done.add(column);
+     [...table.tHead.rows].forEach((head,index)=>{const clone=head.cloneNode(true);[head,...head.querySelectorAll('*')].forEach((node,i)=>{const target=[clone,...clone.querySelectorAll('*')][i],style=css(node);for(const name of style)target.style.setProperty(name,style.getPropertyValue(name));});clone.dataset.wordRepeatedHeader='true';if(index===0)clone.style.breakBefore='column';row.parentNode.insertBefore(clone,row);});
+    }
+   }
+   const count=Math.max(1,Math.ceil((flow.scrollWidth+2*margin)/w));
+   const pages=Array.from({length:count},(_,i)=>({root:flow,origin:{x:bounds.x+i*w-margin,y:bounds.y-margin,width:w,height:h}}));
+   return await SR63.downloadWordReport(pages,{landscape,title:report.title,filename:report.title+' - '+(meta.schoolName||'المدرسة')});
+  }finally{frame.remove();}
  };
 })();

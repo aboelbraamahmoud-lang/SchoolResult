@@ -2,7 +2,7 @@
    No student data is sent to a remote PDF conversion service. */
 SR63.safeReportFilename=function(value){
  const normalized=String(value??'').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').replace(/\.+$/,'').trim();
- const ext=/\.(pdf|zip)$/i.exec(normalized)?.[0]||'';const base=ext?normalized.slice(0,-ext.length):normalized;return (base||'تقرير').slice(0,115-ext.length)+ext;
+ const ext=/\.(pdf|zip|docx)$/i.exec(normalized)?.[0]||'';const base=ext?normalized.slice(0,-ext.length):normalized;return (base||'تقرير').slice(0,115-ext.length)+ext;
 };
 SR63.reportGroupName=function(page,dimension,mode){
  if(mode==='subjects'||mode==='departmentStats')return 'الصف '+(page.grade||page.entity||'غير محدد');

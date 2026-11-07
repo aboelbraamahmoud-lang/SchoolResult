@@ -78,5 +78,5 @@
     "test:report-word-contrast": "node --expose-internals tests/report-word-contrast-6-10-95.cjs",
     "test:import-identity": "node tests/import-identity-review-20261105.cjs"
   },
-  "version": "6.10.103"
+  "version": "6.10.104"
 }
