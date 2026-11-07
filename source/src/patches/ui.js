@@ -196,31 +196,6 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   finally{setDownloadState('');}
  };
 
- const exportWordVisual=async()=>{
-  if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
-  if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
-  const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
-  if(!exportPages.length){eb.error('لا توجد صفحات لهذا التقرير حسب الاختيارات الحالية.');return;}
-  if(exportPages.length>250){eb.error('اختر نطاقًا أصغر؛ الحد الأقصى 250 صفحة.');return;}
-  try{
-   const landscape=SR63.reportPageIsLandscape(n),reportName=e.settings.reportDesign.reportNames[n]||'تقرير المدرسة';
-   const examName=w?(tj(e.settings,f).name+' - '+tj(e.settings,m).name):tj(e.settings,u).name;
-   // Both PDF and Word render the identical page with the same A4 fit, fonts, colors and logos.
-   const css=await SR63.getReportStyleText();
-   const images=await renderReportHTML(exportPages,landscape,
-    index=>setDownloadState('جارٍ إعداد صفحة Word '+index+' من '+exportPages.length),
-    ()=>false,(node,page)=>SR63.reportPageJPEG(node,css,SR63.reportPageIsLandscape(n,page)));
-   if(images.length!==exportPages.length)throw Error('عدد صفحات Word لا يطابق التقرير.');
-   setDownloadState('جارٍ حفظ صفحات A4 في ملف Word…');
-   await SR63.downloadVisualWordReport(images,{landscape,title:reportName,
-    filename:reportName+' - '+examName+' - مطابق PDF',
-    onProgress:(index,total)=>setDownloadState('حفظ صفحة '+index+' من '+total+' في Word…')});
-   eb.success('تم تنزيل '+exportPages.length+' صفحة Word مطابقة للتقرير المطبوع، صفحة A4 واحدة لكل صفحة. استخدم Word قابل للتعديل لتغيير النصوص.');
-   if(!prepared)setPrepared(true);
-  }catch(error){eb.error('تعذّر تنزيل Word المطابق للطباعة: '+String(error?.message||error));}
-  finally{setDownloadState('');}
- };
-
  const exportPDF=async(split=false)=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل المقارنة.');return;}

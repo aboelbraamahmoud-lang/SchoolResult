@@ -18,7 +18,7 @@ const server=http.createServer((req,res)=>{
 });
 async function main(){
  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
- const browser=await chromium.launch({headless:true});
+ const browser=await chromium.launch({headless:true,env:{...process.env,LANG:'C.UTF-8',LC_ALL:'C.UTF-8'}});
  try{
   const context=await browser.newContext({viewport:{width:1390,height:980},acceptDownloads:true});
   const origin='http://127.0.0.1:'+server.address().port;
@@ -43,10 +43,10 @@ async function main(){
   assert.equal(docx.subarray(0,4).toString('binary'),'PK\u0003\u0004');
   cp.execFileSync('unzip',['-t',docxPath],{stdio:'pipe'});
   const entryNames=cp.execFileSync('unzip',['-Z','-1',docxPath],{encoding:'utf8'});
-  for(const expected of ['[Content_Types].xml','_rels/.rels','word/document.xml','word/_rels/document.xml.rels','word/media/moehe.png'])assert.ok(entryNames.includes(expected));
+  for(const expected of ['[Content_Types].xml','_rels/.rels','word/document.xml','word/_rels/document.xml.rels','word/media/image1.png'])assert.ok(entryNames.includes(expected));
   const documentXml=cp.execFileSync('unzip',['-p',docxPath,'word/document.xml'],{encoding:'utf8'});
-  assert.ok(documentXml.includes('قطري أول')&&documentXml.includes('مقيم أول'));
-  assert.ok(documentXml.indexOf('الطلاب القطريون')<documentXml.indexOf('الطلاب المقيمون'));
+  assert.ok(documentXml.replace(/<[^>]+>/g,'').includes('قطري أول')&&documentXml.replace(/<[^>]+>/g,'').includes('مقيم أول'));
+  assert.ok(documentXml.replace(/<[^>]+>/g,'').indexOf('الطلاب القطريون')<documentXml.replace(/<[^>]+>/g,'').indexOf('الطلاب المقيمون'));
   assert.ok(!documentXml.includes('غير مصنف')&&!documentXml.includes('Q01')&&!documentXml.includes('R01'));
   assert.ok(documentXml.includes('w:orient="landscape"'));
   const malformed=await page.evaluate(xml=>new DOMParser().parseFromString(xml,'application/xml').getElementsByTagName('parsererror').length,documentXml);
@@ -76,7 +76,7 @@ async function main(){
   await area.getByRole('button',{name:'تحميل Word'}).click();
   const resident=await residentDownload;
   const rXml=cp.execFileSync('unzip',['-p',await resident.path(),'word/document.xml'],{encoding:'utf8'});
-  assert.ok(rXml.includes('مقيم أول')&&!rXml.includes('قطري أول'),'resident-only file should not include Qatari students');
+  assert.ok(rXml.replace(/<[^>]+>/g,'').includes('مقيم أول')&&!rXml.replace(/<[^>]+>/g,'').includes('قطري أول'),'resident-only file should not include Qatari students');
   assert.equal(errors.length,0,'no browser JavaScript errors: '+errors.join(' | '));
   await context.close();
   console.log('PASS 6.10.94 browser: real DOCX ZIP/Word XML, Qatari-first order, direct PDF bytes, nationality-specific files and original official theme.');

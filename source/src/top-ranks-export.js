@@ -2,7 +2,6 @@
 (function(){
  const labels=['المركز','اسم الطالب','الشعبة','الدرجة المحصّلة','الدرجة الكلية','النسبة','رصد المواد'];
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const xml=x=>String(x??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
  const nums=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2});
  const cells=r=>[r.position,r.studentName,r.className,nums(r.score),nums(r.total),Number(r.percentage).toFixed(3)+'%',r.recordedCount+' / '+r.expectedCount+(r.complete?' · مكتمل':' · جزئي')];
  SR63.topRanksExportPages=function(groups,options={}){
@@ -34,50 +33,10 @@
    '<div class="tr-page-num">صفحة '+n+' من '+count+'</div></article>';
  }
  SR63.topRanksExportHtml=(pages,meta)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>'+css+'</style></head><body>'+pages.map((p,i)=>pageHtml(p,meta,i+1,pages.length)).join('')+'</body></html>';
- const textRun=(value,size=19,bold=false,color='19384A')=>
-  String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean).map(part=>
-   '<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl w:val="'+(/[\u0590-\u08FF]/.test(part)?'1':'0')+'"/>'+
-   '<w:lang w:bidi="ar-QA"/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>'+
-   (bold?'<w:b/>':'')+'<w:color w:val="'+color+'"/></w:rPr>'+
-   '<w:t xml:space="preserve">'+xml(part)+'</w:t></w:r>').join('');
- const p=(value,opts={})=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+(opts.align||'right')+'"/><w:spacing w:after="'+(opts.after??100)+'"/></w:pPr>'+textRun(value,opts.size||19,opts.bold||false,opts.color||'19384A')+'</w:p>';
- const widths=[1350,3500,1450,1680,1680,1310,2230];
- const col=(value,width,head,alternate)=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/><w:shd w:val="clear" w:fill="'+(head?'D9E9EE':alternate?'F5FAFB':'FFFFFF')+'"/></w:tcPr>'+p(value,{bold:head,size:head?17:18,color:head?'173F51':'19384A',after:0})+'</w:tc>';
- const table=rows=>{
-  const b='<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>'<w:'+x+' w:val="single" w:sz="5" w:color="BCCED6"/>').join('')+'</w:tblBorders>';
-  const start='<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblLayout w:type="fixed"/><w:bidiVisual w:val="1"/><w:jc w:val="right"/>'+b+'</w:tblPr><w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
-  const tr=(values,head,index)=>'<w:tr><w:trPr><w:cantSplit/>'+(head?'<w:tblHeader/>':'')+'</w:trPr>'+values.map((x,j)=>col(x,widths[j],head,index%2===0)).join('')+'</w:tr>';
-  return start+tr(labels,true,0)+rows.map((r,i)=>tr(cells(r),false,i)).join('')+'</w:tbl>';
- };
- const signature=(meta,group)=>{
-  const s=meta.workspace.settings,d=s.reportDesign||{};if(d.showSignatures!==true)return '';
-  const keys=d.signatureLabels||{},list=[[keys.teacher||'معلم المادة',''],[keys.coordinator||'منسق المادة',SR63.subjectCoordinator?.(meta.workspace,meta.mode==='subject'?group.subject:'')||s.coordinatorName||''],[keys.vice||'النائب الأكاديمي',s.academicViceName||''],[keys.principal||'مدير المدرسة',s.principalName||'']];
-  return '<w:tbl><w:tblPr><w:bidiVisual w:val="1"/><w:jc w:val="right"/><w:tblW w:w="13200" w:type="dxa"/></w:tblPr><w:tblGrid>'+Array(4).fill('<w:gridCol w:w="3300"/>').join('')+'</w:tblGrid><w:tr>'+list.map(([title,name])=>'<w:tc><w:tcPr><w:tcW w:w="3300" w:type="dxa"/></w:tcPr>'+p(title,{size:16,bold:true,color:'24516B',align:'center',after:40})+p(name,{size:16,align:'center',after:40})+'</w:tc>').join('')+'</w:tr></w:tbl>';
- };
- const logo=()=>'<w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="1660000" cy="730000"/><wp:docPr id="1" name="شعار الوزارة"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="moehe.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1660000" cy="730000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+ // The same pageHtml/css used by PDF is the only Word design source.
  SR63.topRanksWordBlob=async(pages,meta)=>{
   if(!pages.length)throw Error('لا توجد أسماء في النطاق المحدد.');
-  const s=meta.workspace.settings,body=[];
-  pages.forEach((page,i)=>{
-   if(i)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
-   body.push(logo(),p('وزارة التربية والتعليم والتعليم العالي',{size:16,bold:true,color:'36566A',after:55}),
-    p(s.schoolName||'المدرسة',{size:27,bold:true,color:'71304A',after:55}),
-    p(meta.title,{size:23,bold:true,color:'24516B',after:50}),
-    p(meta.examName+' · العام الأكاديمي: '+(s.academicYear||''),{size:16,color:'456778',after:90}),
-    p(page.group.title+(page.parts>1?' — الجزء '+page.part+' من '+page.parts:''),{size:22,bold:true,color:'24516B',after:75}),
-    table(page.rows),p(meta.method+' '+meta.note,{size:14,color:'526775',after:95}),signature(meta,page.group),
-    p('صفحة '+(i+1)+' من '+pages.length,{size:13,align:'left',color:'526775',after:0}));
-  });
-  const documentXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>'+body.join('')+'<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="560" w:right="690" w:bottom="560" w:left="690" w:header="300" w:footer="300" w:gutter="0"/></w:sectPr></w:body></w:document>';
-  const types='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
-  const rels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
-  const media='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/moehe.png"/></Relationships>';
-  const response=await fetch(new URL('./moehe.png',document.baseURI).href,{credentials:'same-origin'});if(!response.ok)throw Error('تعذر تحميل الشعار الرسمي.');
-  const files=[['[Content_Types].xml',types],['_rels/.rels',rels],['word/document.xml',documentXml],['word/_rels/document.xml.rels',media]];
-  const parts=files.map(([name,content])=>({name,blob:new Blob([content])}));
-  parts.push({name:'word/media/moehe.png',blob:new Blob([await response.arrayBuffer()],{type:'image/png'})});
-  const zip=await SR63.reportZipFromPdfs(parts,true);
-  return new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return SR63.wordReportBlob(pages.map((p,i)=>pageHtml(p,meta,i+1,pages.length)),{css,landscape:true});
  };
  SR63.topRanksPdfBlob=async(pages,meta)=>{
   if(!pages.length)throw Error('لا توجد أسماء في النطاق المحدد.');

@@ -2,7 +2,7 @@ var SR72Canvas=(()=>{var L=Object.defineProperty;var et=Object.getOwnPropertyDes
 `)}async function Z(t,e){let r=e.fontEmbedCSS!=null?e.fontEmbedCSS:e.skipFonts?null:await U(t,e);if(r){let n=document.createElement("style"),i=document.createTextNode(r);n.appendChild(i),t.firstChild?t.insertBefore(n,t.firstChild):t.appendChild(n)}}async function N(t,e={}){let{width:r,height:n}=C(t,e),i=await b(t,e,!0);return await Z(i,e),await F(i,e),G(i,e),await O(i,r,n)}async function S(t,e={}){let{width:r,height:n}=C(t,e),i=await N(t,e),o=await d(i),a=document.createElement("canvas"),s=a.getContext("2d"),c=e.pixelRatio||H(),m=e.canvasWidth||r,h=e.canvasHeight||n;return a.width=m*c,a.height=h*c,e.skipAutoScale||M(a),a.style.width=`${m}`,a.style.height=`${h}`,e.backgroundColor&&(s.fillStyle=e.backgroundColor,s.fillRect(0,0,a.width,a.height)),s.drawImage(o,0,0,a.width,a.height),a}async function _t(t,e={}){let{width:r,height:n}=C(t,e);return(await S(t,e)).getContext("2d").getImageData(0,0,r,n).data}async function qt(t,e={}){return(await S(t,e)).toDataURL()}async function Bt(t,e={}){return(await S(t,e)).toDataURL("image/jpeg",e.quality||1)}async function jt(t,e={}){let r=await S(t,e);return await V(r)}async function zt(t,e={}){return U(t,e)}return at(Gt);})();
 
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.103', release:'2026-11-05', formDirty:false};
+var SR63 = {version:'6.10.104', release:'2026-11-07', formDirty:false};
 /* 6.10.89 — Unified and persisted enabled grade bands. */
 SR63.activeBands=function(bands){
  const enabled=(Array.isArray(bands)?bands:[]).filter(b=>b&&b.enabled!==false).slice().sort((a,b)=>a.min-b.min);
@@ -1968,7 +1968,7 @@ SR63.printScopedStaffPanel=function(selector,title='تقرير المدرسة'){
    No student data is sent to a remote PDF conversion service. */
 SR63.safeReportFilename=function(value){
  const normalized=String(value??'').normalize('NFKC').replace(/[\\/:*?"<>|\x00-\x1f]/g,'-').replace(/\s+/g,' ').replace(/\.+$/,'').trim();
- const ext=/\.(pdf|zip)$/i.exec(normalized)?.[0]||'';const base=ext?normalized.slice(0,-ext.length):normalized;return (base||'تقرير').slice(0,115-ext.length)+ext;
+ const ext=/\.(pdf|zip|docx)$/i.exec(normalized)?.[0]||'';const base=ext?normalized.slice(0,-ext.length):normalized;return (base||'تقرير').slice(0,115-ext.length)+ext;
 };
 SR63.reportGroupName=function(page,dimension,mode){
  if(mode==='subjects'||mode==='departmentStats')return 'الصف '+(page.grade||page.entity||'غير محدد');
@@ -2065,444 +2065,288 @@ SR63.reportPageJPEG=async function(element,cssText,landscape=false){
  return {dataUrl,width:canvas.width,height:canvas.height,landscape};
 };
 
-/* 6.10.95 — Editable, offline DOCX renderer for existing school report DOM.
-   Source is the same page HTML used by PDF/print, never a second data query. */
+/* 6.10.104 — measured, editable OOXML export.
+ * The fitted PDF DOM is the design specification. No PDF/table screenshots.
+ * Each A4 page owns positioned native Word tables, paragraphs and vector shapes.
+ * This avoids a second pagination algorithm and preserves the PDF page boundary.
+ */
 (function(){
- const esc=s=>String(s??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
- const rgb=s=>{
-  const m=String(s||'').match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/);
-  if(m){if(/rgba\(/i.test(String(s))&&/[,/]\s*0(?:\.0+)?\s*\)$/.test(String(s)))return null;return [m[1],m[2],m[3]].map(n=>Math.max(0,Math.min(255,Math.round(+n))).toString(16).padStart(2,'0')).join('').toUpperCase();}
-  const h=String(s||'').match(/^#([0-9a-f]{6})$/i);return h?h[1].toUpperCase():null;
+ 'use strict';
+ const NS='http://schemas.openxmlformats.org/';
+ const esc=v=>String(v??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+ const tw=v=>Math.round(v*15),pt=v=>(v*.75).toFixed(3),num=v=>parseFloat(v)||0;
+ const css=el=>getComputedStyle(el);
+ const onPage=(el,origin)=>{const b=el.getBoundingClientRect();return b.right>origin.x+.5&&b.left<origin.x+origin.width-.5&&b.bottom>origin.y+.5&&b.top<origin.y+origin.height-.5;};
+ const visible=el=>{const s=css(el),r=el.getBoundingClientRect();return s.display!=='none'&&s.visibility!=='hidden'&&num(s.opacity)!==0&&r.width>0&&r.height>0;};
+ const color=value=>{
+  if(!value||value==='transparent')return null;
+  // Let Chromium resolve color-mix(), modern color(), alpha and CSS variables.
+  const canvas=color.canvas||(color.canvas=document.createElement('canvas'));canvas.width=canvas.height=1;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});ctx.clearRect(0,0,1,1);ctx.fillStyle=value;ctx.fillRect(0,0,1,1);
+  const [r,g,b,a]=ctx.getImageData(0,0,1,1).data;if(!a)return null;
+  return {hex:[r,g,b].map(n=>n.toString(16).padStart(2,'0')).join('').toUpperCase(),alpha:a/255};
  };
- const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
- const isBlock=el=>/^(?:DIV|P|SECTION|ARTICLE|HEADER|FOOTER|MAIN|H[1-6]|UL|OL|LI|FIGURE|FIGCAPTION|ASIDE|BLOCKQUOTE|PRE)$/i.test(el?.tagName||'');
- const visible=el=>{const style=getComputedStyle(el);return style.display!=='none'&&style.visibility!=='hidden';};
- // Compact A4 paragraphs retain editable Word text and cells.
- let compactA4=false,activePageFontScale=1;
- const para=(runs,align='right',shade='')=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+align+'"/><w:spacing w:before="0" w:after="'+(compactA4?'0':'70')+'" w:line="'+(compactA4?'240':'260')+'" w:lineRule="auto"/>'+(shade?'<w:shd w:val="clear" w:fill="'+shade+'"/>':'')+'</w:pPr>'+runs+'</w:p>';
- // Word handles RTL numerals best when Arabic and numeric runs are isolated.
- const textTokens=value=>String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean);
- function fontStyle(el,value=''){
-  const style=getComputedStyle(el);
-  const font=Math.min(40,Math.max(12,Math.round((parseFloat(style.fontSize)||12)*1.5*activePageFontScale)));
-  const color=rgb(style.color)||'19384A';
-  const bold=/bold|bolder/i.test(style.fontWeight)||+style.fontWeight>=600||/^(B|STRONG|TH|H[1-6])$/.test(el.tagName);
-  const family=/tahoma/i.test(style.fontFamily)?'Tahoma':'Arial';
-  const rtl=/[\u0590-\u08FF]/.test(value);
-  return '<w:rPr><w:rFonts w:ascii="'+family+'" w:hAnsi="'+family+'" w:cs="'+family+'"/>'+
-   '<w:rtl w:val="'+(rtl?'1':'0')+'"/><w:lang w:bidi="ar-QA"/>'+
-   '<w:sz w:val="'+font+'"/><w:szCs w:val="'+font+'"/><w:color w:val="'+color+'"/>'+
-   (bold?'<w:b/>':'')+'</w:rPr>';
+ const rect=(node,origin)=>{const b=node.getBoundingClientRect();return {x:b.x-origin.x,y:b.y-origin.y,w:b.width,h:b.height};};
+ const scaleOf=el=>{const b=el.getBoundingClientRect();return el.offsetWidth?b.width/el.offsetWidth:1;};
+ function runStyle(el){
+  const s=css(el),scale=scaleOf(el.closest('.sr-report-fit-content')||el);
+  return {font:s.fontFamily.split(',')[0].replace(/["']/g,'').trim(),size:num(s.fontSize)*scale,
+   bold:num(s.fontWeight)>=600||s.fontWeight==='bold',italic:s.fontStyle==='italic',color:color(s.color)?.hex||'000000'};
  }
- const txt=(value,element)=>textTokens(value).map(part=>
-  '<w:r>'+fontStyle(element,part)+'<w:t xml:space="preserve">'+esc(part)+'</w:t></w:r>').join('');
- // Preserve spacing between distinct text labels and grade badges.
- function inlineChildren(parent){
-  let result='',previous=null;
-  const flex=/^(?:flex|inline-flex|grid|inline-grid)$/.test(getComputedStyle(parent).display);
-  for(const node of parent.childNodes){
-   const token=inline(node);
-   if(!token)continue;
-   if(previous&&previous.nodeType===1&&node.nodeType===1&&
-      (flex||(previous.tagName==='SPAN'&&node.tagName==='B'))&&
-      clean(previous.textContent)&&clean(node.textContent))
-    result+='<w:r><w:t xml:space="preserve"> </w:t></w:r>';
-   result+=token;previous=node;
-  }
-  return result;
- }
- const inline=node=>{
-  if(node.nodeType===3)return clean(node.nodeValue)?txt(node.nodeValue,node.parentElement):'';
-  if(node.nodeType!==1||!visible(node))return '';
-  if(node.tagName==='BR')return '<w:r><w:br/></w:r>';
-  return inlineChildren(node);
- };
- const tagP=el=>{
-  const alignment=String(getComputedStyle(el).textAlign||'').toLowerCase();
-  return para(inlineChildren(el),alignment==='center'?'center':alignment==='left'?'left':alignment==='justify'?'both':'right');
- };
- const wordWidth=landscape=>landscape?15360:10460;
- const docHeader=()=>'<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>';
- const partsXml=(body,landscape,fitA4=false)=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+docHeader()+body+'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/>'+
-  '<w:pgMar w:top="'+(fitA4?'300':'640')+'" w:bottom="'+(fitA4?'300':'640')+'" w:right="'+(fitA4?'450':'700')+'" w:left="'+(fitA4?'450':'700')+'" w:header="200" w:footer="200" w:gutter="0"/></w:sectPr></w:body></w:document>';
- const contentTypes=types=>'<?xml version="1.0" encoding="UTF-8"?>'+
-   '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>'+
-   types.map(([ext,mime])=>'<Default Extension="'+ext+'" ContentType="'+mime+'"/>').join('')+
-   '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
- const rootRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
-  '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
- function imageRun(id,number,width,height){
-  const cx=Math.round(width*9525),cy=Math.round(height*9525);
-  return '<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+number+'" name="صورة التقرير '+number+'"/>'+
-   '<a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic>'+
-   '<pic:nvPicPr><pic:cNvPr id="'+number+'" name="صورة التقرير"/><pic:cNvPicPr/></pic:nvPicPr>'+
-   '<pic:blipFill><a:blip r:embed="'+id+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>'+
-   '<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr>'+
-   '</pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
- }
- /* Data/image conversion must not use fetch(data:). It can be rejected by
-    Content-Security-Policy connect-src on the production website. */
- const dataURLBlob=value=>{
-  const match=String(value||'').match(/^data:([^;,]*)(;base64)?,([\s\S]*)$/i);
-  if(!match)throw Error('صيغة الصورة المرفقة غير صالحة.');
-  const mime=match[1]||'image/png';
-  if(match[2]){
-   const bytes=atob(match[3].replace(/\s/g,''));
-   const array=new Uint8Array(bytes.length);
-   for(let i=0;i<bytes.length;i++)array[i]=bytes.charCodeAt(i);
-   return new Blob([array],{type:mime});
-  }
-  return new Blob([new TextEncoder().encode(decodeURIComponent(match[3]))],{type:mime});
- };
- const canvasBlob=canvas=>new Promise((resolve,reject)=>canvas.toBlob(
-  blob=>blob?resolve(blob):reject(Error('تعذر تحويل الرسم إلى صورة داخل Word.')),'image/png'));
- const localImageCanvas=async image=>{
-  if(!image?.complete||!image.naturalWidth||!image.naturalHeight)return null;
-  const c=document.createElement('canvas');
-  c.width=image.naturalWidth;c.height=image.naturalHeight;
-  c.getContext('2d').drawImage(image,0,0);
-  return await canvasBlob(c);
- };
- const inlineSVGBlob=async svg=>{
-  const clone=svg.cloneNode(true);
-  clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
-  const bounds=svg.getBoundingClientRect();
-  const w=Math.max(2,Math.round(bounds.width||parseFloat(svg.getAttribute('width'))||360));
-  const h=Math.max(2,Math.round(bounds.height||parseFloat(svg.getAttribute('height'))||180));
-  clone.setAttribute('width',String(w));clone.setAttribute('height',String(h));
-  if(!clone.getAttribute('viewBox'))clone.setAttribute('viewBox','0 0 '+w+' '+h);
-  const source=new XMLSerializer().serializeToString(clone);
-  const url=URL.createObjectURL(new Blob([source],{type:'image/svg+xml;charset=utf-8'}));
-  try{
-   const image=new Image();image.src=url;await image.decode();
-   const canvas=document.createElement('canvas');canvas.width=w*2;canvas.height=h*2;
-   const context=canvas.getContext('2d');
-   context.fillStyle='#ffffff';context.fillRect(0,0,canvas.width,canvas.height);
-   context.drawImage(image,0,0,canvas.width,canvas.height);
-   return await canvasBlob(canvas);
-  }finally{URL.revokeObjectURL(url);}
- };
- async function embed(element,context){
-  let type='png',blob,uri;
-  if(element.tagName==='IMG'){
-   uri=element.getAttribute('src')||'';
-   if(!uri)return '';
-   const link=new URL(uri,document.baseURI);
-   if(link.protocol==='data:'){
-    blob=dataURLBlob(link.href);
-   }else{
-    if(link.origin!==document.location.origin)return '';
-    // Reuse an image already loaded in the report before attempting a request.
-    const cached=[...document.images].find(img=>{
-     const current=img.currentSrc||img.src;
-     return img.complete&&img.naturalWidth&&current===link.href;
-    });
-    if(cached){try{blob=await localImageCanvas(cached);}catch(_error){blob=null;}}
-    if(!blob){
-     // A transient network failure should never prevent downloading the report.
-     try{
-      const response=await fetch(link.href,{credentials:'same-origin',cache:'force-cache'});
-      if(response.ok)blob=await response.blob();
-     }catch(_error){blob=null;}
-    }
-    if(!blob){try{blob=await localImageCanvas(element);}catch(_error){blob=null;}}
-    if(!blob)return '';
-   }
-   const mime=String(blob.type||'').toLowerCase();
-   type=mime.includes('jpeg')||mime.includes('jpg')?'jpeg':mime.includes('webp')?'webp':'png';
-  }else{
-   try{
-    const canvas=element.tagName==='CANVAS'?element:
-     await SR72Canvas.toCanvas(element,{pixelRatio:2,backgroundColor:'#ffffff'});
-    blob=await canvasBlob(canvas);
-   }catch(error){
-    if(element.tagName!=='SVG')throw Error('تعذر تحويل رسم التقرير إلى Word: '+String(error?.message||error));
-    blob=await inlineSVGBlob(element);
-   }
-  }
-  const key=uri&&uri.length<4000?uri:null;
-  if(key&&context.imageCache.has(key))return context.imageCache.get(key);
-  const number=++context.imagesNumber,id='rId'+number,name='word/media/report-'+number+'.'+type;
-  context.imageFiles.push({name,blob});context.imageRelations.push({id,name:'media/report-'+number+'.'+type});
-  context.usedTypes.set(type,type==='jpeg'?'image/jpeg':type==='webp'?'image/webp':'image/png');
-  const rect=element.getBoundingClientRect(),maxWidth=context.maxImageWidth|| (context.landscape?675:450);
-  const measuredWidth=rect.width||180,measuredHeight=rect.height||75;
-  const width=Math.max(30,Math.min(maxWidth,measuredWidth)),height=Math.max(14,Math.min(context.landscape?220:280,measuredHeight*(width/measuredWidth)));
-  const output=para(imageRun(id,number,width,height),'center');
-  if(key)context.imageCache.set(key,output);
-  return output;
- }
- /* Widths/column order come from the SAME DOM table shown in PDF. */
- function columnWidths(table,count,total){
-  let sizes=[];
-  const cols=table.querySelector(':scope > colgroup');
-  if(cols){
-   for(const col of cols.children){
-    if(col.tagName!=='COL')continue;
-    const span=Math.max(1,Number(col.span)||1);
-    let value=String(col.style.width||col.getAttribute('width')||'').trim();
-    let weight=parseFloat(value)||0;
-    if(value.endsWith('px'))weight=weight||0;
-    if(!weight){const bbox=col.getBoundingClientRect();weight=bbox.width||0;}
-    for(let i=0;i<span;i++)sizes.push(weight||1);
-   }
-  }
-  if(sizes.length!==count||sizes.some(v=>v<=0)){
-   sizes=Array(count).fill(0);
-   const source=[...table.rows].find(row=>[...row.cells].reduce((n,td)=>n+Math.max(1,td.colSpan||1),0)===count);
-   if(source){
-    let index=0;
-    for(const cell of source.cells){
-     const span=Math.max(1,cell.colSpan||1),size=cell.getBoundingClientRect().width||span;
-     for(let n=0;n<span&&index<count;n++,index++)sizes[index]=size/span;
-    }
-   }
-  }
-  if(!sizes.some(Boolean))sizes=Array(count).fill(1);
-  sizes=sizes.map(n=>Math.max(.1,n||1));
-  const sum=sizes.reduce((n,x)=>n+x,0);
-  const widths=sizes.map(v=>Math.max(160,Math.round(total*v/sum)));
-  widths[widths.length-1]+=total-widths.reduce((n,x)=>n+x,0);
-  return widths;
- }
- const tableBorders=()=>'<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>
-  '<w:'+x+' w:val="single" w:sz="5" w:color="BFCFD6"/>').join('')+'</w:tblBorders>';
- const tableStart=(width,widths)=>'<w:tbl><w:tblPr><w:tblW w:w="'+width+'" w:type="dxa"/>'+
-  '<w:tblLayout w:type="fixed"/><w:bidiVisual w:val="1"/><w:jc w:val="right"/>'+tableBorders()+'</w:tblPr>'+
-  '<w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
- function wordTable(table,context){
-  const lines=[...table.rows];if(!lines.length)return '';
-  const count=Math.max(1,...lines.map(tr=>[...tr.cells].reduce((sum,td)=>sum+Math.max(1,td.colSpan||1),0)));
-  const width=wordWidth(context.landscape),widths=columnWidths(table,count,width);
-  const pending=Array(count).fill(null);
-  const rowXML=lines.map((tr,rowIndex)=>{
-   const heads=!!tr.closest('thead'),cols=[],alternate=rowIndex%2===0;
-   let col=0;
-   const item=(td,span,merge)=>{
-    const w=widths.slice(col,col+span).reduce((n,x)=>n+x,0);
-    const style=td?getComputedStyle(td):null;
-    const rgbOf=node=>node?rgb(getComputedStyle(node).backgroundColor):null;
-    const bg=(style&&rgb(style.backgroundColor))||rgbOf(tr)||rgbOf(tr.parentElement)||
-     (heads?'D9E9EE':alternate?'F5FAFB':'FFFFFF');
-    const sp=span>1?'<w:gridSpan w:val="'+span+'"/>':'';
-    const merged=merge?'<w:vMerge w:val="'+merge+'"/>':'';
-    const prop='<w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+sp+merged+
-     '<w:shd w:val="clear" w:fill="'+bg+'"/><w:vAlign w:val="center"/>'+
-     '<w:tcMar><w:top w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/><w:bottom w:w="'+(compactA4?'45':'78')+'" w:type="dxa"/>'+
-     '<w:right w:w="76" w:type="dxa"/><w:left w:w="76" w:type="dxa"/></w:tcMar></w:tcPr>';
-    const align=style&&style.textAlign==='center'?'center':style&&style.textAlign==='left'?'left':'right';
-    const val=td?(inlineChildren(td)||txt(' ',td)):'';
-    return '<w:tc>'+prop+para(val,align)+'</w:tc>';
-   };
-   function continuation(){
-    const carry=pending[col];if(!carry||carry.start!==col)return false;
-    cols.push(item(null,carry.span,'continue'));
-    for(let i=0;i<carry.span;i++){
-     if(pending[col+i])pending[col+i].remaining--;
-     if(pending[col+i]?.remaining<=0)pending[col+i]=null;
-    }
-    col+=carry.span;return true;
-   }
-   for(const td of tr.cells){
-    while(col<count&&pending[col])if(!continuation())col++;
-    const span=Math.min(count-col,Math.max(1,td.colSpan||1));if(span<=0)break;
-    const rowSpan=Math.max(1,td.rowSpan||1);
-    cols.push(item(td,span,rowSpan>1?'restart':null));
-    if(rowSpan>1)for(let j=0;j<span;j++)pending[col+j]={start:col,span,remaining:rowSpan-1};
-    col+=span;
-   }
-   while(col<count&&pending[col])if(!continuation())col++;
-   return '<w:tr><w:trPr><w:cantSplit/>'+(heads?'<w:tblHeader/>':'')+'</w:trPr>'+cols.join('')+'</w:tr>';
+ function run(value,style){
+  // Isolate decimal values, percentages and Latin identifiers from Arabic runs.
+  return value.split(/(\d+(?:[.,:/-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean).map(t=>{
+   const rtl=/[\u0590-\u08ff]/.test(t),size=Math.max(2,Math.round(style.size*1.5));
+   return '<w:r><w:rPr><w:rFonts w:ascii="'+esc(style.font)+'" w:hAnsi="'+esc(style.font)+'" w:cs="'+esc(style.font)+'"/>'+
+    (style.bold?'<w:b/><w:bCs/>':'')+(style.italic?'<w:i/><w:iCs/>':'')+
+    '<w:color w:val="'+style.color+'"/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/><w:rtl w:val="'+(rtl?1:0)+'"/><w:lang w:val="en-US" w:bidi="ar-QA"/></w:rPr><w:t xml:space="preserve">'+esc(t)+'</w:t></w:r>';
   }).join('');
-  return tableStart(width,widths)+rowXML+'</w:tbl>';
  }
- const wordCell=(body,width,shading='FFFFFF')=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+
-  '<w:shd w:val="clear" w:fill="'+shading+'"/><w:vAlign w:val="center"/></w:tcPr>'+body+'</w:tc>';
- async function wordHeader(el,context,depth){
-  const images=[...el.querySelectorAll('img')].filter(visible);
-  if(!images.length)return null;
-  const pageWidth=wordWidth(context.landscape);
-  const official=images.find(img=>/moehe\.png|report-ministry/i.test(
-   (img.getAttribute('src')||'')+' '+String(img.className||'')))||images[0];
-  const school=images.find(img=>img!==official)||null;
-  const imageWord=async(img,cap)=>{
-   if(!img)return '';
-   const previous=context.maxImageWidth;context.maxImageWidth=cap/16;
-   try{return await embed(img,context);}
-   finally{context.maxImageWidth=previous;}
+ // Use browser line fragments instead of estimating wraps from string length.
+ function textLines(root,origin,{outsideTables=false,onlyNode=null}={}){
+  const lines=[],walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node,order=0;
+  while((node=walker.nextNode())){
+   if(onlyNode&&node!==onlyNode)continue;
+   const parent=node.parentElement;
+   if(!parent||!node.nodeValue.trim()||!visible(parent)||parent.closest('script,style,button,svg,canvas')||
+      (outsideTables&&parent.closest('table')))continue;
+   const style=runStyle(parent),text=node.nodeValue,range=document.createRange();
+   for(const match of text.matchAll(/\s+|\S+/gu)){
+    range.setStart(node,match.index);range.setEnd(node,match.index+match[0].length);
+    const boxes=[...range.getClientRects()].filter(b=>b.width&&b.height);
+    if(!boxes.length)continue;
+    // A long word can wrap under overflow-wrap:anywhere; retain all characters.
+    const pieces=boxes.length>1?Array.from(match[0]).map((c,i)=>({text:c,start:match.index+Array.from(match[0]).slice(0,i).join('').length})): [{text:match[0],start:match.index}];
+    for(const piece of pieces){range.setStart(node,piece.start);range.setEnd(node,piece.start+piece.text.length);const b=range.getBoundingClientRect();if(!b.width||!b.height)continue;
+     if(b.x+b.width/2<origin.x||b.x+b.width/2>origin.x+origin.width||b.y+b.height/2<origin.y||b.y+b.height/2>origin.y+origin.height)continue;
+     const x=b.x-origin.x,y=b.y-origin.y;
+     let line=lines.find(l=>Math.abs((l.y+l.h/2)-(y+b.height/2))<Math.min(2,b.height*.18));
+     if(!line){line={x,y,w:b.width,h:b.height,runs:[]};lines.push(line);}
+     const right=Math.max(line.x+line.w,x+b.width);line.x=Math.min(line.x,x);line.w=right-line.x;line.y=Math.min(line.y,y);line.h=Math.max(line.h,b.height);
+     line.runs.push({text:piece.text,style,order:order++,x,w:b.width});
+    }
+   }
+  }
+  return lines.sort((a,b)=>a.y-b.y);
+ }
+ const emptyP='<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="1" w:lineRule="exact"/></w:pPr></w:p>';
+ function paragraphs(lines,box){
+  let cursor=box.y,out='';
+  for(const line of lines){
+   const before=Math.max(0,line.y-cursor),lg=Math.max(0,line.x-box.x),rg=Math.max(0,box.x+box.w-line.x-line.w);
+   const align=Math.abs(lg-rg)<2?'center':rg<lg?'start':'end',left=align==='end'?Math.max(0,lg-1):0,right=align==='start'?Math.max(0,rg-1):0;
+   const text=line.runs.sort((a,b)=>a.order-b.order).map(r=>run(r.text,r.style)).join('');
+   out+='<w:p><w:pPr><w:widowControl w:val="0"/><w:bidi w:val="1"/><w:snapToGrid w:val="0"/><w:spacing w:before="'+tw(before)+'" w:after="0" w:line="'+tw(line.h)+'" w:lineRule="exact"/><w:ind w:left="'+tw(right)+'" w:right="'+tw(left)+'"/><w:jc w:val="'+align+'"/></w:pPr>'+text+'</w:p>';
+   cursor=line.y+line.h;
+  }
+  return out||emptyP;
+ }
+ function drawing(context,box,graphic){
+  const id=++context.shapeId,emu=v=>Math.round(v*9525),w=emu(Math.max(.1,box.w)),h=emu(Math.max(.1,box.h));
+  return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="'+(251658240+id*1024)+'" behindDoc="0" locked="0" layoutInCell="0" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>'+emu(box.x)+'</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>'+emu(box.y)+'</wp:posOffset></wp:positionV><wp:extent cx="'+w+'" cy="'+h+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="'+id+'" name="Report object '+id+'"/><wp:cNvGraphicFramePr/><a:graphic>'+graphic(w,h,id)+'</a:graphic></wp:anchor></w:drawing></w:r>';
+ }
+ const solid=c=>c?'<a:solidFill><a:srgbClr val="'+c.hex+'"><a:alpha val="'+Math.round(c.alpha*100000)+'"/></a:srgbClr></a:solidFill>':'<a:noFill/>';
+ const xfrm=(w,h)=>'<a:xfrm><a:off x="0" y="0"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm>';
+ function paintedShape(context,box,fill,stroke,extra,radius){
+  const imageId=/r:id="([^"]+)"/.exec(extra)?.[1];
+  if(imageId)return drawing(context,box,(w,h,id)=>'<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="'+id+'" name="Original report logo"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+imageId+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr>'+xfrm(w,h)+'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData>');
+  let paint=solid(fill);
+  if(extra.includes('gradient')){
+   const raw=/colors="([^"]+)"/.exec(extra)?.[1]||'',stops=[...raw.matchAll(/([\d.]+)% #(\w+)/g)],vml=Number(/angle="([^"]+)"/.exec(extra)?.[1])||0,cssAngle=(360-vml)%360,angle=((cssAngle+270)%360)*60000;
+   paint='<a:gradFill rotWithShape="1"><a:gsLst>'+stops.map(m=>'<a:gs pos="'+Math.round(Number(m[1])*1000)+'"><a:srgbClr val="'+m[2]+'"/></a:gs>').join('')+'</a:gsLst><a:lin ang="'+angle+'" scaled="1"/></a:gradFill>';
+  }
+  // A zero-radius roundRect is geometrically a rectangle. Explicit adj=0
+  // also avoids readers that discard an implicit, unadjusted rect geometry.
+  const geom='<a:prstGeom prst="roundRect"><a:avLst><a:gd name="adj" fmla="val '+Math.round(Math.min(.5,radius/Math.min(box.w,box.h))*100000)+'"/></a:avLst></a:prstGeom>';
+  return drawing(context,box,(w,h)=>'<a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr/><wps:spPr>'+xfrm(w,h)+geom+paint+'<a:ln w="'+Math.round((stroke?.width||0)*9525)+'">'+solid(stroke)+'</a:ln></wps:spPr><wps:bodyPr/></wps:wsp></a:graphicData>');
+ }
+ function shape(context,box,content='',fill=null,stroke=null,extra='',radius=0){
+  if(box.w<=0||box.h<=0)return '';
+  if(!content)return paintedShape(context,box,fill,stroke,extra,radius);
+  const id='srShape'+(++context.shapeId),tag=radius?'roundrect':'rect',arc=radius?' arcsize="'+(100*Math.min(1,2*radius/Math.min(box.w,box.h)))+'%"':'';
+  return '<w:r><w:pict><v:'+tag+arc+' id="'+id+'" style="position:absolute;margin-left:'+pt(box.x)+'pt;margin-top:'+pt(box.y)+'pt;width:'+pt(box.w)+'pt;height:'+pt(box.h)+'pt;z-index:'+context.shapeId+';mso-position-horizontal-relative:page;mso-position-vertical-relative:page" filled="'+(fill||extra.includes('<v:fill')||extra.includes('<v:imagedata')?'t':'f')+'"'+(fill?' fillcolor="#'+fill.hex+'"':'')+' stroked="'+(stroke?'t':'f')+'"'+(stroke?' strokecolor="#'+stroke.hex+'" strokeweight="'+pt(stroke.width)+'pt"':'')+'>'+
+   (fill?'<v:fill opacity="'+fill.alpha+'"/>':'')+extra+
+   (content?'<v:textbox inset="0,0,0,0" style="mso-fit-shape-to-text:f"><w:txbxContent>'+content+'</w:txbxContent></v:textbox>':'')+
+   '<w10:wrap type="none"/></v:'+tag+'></w:pict></w:r>';
+ }
+ function decorations(root,origin,context){
+  let out='';const borders=new Set();
+  const paint=(s,box,scale)=>{
+   const fill=color(s.backgroundColor),radius=num(s.borderTopLeftRadius)*scale;
+   if(fill)fill.alpha*=Number(s.opacity);
+   const gradient=s.backgroundImage.match(/(?:rgba?\([^)]*\)|#[0-9a-f]{3,8})/gi);
+   let extra='';if(gradient?.length){
+    const first=color(gradient[0]),last=color(gradient.at(-1)),angle=(360-(Number(/(-?[\d.]+)deg/.exec(s.backgroundImage)?.[1])||180))%360;
+    const stops=[...s.backgroundImage.matchAll(/(rgba?\([^)]*\)|#[0-9a-f]{3,8})\s*([\d.]+%)?/gi)].map((m,i,a)=>(m[2]||100*i/(a.length-1)+'%')+' #'+color(m[1]).hex).join(',');
+    if(first&&last)extra='<v:fill type="gradient" color="#'+first.hex+'" color2="#'+last.hex+'" colors="'+stops+'" angle="'+angle+'"/>';
+   }
+   if(fill||extra)out+=shape(context,box,'',extra?null:fill,null,extra,radius);
   };
-  const schoolPic=await imageWord(school,1750);
-  const ministryPic=await imageWord(official,2750);
-  const content=await walk(el,context,depth+1,true,true);
-  const textBody=content||para(txt(clean(el.textContent),el));
-  if(schoolPic){
-   const widths=[1750,pageWidth-4500,2750]; // RTL: school emblem | Arabic school details | ministry emblem
-   return tableStart(pageWidth,widths)+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
-    wordCell(schoolPic,widths[0])+wordCell(textBody,widths[1])+wordCell(ministryPic,widths[2])+
-    '</w:tr></w:tbl>';
+  for(const el of [root,...root.querySelectorAll('*')]){
+   if(!visible(el)||!onPage(el,origin)||el.tagName==='IMG'||el.closest('svg,canvas'))continue;
+   const s=css(el),scale=scaleOf(el.closest('.sr-report-fit-content')||el);
+   // Fragmented annual-report blocks expose one rectangle for each print column.
+   const fragments=[...el.getClientRects()].filter(r=>r.right>origin.x+.5&&r.left<origin.x+origin.width-.5);
+   for(const r of fragments){const box={x:r.x-origin.x,y:r.y-origin.y,w:r.width,h:r.height};paint(s,box,scale);
+    for(const side of ['Top','Right','Bottom','Left']){
+     const width=num(s['border'+side+'Width'])*scale,c=color(s['border'+side+'Color']);if(!width||!c||s['border'+side+'Style']==='none')continue;
+     const b={...box},collapsed=/^(TD|TH)$/.test(el.tagName)&&css(el.closest('table')).borderCollapse==='collapse';
+     if(side==='Top'||side==='Bottom'){b.h=width;if(side==='Bottom')b.y+=box.h-width;if(collapsed)b.y+=side==='Top'?-width/2:width/2;}
+     else{b.w=width;if(side==='Right')b.x+=box.w-width;if(collapsed)b.x+=side==='Left'?-width/2:width/2;}
+     const key=[b.x,b.y,b.w,b.h].map(v=>v.toFixed(2)).join(',')+c.hex;if(!borders.has(key)){borders.add(key);out+=shape(context,b,'',c);}
+    }
+   }
   }
-  const ministryWidth=2750;
-  return tableStart(pageWidth,[pageWidth-ministryWidth,ministryWidth])+
-   '<w:tr><w:trPr><w:cantSplit/></w:trPr>'+
-   wordCell(textBody,pageWidth-ministryWidth)+wordCell(ministryPic,ministryWidth)+'</w:tr></w:tbl>';
- }
- async function horizontalGroup(el,context,depth){
-  const children=[...el.children].filter(visible);
-  if(!children.length)return null;
-  const cols=children.length,width=wordWidth(context.landscape),colWidth=Math.floor(width/cols);
-  const widths=Array(cols).fill(colWidth);widths[cols-1]+=width-colWidth*cols;
-  const cells=[];
-  for(let i=0;i<cols;i++){
-   const child=children[i];
-   const title=child.querySelector(':scope > b,:scope > strong');
-   const value=child.querySelector(':scope > span,:scope > p');
-   let content='';
-   if(title&&value){
-    content+=para(txt(clean(title.textContent),title),'center','E7F0F3');
-    content+=para(txt(clean(value.textContent),value),'center');
-   }else content=await walk(child,context,depth+1);
-   cells.push(wordCell(content||para(txt(clean(child.textContent),child)),widths[i],i%2===0?'F6FAFB':'FFFFFF'));
-  }
-  return tableStart(width,widths)+'<w:tr><w:trPr><w:cantSplit/></w:trPr>'+cells.join('')+'</w:tr></w:tbl>';
- }
- async function walk(el,context,depth=0,skipImages=false,skipHeader=false){
-  if(depth>24||!el||el.nodeType!==1||!visible(el))return '';
-  const name=el.tagName,classes=String(el.className?.baseVal??el.className??'');
-  if(['SCRIPT','STYLE','BUTTON','SELECT','INPUT','TEXTAREA','NOSCRIPT'].includes(name))return '';
-  if(name==='TABLE')return wordTable(el,context);
-  if(skipImages&&name==='IMG')return '';
-  if(name==='IMG'||name==='SVG'||name==='CANVAS')return await embed(el,context);
-  if(!skipHeader&&(/(?:^|\s)(?:report-head|sr640-header|sr-top-export-header|tr-header)(?:\s|$)/.test(classes)||
-     name==='HEADER')&&el.querySelector('img')){
-   const header=await wordHeader(el,context,depth);if(header)return header;
-  }
-  if(/(?:^|\s)(?:report-signatures|sr640-signatures|report-meta-grid)(?:\s|$)/.test(classes)){
-   const result=await horizontalGroup(el,context,depth);if(result)return result;
-  }
-  const children=[...el.children].filter(visible);
-  const hasBlocks=children.some(child=>isBlock(child)||['TABLE','IMG','SVG','CANVAS'].includes(child.tagName));
-  if(!hasBlocks){
-   if(!clean(el.textContent))return '';
-   return tagP(el);
-  }
-  let out='';
-  for(const node of el.childNodes){
-   if(node.nodeType===3){if(clean(node.nodeValue))out+=para(txt(node.nodeValue,el));}
-   else if(node.nodeType===1)out+=await walk(node,context,depth+1,skipImages,skipHeader);
-  }
+  const before=getComputedStyle(root,'::before');
+  if(before.content!=='none'&&before.position==='absolute'&&num(before.height)>0){paint(before,{x:num(before.left),y:num(before.top),w:num(before.width)||origin.width,h:num(before.height)},1);}
   return out;
  }
+ function nativeTable(table,origin){
+  const rows=[...table.rows].filter(tr=>visible(tr)&&onPage(tr,origin));if(!rows.length)return null;
+  const rowBoxes=rows.map(tr=>rect(tr,origin)),box={x:0,w:0,y:Math.min(...rowBoxes.map(r=>r.y)),h:0};box.h=Math.max(...rowBoxes.map(r=>r.y+r.h))-box.y;
+  const edges=[];
+  for(const tr of rows)for(const td of tr.cells){const r=rect(td,origin);edges.push(r.x,r.x+r.w);}
+  const points=edges.sort((a,b)=>a-b).filter((x,i,a)=>!i||x-a[i-1]>1.5);
+  box.x=points[0];box.w=points[points.length-1]-points[0];
+  const widths=points.slice(1).map((x,i)=>tw(x-points[i])).reverse();
+  const pending=Array(widths.length).fill(null);
+  const indexAt=x=>points.reduce((best,p,i)=>Math.abs(p-x)<Math.abs(points[best]-x)?i:best,0);
+  let xml='<w:tbl><w:tblPr><w:bidiVisual/><w:tblW w:w="'+tw(box.w)+'" w:type="dxa"/><w:jc w:val="start"/><w:tblCellSpacing w:w="0" w:type="dxa"/><w:tblInd w:w="0" w:type="dxa"/><w:tblBorders>'+['top','left','bottom','right','insideH','insideV'].map(s=>'<w:'+s+' w:val="nil"/>').join('')+'</w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar>'+['top','left','bottom','right'].map(s=>'<w:'+s+' w:w="0" w:type="dxa"/>').join('')+'</w:tblCellMar></w:tblPr><w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
+  for(let n=0;n<rows.length;n++){
+   const row=rows[n],rb=rect(row,origin),cells=[...row.cells].sort((a,b)=>b.getBoundingClientRect().right-a.getBoundingClientRect().right);
+   xml+='<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="'+tw(rb.h)+'" w:hRule="exact"/>'+(row.closest('thead')?'<w:tblHeader/>':'')+'</w:trPr>';
+   let col=0;
+   const emit=(td,span,merge,cb)=>{
+    const width=widths.slice(col,col+span).reduce((a,b)=>a+b,0);
+    xml+='<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/>'+(span>1?'<w:gridSpan w:val="'+span+'"/>':'')+(merge?'<w:vMerge w:val="'+merge+'"/>':'')+'<w:tcBorders>'+['top','left','bottom','right'].map(s=>'<w:'+s+' w:val="nil"/>').join('')+'</w:tcBorders><w:tcMar>'+['top','left','bottom','right'].map(s=>'<w:'+s+' w:w="0" w:type="dxa"/>').join('')+'</w:tcMar><w:vAlign w:val="top"/></w:tcPr>'+ (td?paragraphs(textLines(td,origin),cb):emptyP)+'</w:tc>';col+=span;
+   };
+   const carry=()=>{const c=pending[col];if(!c)return false;emit(null,c.span,'continue');for(let k=col-c.span;k<col;k++){pending[k].remaining--;if(!pending[k].remaining)pending[k]=null;}return true;};
+   for(const td of cells){while(pending[col])carry();const cb=rect(td,origin),span=Math.max(1,indexAt(cb.x+cb.w)-indexAt(cb.x)),start=col;emit(td,span,td.rowSpan>1?'restart':'',cb);if(td.rowSpan>1)for(let k=start;k<col;k++)pending[k]={span,remaining:td.rowSpan-1};}
+   while(col<widths.length&&pending[col])carry();xml+='</w:tr>';
+  }
+  return {box,xml:xml+'</w:tbl>'+emptyP};
+ }
+ async function image(el,origin,context){
+  await el.decode();if(!el.naturalWidth)throw Error('تعذر تحميل شعار التقرير.');
+  const src=el.currentSrc||el.src;let id=context.imageCache.get(src);
+  if(!id){
+   // Only original image elements may produce media parts; no table/page capture.
+   const canvas=document.createElement('canvas');canvas.width=el.naturalWidth;canvas.height=el.naturalHeight;canvas.getContext('2d').drawImage(el,0,0);
+   const blob=await new Promise((ok,no)=>canvas.toBlob(b=>b?ok(b):no(Error('تعذر تجهيز شعار التقرير.')),'image/png'));
+   id='image'+(context.images.length+1);context.images.push({id,blob});context.imageCache.set(src,id);
+  }
+  const b=rect(el,origin),style=css(el);
+  if(['contain','scale-down'].includes(style.objectFit)){const fit=Math.min(b.w/el.naturalWidth,b.h/el.naturalHeight,style.objectFit==='scale-down'?1:Infinity),w=el.naturalWidth*fit,h=el.naturalHeight*fit,position=style.objectPosition.split(' ');b.x+=(b.w-w)*(num(position[0]||'50')/100);b.y+=(b.h-h)*(num(position[1]||'50')/100);b.w=w;b.h=h;}
+  return shape(context,b,'',null,null,'<v:imagedata r:id="'+id+'" o:title="'+esc(el.alt||'شعار التقرير')+'"/>');
+ }
+ function vectorPath(context,box,path,fill,stroke){
+  const id=++context.shapeId,emu=v=>Math.round(v*9525),points=[...path.matchAll(/(-?\d+),(-?\d+)/g)],w=Math.max(1,Math.round(box.w*100)),h=Math.max(1,Math.round(box.h*100));
+  const paint=c=>c?'<a:solidFill><a:srgbClr val="'+c.hex+'"><a:alpha val="'+Math.round(c.alpha*100000)+'"/></a:srgbClr></a:solidFill>':'<a:noFill/>';
+  return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="'+id+'" behindDoc="0" locked="0" layoutInCell="0" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>'+emu(box.x)+'</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>'+emu(box.y)+'</wp:posOffset></wp:positionV><wp:extent cx="'+emu(Math.max(.1,box.w))+'" cy="'+emu(Math.max(.1,box.h))+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="'+id+'" name="Report vector '+id+'"/><wp:cNvGraphicFramePr/><a:graphic><a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"><wps:wsp><wps:cNvSpPr/><wps:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+emu(Math.max(.1,box.w))+'" cy="'+emu(Math.max(.1,box.h))+'"/></a:xfrm><a:custGeom><a:avLst/><a:gdLst/><a:ahLst/><a:cxnLst/><a:rect l="0" t="0" r="r" b="b"/><a:pathLst><a:path w="'+w+'" h="'+h+'">'+points.map((p,i)=>'<a:'+(i?'lnTo':'moveTo')+'><a:pt x="'+p[1]+'" y="'+p[2]+'"/></a:'+(i?'lnTo':'moveTo')+'>').join('')+(/x/.test(path)?'<a:close/>':'')+'</a:path></a:pathLst></a:custGeom>'+paint(fill)+'<a:ln w="'+emu(stroke?.width||0)+'">'+paint(stroke)+'</a:ln></wps:spPr><wps:bodyPr/></wps:wsp></a:graphicData></a:graphic></wp:anchor></w:drawing></w:r>';
+ }
+ function svgShape(svg,origin,context){
+  let result='';
+  for(const el of svg.querySelectorAll('rect,line,circle,ellipse,text,path,polygon,polyline')){
+   if(el.closest('defs,clipPath,mask')||!onPage(el,origin))continue;
+   const b=rect(el,origin),s=css(el),tag=el.tagName.toLowerCase();if((!b.w&&!b.h)||s.display==='none')continue;
+   if(tag==='text'){
+    const style=runStyle(el),room=Math.max(4,b.w*.16),box={...b,x:b.x-room/2,w:b.w+room,h:b.h+2};result+=shape(context,box,paragraphs([{...b,runs:[{text:el.textContent,style,order:0}]}],box));
+   }else if(typeof el.getTotalLength==='function'){
+    const matrix=el.getScreenCTM(),length=el.getTotalLength(),count=Math.max(2,Math.min(1500,Math.ceil(length/1.5))),points=[];
+    for(let i=0;i<=count;i++){const p=el.getPointAtLength(length*i/count),q=new DOMPoint(p.x,p.y).matrixTransform(matrix);points.push(Math.round((q.x-origin.x-b.x)*100)+','+Math.round((q.y-origin.y-b.y)*100));}
+    const fill=s.fill==='none'?null:color(s.fill),stroke=s.stroke==='none'?null:color(s.stroke);
+    if(fill)fill.alpha*=Number(s.fillOpacity)*Number(s.opacity);
+    if(stroke)stroke.width=num(s.strokeWidth)*Math.hypot(matrix.a,matrix.b);
+    const closed=['rect','circle','ellipse','polygon'].includes(tag)||/[zZ]\s*$/.test(el.getAttribute('d')||'');
+    result+=vectorPath(context,b,'m '+points[0]+' l '+points.slice(1).join(' ')+(closed?' x':'')+' e',fill,stroke);
+   }
+  }return result;
+ }
+ const section=landscape=>'<w:sectPr><w:pgSz w:w="'+(landscape?16838:11906)+'" w:h="'+(landscape?11906:16838)+'"'+(landscape?' w:orient="landscape"':'')+'/><w:pgMar w:top="0" w:right="0" w:bottom="0" w:left="0" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>';
  SR63.wordReportBlob=async function(pages,options={}){
   if(!Array.isArray(pages)||!pages.length)throw Error('لا توجد صفحات جاهزة لتصدير Word.');
   if(pages.length>250)throw Error('حدد نطاقًا لا يزيد على 250 صفحة.');
-  const context={landscape:options.landscape===true,fitA4:options.fitA4===true,imageFiles:[],imageRelations:[],imagesNumber:0,imageCache:new Map(),usedTypes:new Map()};
-  compactA4=context.fitA4;activePageFontScale=1;
-  const stage=document.createElement('div');
-  stage.style.cssText='position:fixed;left:-25000px;top:0;z-index:-1;background:#fff;pointer-events:none;width:'+(context.landscape?'297mm':'210mm');
-  document.body.appendChild(stage);
-  const body=[];
+  const context={shapeId:0,images:[],imageCache:new Map()},stage=document.createElement('div');
+  stage.style.cssText='position:fixed;left:-25000px;top:0;pointer-events:none;background:white;z-index:-1;';document.body.append(stage);
+  const bodies=[];
   try{
-   // The site's stylesheet is already active in this document. Re-fetching it
-   // is unnecessary and used to make Word exports fail with "Failed to fetch".
-   if(options.css){const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(String(options.css));stage.appendChild(style);}
-   await(document.fonts?.ready||Promise.resolve());
+   if(options.css){const style=document.createElement('style');style.textContent=SR63.reportScreenCSS(options.css);stage.append(style);}
+   await document.fonts.ready;
    for(let i=0;i<pages.length;i++){
-    const holder=document.createElement('div');holder.innerHTML=typeof pages[i]==='string'?pages[i]:pages[i].outerHTML;
-    stage.appendChild(holder);
-    const node=holder.firstElementChild;
-    if(!node)throw Error('إحدى صفحات التقرير فارغة.');
-    SR63.ensureReportContrast?.(node);
-    if(context.fitA4){
-     const fit=Number.parseFloat(node.dataset.reportScale||'1');
-     const rows=node.querySelectorAll('tbody tr').length;
-     activePageFontScale=Math.max(.8,Math.min(1,Number.isFinite(fit)?fit:1,rows>30?.86:rows>24?.93:1));
+    const holder=document.createElement('div');if(!pages[i]?.root)holder.innerHTML=typeof pages[i]==='string'?pages[i]:pages[i].outerHTML;stage.append(holder);
+    const root=pages[i]?.root||holder.firstElementChild;if(!root)throw Error('صفحة تقرير فارغة.');
+    const landscape=SR63.reportPageIsLandscape('',root)||options.landscape===true;
+    holder.style.width=(landscape?'297':'210')+'mm';
+    await Promise.all([...root.querySelectorAll('img')].map(im=>im.decode()));
+    SR63.ensureReportContrast?.(root);
+    if(root.classList.contains('school-report-page'))SR63.planReportSheet(root,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+    const origin=pages[i]?.origin||root.getBoundingClientRect();let objects=decorations(root,origin,context);
+    for(const img of root.querySelectorAll('img'))if(visible(img)&&onPage(img,origin))objects+=await image(img,origin,context);
+    for(const svg of root.querySelectorAll('svg'))objects+=svgShape(svg,origin,context);
+    if(root.querySelector('canvas'))throw Error('الرسم النقطي ليس مدعومًا كتقرير Word قابل للتعديل.');
+    for(const table of root.querySelectorAll('table')){if(table.parentElement.closest('table'))continue;const t=nativeTable(table,origin);if(!t)continue;objects+=shape(context,{...t.box,h:t.box.h+2},t.xml);}
+    // Outside-table content retains its exact text, position, font and color.
+    const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;
+    while((node=walker.nextNode())){const p=node.parentElement;if(!node.nodeValue.trim()||p.closest('table,svg,script,style,button')||!visible(p))continue;
+     // A temporary wrapper is not used: ranges observe original DOM geometry.
+     const all=textLines(p,origin,{outsideTables:true,onlyNode:node});
+     for(const line of all){const room=Math.max(4,line.w*.16),b={x:line.x-room/2,y:line.y,w:line.w+room,h:line.h+2};objects+=shape(context,b,paragraphs([line],b));}
     }
-    await Promise.all([...node.querySelectorAll('img')].map(image=>image.decode().catch(()=>{})));
-    if(i>0)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
-    body.push(await walk(node,context));
-    holder.remove();
-    options.onProgress?.(i+1,pages.length);
-    if(i%4===0)await new Promise(resolve=>setTimeout(resolve,0));
+    let stack=0;objects=objects.replace(/(z-index:|relativeHeight=")\d+/g,(_,prefix)=>prefix+(251658240+(++stack)*1024));
+    // Own a section per original PDF sheet; anchored objects never repaginate flow.
+    bodies.push('<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="1" w:lineRule="exact"/>'+ (i<pages.length-1?section(landscape):'')+'</w:pPr>'+objects+'</w:p>'+(i===pages.length-1?section(landscape):''));
+    holder.remove();options.onProgress?.(i+1,pages.length);if(i%4===0)await new Promise(r=>setTimeout(r,0));
    }
-   const mimeTypes=[...context.usedTypes.entries()];
-   const mediaRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+
-    context.imageRelations.map(x=>'<Relationship Id="'+x.id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="'+x.name+'"/>').join('')+'</Relationships>';
-   const files=[
-    {name:'[Content_Types].xml',blob:new Blob([contentTypes(mimeTypes)])},
-    {name:'_rels/.rels',blob:new Blob([rootRels])},
-    {name:'word/document.xml',blob:new Blob([partsXml(body.join(''),context.landscape,context.fitA4)])},
-    {name:'word/_rels/document.xml.rels',blob:new Blob([mediaRels])},
-    ...context.imageFiles
-   ];
-   const compressed=await SR63.reportZipFromPdfs(files,true);
-   return new Blob([compressed],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
-  }finally{stage.remove();compactA4=false;activePageFontScale=1;}
- };
- SR63.downloadStaffReportWord=async function(report,meta={}){
-  const source=SR63.staffReportDocument(report,meta);
-  const parsed=new DOMParser().parseFromString(source,'text/html');
-  const styles=[...parsed.querySelectorAll('style')].map(node=>node.textContent).join('\n');
-  const main='<div dir="rtl" class="sr-word-staff-container">'+parsed.body.innerHTML+'</div>';
-  const landscape=!/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i.test(styles);
-  return await SR63.downloadWordReport([main],{css:styles,landscape,title:report.title,
-   filename:report.title+' - '+(meta.schoolName||'المدرسة')});
+   const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="'+NS+'wordprocessingml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w10="urn:schemas-microsoft-com:office:word"><w:body>'+bodies.join('')+'</w:body></w:document>';
+   const rel=(id,type,target)=>'<Relationship Id="'+id+'" Type="'+NS+'officeDocument/2006/relationships/'+type+'" Target="'+target+'"/>';
+   const rels=contents=>'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="'+NS+'package/2006/relationships">'+contents+'</Relationships>';
+   const settings='<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="'+NS+'wordprocessingml/2006/main"><w:defaultTabStop w:val="720"/><w:autoHyphenation w:val="0"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>';
+   const types='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="'+NS+'package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/settings.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml"/></Types>';
+   const files=[['[Content_Types].xml',types],['_rels/.rels',rels(rel('root','officeDocument','word/document.xml'))],['word/document.xml',xml],['word/settings.xml',settings],['word/_rels/document.xml.rels',rels(rel('settings','settings','settings.xml')+context.images.map(im=>rel(im.id,'image','media/'+im.id+'.png')).join(''))]].map(([name,data])=>({name,blob:new Blob([data])}));
+   files.push(...context.images.map(im=>({name:'word/media/'+im.id+'.png',blob:im.blob})));
+   return new Blob([await SR63.reportZipFromPdfs(files,true)],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  }finally{stage.remove();}
  };
  SR63.downloadWordReport=async function(pages,options={}){
-  const blob=await SR63.wordReportBlob(pages,options);
-  const name=SR63.safeReportFilename(String(options.filename||options.title||'تقرير المدرسة')+'.docx');
-  SR63.downloadReportFile(blob,name);
-  return {filename:name,bytes:blob.size,pages:pages.length};
+  const blob=await SR63.wordReportBlob(pages,options),filename=SR63.safeReportFilename((options.filename||options.title||'تقرير المدرسة')+'.docx');
+  SR63.downloadReportFile(blob,filename);return {filename,bytes:blob.size,pages:pages.length};
  };
-})();
-
-/* SchoolResult 6.10.101. Exact PDF-page Word layout, without network uploads.
-   Each Word A4 sheet contains the identical page JPEG rendered for PDF.
-   The existing editable DOCX renderer stays available separately. */
-(function(){
- const jpegBlob=data=>{
-  const match=String(data||'').match(/^data:image\/jpeg;base64,([A-Za-z0-9+/=]+)$/i);
-  if(!match)throw Error('صفحة التقرير ليست صورة JPEG صالحة.');
-  const decoded=atob(match[1]),out=new Uint8Array(decoded.length);
-  for(let n=0;n<decoded.length;n++)out[n]=decoded.charCodeAt(n);
-  return new Blob([out],{type:'image/jpeg'});
- };
- const pic=(id,index,cx,cy)=>'<w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="'+cx+'" cy="'+cy+'"/><wp:docPr id="'+index+'" name="صفحة التقرير '+index+'" descr="الصفحة الأصلية المطابقة لتقرير PDF"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="'+index+'" name="report-page-'+index+'.jpg"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="'+id+'"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+cx+'" cy="'+cy+'"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r>';
- const documentXML=body=>'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>'+body+'</w:body></w:document>';
- const rootRels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
- const types='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="jpg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
- SR63.visualWordBlob=async function(images,options={}){
-  if(!Array.isArray(images)||!images.length)throw Error('لا توجد صفحات للتصدير إلى Word.');
-  if(images.length>250)throw Error('الحد الأقصى 250 صفحة لكل ملف Word.');
-  const landscape=options.landscape===true,pageW=landscape?16838:11906,pageH=landscape?11906:16838;
-  // Small print-safe inset prevents any renderer from splitting one report sheet into two.
-  const scale=.973,cx=Math.floor(pageW*scale)*635,cy=Math.floor(pageH*scale)*635;
-  const paragraphs=[],relations=[],media=[];
-  for(let i=0;i<images.length;i++){
-   const image=images[i],number=i+1,id='rId'+number,name='report-page-'+number+'.jpg';
-   if(!!image.landscape!==landscape)throw Error('اتجاه Word مختلف عن التقرير.');
-   if(!(image.width>0&&image.height>0)||Math.abs(image.width/image.height-pageW/pageH)>.012)throw Error('مقاسات صفحة التقرير لا تتوافق مع ورق A4.');
-   media.push({name:'word/media/'+name,blob:jpegBlob(image.dataUrl)});
-   relations.push('<Relationship Id="'+id+'" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/'+name+'"/>');
-   paragraphs.push('<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="center"/><w:spacing w:before="0" w:after="0"/>'+(i?'<w:pageBreakBefore/>':'')+'</w:pPr>'+pic(id,number,cx,cy)+'</w:p>');
-   options.onProgress?.(number,images.length);
-   if(i%5===0)await new Promise(resolve=>setTimeout(resolve,0));
-  }
-  const section='<w:sectPr><w:pgSz w:w="'+pageW+'" w:h="'+pageH+'"'+(landscape?' w:orient="landscape"':'')+'/><w:pgMar w:top="70" w:bottom="70" w:right="70" w:left="70" w:header="0" w:footer="0" w:gutter="0"/></w:sectPr>';
-  const rels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'+relations.join('')+'</Relationships>';
-  const zip=await SR63.reportZipFromPdfs([
-   {name:'[Content_Types].xml',blob:new Blob([types])},
-   {name:'_rels/.rels',blob:new Blob([rootRels])},
-   {name:'word/document.xml',blob:new Blob([documentXML(paragraphs.join('')+section)])},
-   {name:'word/_rels/document.xml.rels',blob:new Blob([rels])},
-   ...media
-  ],true);
-  return new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
- };
- SR63.downloadVisualWordReport=async function(images,options={}){
-  const blob=await SR63.visualWordBlob(images,options);
-  const filename=SR63.safeReportFilename(String(options.filename||options.title||'تقرير المدرسة')+'.docx');
-  SR63.downloadReportFile(blob,filename);
-  return {filename,bytes:blob.size,pages:images.length};
+ SR63.downloadStaffReportWord=async function(report,meta={}){
+  const html=SR63.staffReportDocument(report,meta),frame=document.createElement('iframe');
+  frame.style.cssText='position:fixed;left:-30000px;top:0;width:1123px;height:794px;border:0';
+  document.body.append(frame);
+  try{
+   const doc=frame.contentDocument;doc.open();doc.write(html);doc.close();
+   await Promise.all([doc.fonts.ready,...[...doc.images].map(im=>im.decode())]);
+   SR63.ensureReportContrast?.(doc);
+   const styles=[...doc.querySelectorAll('style')].map(n=>n.textContent).join('\n'),landscape=!/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i.test(styles);
+   const mm=96/25.4,w=(landscape?297:210)*mm,h=(landscape?210:297)*mm,margin=10*mm;
+   // Chromium's column fragmentation uses the same break-inside/row rules as
+   // native print. Its measured fragments are retained as editable Word objects.
+   const flow=doc.createElement('div');while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
+   const print=doc.createElement('style');print.textContent=SR63.reportScreenCSS(styles)+'main{width:auto!important;max-width:none!important;margin:0;direction:rtl}';doc.head.append(print);
+   // Round the printable height to a CSS pixel, as the native print fragment
+   // does; a fractional remainder must not move the last complete row.
+   flow.style.cssText='width:'+(w-2*margin)+'px;height:'+Math.ceil(h-2*margin)+'px;column-width:'+(w-2*margin)+'px;column-gap:'+(2*margin)+'px;column-fill:auto;direction:ltr;';
+   const bounds=flow.getBoundingClientRect();
+   // CSS columns do not repeat THEAD, whereas Chromium's printed pages do.
+   // Add editable copies at each continuation boundary in this isolated Word
+   // layout, then let the same browser fragmentation place the remaining rows.
+   for(const table of flow.querySelectorAll('table')){
+    if(!table.tHead||!table.tBodies.length)continue;
+    for(const row of table.rows){const background=css(row).backgroundColor;row.style.backgroundColor=background;}
+    const firstColumn=Math.floor((table.tHead.getBoundingClientRect().x-bounds.x)/w+.01),done=new Set([firstColumn]);
+    for(let guard=0;guard<250;guard++){
+     const row=[...table.rows].find(r=>!r.closest('thead')&&!r.dataset.wordRepeatedHeader&&!done.has(Math.floor((r.getBoundingClientRect().x-bounds.x)/w+.01)));
+     if(!row)break;
+     const column=Math.floor((row.getBoundingClientRect().x-bounds.x)/w+.01);done.add(column);
+     [...table.tHead.rows].forEach((head,index)=>{const clone=head.cloneNode(true);[head,...head.querySelectorAll('*')].forEach((node,i)=>{const target=[clone,...clone.querySelectorAll('*')][i],style=css(node);for(const name of style)target.style.setProperty(name,style.getPropertyValue(name));});clone.dataset.wordRepeatedHeader='true';if(index===0)clone.style.breakBefore='column';row.parentNode.insertBefore(clone,row);});
+    }
+   }
+   const count=Math.max(1,Math.ceil((flow.scrollWidth+2*margin)/w));
+   const pages=Array.from({length:count},(_,i)=>({root:flow,origin:{x:bounds.x+i*w-margin,y:bounds.y-margin,width:w,height:h}}));
+   return await SR63.downloadWordReport(pages,{landscape,title:report.title,filename:report.title+' - '+(meta.schoolName||'المدرسة')});
+  }finally{frame.remove();}
  };
 })();
 
@@ -5576,7 +5420,6 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
 (function(){
  const labels=['المركز','اسم الطالب','الشعبة','الدرجة المحصّلة','الدرجة الكلية','النسبة','رصد المواد'];
  const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
- const xml=x=>String(x??'').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
  const nums=n=>Number(n).toLocaleString('en-US',{maximumFractionDigits:2});
  const cells=r=>[r.position,r.studentName,r.className,nums(r.score),nums(r.total),Number(r.percentage).toFixed(3)+'%',r.recordedCount+' / '+r.expectedCount+(r.complete?' · مكتمل':' · جزئي')];
  SR63.topRanksExportPages=function(groups,options={}){
@@ -5608,50 +5451,10 @@ SR63.StudentTopRanksCenter=function({workspace,mode="grade",canPrint=true,depart
    '<div class="tr-page-num">صفحة '+n+' من '+count+'</div></article>';
  }
  SR63.topRanksExportHtml=(pages,meta)=>'<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><style>'+css+'</style></head><body>'+pages.map((p,i)=>pageHtml(p,meta,i+1,pages.length)).join('')+'</body></html>';
- const textRun=(value,size=19,bold=false,color='19384A')=>
-  String(value??'').split(/(\d+(?:[.,:/%-]\d+)*%?|[A-Za-z]+(?:[./_-][A-Za-z0-9]+)*)/g).filter(Boolean).map(part=>
-   '<w:r><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/><w:rtl w:val="'+(/[\u0590-\u08FF]/.test(part)?'1':'0')+'"/>'+
-   '<w:lang w:bidi="ar-QA"/><w:sz w:val="'+size+'"/><w:szCs w:val="'+size+'"/>'+
-   (bold?'<w:b/>':'')+'<w:color w:val="'+color+'"/></w:rPr>'+
-   '<w:t xml:space="preserve">'+xml(part)+'</w:t></w:r>').join('');
- const p=(value,opts={})=>'<w:p><w:pPr><w:bidi w:val="1"/><w:jc w:val="'+(opts.align||'right')+'"/><w:spacing w:after="'+(opts.after??100)+'"/></w:pPr>'+textRun(value,opts.size||19,opts.bold||false,opts.color||'19384A')+'</w:p>';
- const widths=[1350,3500,1450,1680,1680,1310,2230];
- const col=(value,width,head,alternate)=>'<w:tc><w:tcPr><w:tcW w:w="'+width+'" w:type="dxa"/><w:shd w:val="clear" w:fill="'+(head?'D9E9EE':alternate?'F5FAFB':'FFFFFF')+'"/></w:tcPr>'+p(value,{bold:head,size:head?17:18,color:head?'173F51':'19384A',after:0})+'</w:tc>';
- const table=rows=>{
-  const b='<w:tblBorders>'+['top','bottom','left','right','insideH','insideV'].map(x=>'<w:'+x+' w:val="single" w:sz="5" w:color="BCCED6"/>').join('')+'</w:tblBorders>';
-  const start='<w:tbl><w:tblPr><w:tblW w:w="0" w:type="auto"/><w:tblLayout w:type="fixed"/><w:bidiVisual w:val="1"/><w:jc w:val="right"/>'+b+'</w:tblPr><w:tblGrid>'+widths.map(w=>'<w:gridCol w:w="'+w+'"/>').join('')+'</w:tblGrid>';
-  const tr=(values,head,index)=>'<w:tr><w:trPr><w:cantSplit/>'+(head?'<w:tblHeader/>':'')+'</w:trPr>'+values.map((x,j)=>col(x,widths[j],head,index%2===0)).join('')+'</w:tr>';
-  return start+tr(labels,true,0)+rows.map((r,i)=>tr(cells(r),false,i)).join('')+'</w:tbl>';
- };
- const signature=(meta,group)=>{
-  const s=meta.workspace.settings,d=s.reportDesign||{};if(d.showSignatures!==true)return '';
-  const keys=d.signatureLabels||{},list=[[keys.teacher||'معلم المادة',''],[keys.coordinator||'منسق المادة',SR63.subjectCoordinator?.(meta.workspace,meta.mode==='subject'?group.subject:'')||s.coordinatorName||''],[keys.vice||'النائب الأكاديمي',s.academicViceName||''],[keys.principal||'مدير المدرسة',s.principalName||'']];
-  return '<w:tbl><w:tblPr><w:bidiVisual w:val="1"/><w:jc w:val="right"/><w:tblW w:w="13200" w:type="dxa"/></w:tblPr><w:tblGrid>'+Array(4).fill('<w:gridCol w:w="3300"/>').join('')+'</w:tblGrid><w:tr>'+list.map(([title,name])=>'<w:tc><w:tcPr><w:tcW w:w="3300" w:type="dxa"/></w:tcPr>'+p(title,{size:16,bold:true,color:'24516B',align:'center',after:40})+p(name,{size:16,align:'center',after:40})+'</w:tc>').join('')+'</w:tr></w:tbl>';
- };
- const logo=()=>'<w:p><w:pPr><w:jc w:val="left"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="1660000" cy="730000"/><wp:docPr id="1" name="شعار الوزارة"/><a:graphic><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic><pic:nvPicPr><pic:cNvPr id="0" name="moehe.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="1660000" cy="730000"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>';
+ // The same pageHtml/css used by PDF is the only Word design source.
  SR63.topRanksWordBlob=async(pages,meta)=>{
   if(!pages.length)throw Error('لا توجد أسماء في النطاق المحدد.');
-  const s=meta.workspace.settings,body=[];
-  pages.forEach((page,i)=>{
-   if(i)body.push('<w:p><w:r><w:br w:type="page"/></w:r></w:p>');
-   body.push(logo(),p('وزارة التربية والتعليم والتعليم العالي',{size:16,bold:true,color:'36566A',after:55}),
-    p(s.schoolName||'المدرسة',{size:27,bold:true,color:'71304A',after:55}),
-    p(meta.title,{size:23,bold:true,color:'24516B',after:50}),
-    p(meta.examName+' · العام الأكاديمي: '+(s.academicYear||''),{size:16,color:'456778',after:90}),
-    p(page.group.title+(page.parts>1?' — الجزء '+page.part+' من '+page.parts:''),{size:22,bold:true,color:'24516B',after:75}),
-    table(page.rows),p(meta.method+' '+meta.note,{size:14,color:'526775',after:95}),signature(meta,page.group),
-    p('صفحة '+(i+1)+' من '+pages.length,{size:13,align:'left',color:'526775',after:0}));
-  });
-  const documentXml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><w:body>'+body.join('')+'<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="560" w:right="690" w:bottom="560" w:left="690" w:header="300" w:footer="300" w:gutter="0"/></w:sectPr></w:body></w:document>';
-  const types='<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
-  const rels='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
-  const media='<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/moehe.png"/></Relationships>';
-  const response=await fetch(new URL('./moehe.png',document.baseURI).href,{credentials:'same-origin'});if(!response.ok)throw Error('تعذر تحميل الشعار الرسمي.');
-  const files=[['[Content_Types].xml',types],['_rels/.rels',rels],['word/document.xml',documentXml],['word/_rels/document.xml.rels',media]];
-  const parts=files.map(([name,content])=>({name,blob:new Blob([content])}));
-  parts.push({name:'word/media/moehe.png',blob:new Blob([await response.arrayBuffer()],{type:'image/png'})});
-  const zip=await SR63.reportZipFromPdfs(parts,true);
-  return new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+  return SR63.wordReportBlob(pages.map((p,i)=>pageHtml(p,meta,i+1,pages.length)),{css,landscape:true});
  };
  SR63.topRanksPdfBlob=async(pages,meta)=>{
   if(!pages.length)throw Error('لا توجد أسماء في النطاق المحدد.');
@@ -7915,31 +7718,6 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   finally{setDownloadState('');}
  };
 
- const exportWordVisual=async()=>{
-  if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
-  if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل Word.');return;}
-  const exportPages=subjectMode?await loadSubjectPages().catch(error=>{eb.error(error.message);return [];}):prepared?D:(departmentMode&&!fixedSubject?[]:SR63.buildReportPages(reportRows,i,o,S,n,T,g,e.settings));
-  if(!exportPages.length){eb.error('لا توجد صفحات لهذا التقرير حسب الاختيارات الحالية.');return;}
-  if(exportPages.length>250){eb.error('اختر نطاقًا أصغر؛ الحد الأقصى 250 صفحة.');return;}
-  try{
-   const landscape=SR63.reportPageIsLandscape(n),reportName=e.settings.reportDesign.reportNames[n]||'تقرير المدرسة';
-   const examName=w?(tj(e.settings,f).name+' - '+tj(e.settings,m).name):tj(e.settings,u).name;
-   // Both PDF and Word render the identical page with the same A4 fit, fonts, colors and logos.
-   const css=await SR63.getReportStyleText();
-   const images=await renderReportHTML(exportPages,landscape,
-    index=>setDownloadState('جارٍ إعداد صفحة Word '+index+' من '+exportPages.length),
-    ()=>false,(node,page)=>SR63.reportPageJPEG(node,css,SR63.reportPageIsLandscape(n,page)));
-   if(images.length!==exportPages.length)throw Error('عدد صفحات Word لا يطابق التقرير.');
-   setDownloadState('جارٍ حفظ صفحات A4 في ملف Word…');
-   await SR63.downloadVisualWordReport(images,{landscape,title:reportName,
-    filename:reportName+' - '+examName+' - مطابق PDF',
-    onProgress:(index,total)=>setDownloadState('حفظ صفحة '+index+' من '+total+' في Word…')});
-   eb.success('تم تنزيل '+exportPages.length+' صفحة Word مطابقة للتقرير المطبوع، صفحة A4 واحدة لكل صفحة. استخدم Word قابل للتعديل لتغيير النصوص.');
-   if(!prepared)setPrepared(true);
-  }catch(error){eb.error('تعذّر تنزيل Word المطابق للطباعة: '+String(error?.message||error));}
-  finally{setDownloadState('');}
- };
-
  const exportPDF=async(split=false)=>{
   if(downloadState||!canPrint||rangeError||subjectBlocked||subjectBusy)return;
   if(w&&f===m){eb.error('اختر اختبارين مختلفين قبل تنزيل المقارنة.');return;}
@@ -8071,4 +7849,4 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
   try{const result=SR63.rollback(e,batchId,exam);ue(await qj());if(!await _e(result.workspace))return;srRawSet(result.workspace);eb.success(`تم التراجع عن ${result.restored} نتيجة؛ حُفظت ${result.skipped} نتيجة معدّلة لاحقًا.`);}catch(error){eb.error(error.message);}
 }async function $e(snapshot){
   try{const full=await SR63.getSnapshot(snapshot),checked=LN(full.workspace);if(!window.confirm(`استعادة «${full.reason}»؟ ستُحفظ نقطة لبياناتك الحالية.`))return;if(!await Kj(e,'قبل استعادة نقطة محفوظة'))throw new Error('تعذر إنشاء نقطة حماية.');const next=jj(checked.workspace,'استعادة نقطة',full.reason);ue(await qj());if(!await _e(next))return;srRawSet(next);r(structuredClone(next.settings));a(false);eb.success('تمت استعادة النقطة وحفظها.');}catch(error){eb.error(error.message);}
-}function et(){return (0,q.jsx)(SR63.Archives,{workspace:e,snapshots:le,status:c,bytes:u,onSave:()=>_e(),onBackup:Oe,onRestore:ke,onSnapshot:$e,onRollback:Qe,onNewYear:Ie,onClear:Ze,onRefresh:async()=>ue(await qj()),onChange:t});}function tt(){let t=Ej(n.bands),o=e=>{r(t=>({...t,...e})),a(!0)};return(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(p9,{kicker:`إدارة قواعد النظام`,title:`الإعدادات والمعادلات والتقارير`,desc:`عدّل القيم ثم اضغط «حفظ الإعدادات». لا تُطبّق التغييرات على التحليلات والتقارير قبل الحفظ.`,action:(0,q.jsxs)(`div`,{className:`flex flex-wrap gap-2`,children:[(0,q.jsx)(uA,{className:t.length?`bg-rose-50 text-rose-700`:i?`bg-amber-50 text-amber-700`:`bg-emerald-50 text-emerald-700`,children:t.length?`${t.length} ملاحظة`:i?`تعديلات غير محفوظة`:`الإعدادات محفوظة`}),(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1),eb.info(`تم التراجع عن التعديلات غير المحفوظة`)},children:[(0,q.jsx)(Iy,{}),`تراجع`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات`]})]})}),(0,q.jsxs)(`div`,{className:`grid gap-5 xl:grid-cols-2`,children:[(0,q.jsx)(m9,{title:`هوية المدرسة والتقرير`,children:(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-2`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolName,onChange:e=>o({schoolName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`العام الأكاديمي`}),(0,q.jsx)(fA,{className:`mt-2 bg-slate-50`,value:n.academicYear,readOnly:!0}),(0,q.jsx)(`small`,{className:`mt-1 block text-amber-700`,children:`غيّره بأمان من «النسخ والأرشيف ← بدء عام جديد» حتى لا تتغير هوية النتائج القديمة.`})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مدير/مديرة المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.principalName,onChange:e=>o({principalName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`النائب/النائبة الأكاديمية`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.academicViceName,onChange:e=>o({academicViceName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المنسق الافتراضي عند عدم وجود ربط للمادة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.coordinatorName,onChange:e=>o({coordinatorName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`رؤية المدرسة في تذييل التقارير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolVision,onChange:e=>o({schoolVision:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`البرمجة والتصميم`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.programmerDesignerName,onChange:e=>o({programmerDesignerName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم البرنامج الذي طبع التقرير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reportSystemName,onChange:e=>o({reportSystemName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`إعداد التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.preparedByName,onChange:e=>o({preparedByName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مراجعة التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reviewedByName,onChange:e=>o({reviewedByName:e.target.value})})]})]})}),(0,q.jsxs)(m9,{title:`قواعد الحساب`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-3`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`حد النجاح (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,value:n.pass,onChange:e=>o({pass:Math.max(0,Math.min(100,Number(e.target.value)))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`هامش الثبات في المقارنة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,step:`.1`,value:n.stable,onChange:e=>o({stable:Math.max(0,Number(e.target.value))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الحد الأدنى للعينة العادلة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`1`,value:n.minSampleSize,onChange:e=>o({minSampleSize:Math.max(1,Number(e.target.value))})})]})]}),(0,q.jsxs)(`div`,{className:`mt-5 grid gap-3 text-sm`,children:[(0,q.jsxs)(`p`,{className:`rounded-xl bg-teal-50 p-3 text-teal-900`,children:[(0,q.jsx)(`b`,{children:`نسبة النجاح:`}),` عدد الناجحين ÷ عدد الطلاب المقيمين.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-sky-50 p-3 text-sky-900`,children:[(0,q.jsx)(`b`,{children:`نسبة التحصيل:`}),` مجموع الدرجات ÷ مجموع الدرجات الممكنة.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-amber-50 p-3 text-amber-900`,children:[(0,q.jsx)(`b`,{children:`القيمة المضافة:`}),` متوسط فرق النسب المئوية للعينة المشتركة الحاضرة.`]})]})]})]}),(0,q.jsx)(m9,{title:`إجماليات الاختبارات الأربعة`,desc:`يمكن أن تكون الدرجة الكلية مختلفة في كل اختبار دون أن تتأثر المقارنة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-4`,children:n.exams.map((e,t)=>(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-slate-50 p-4`,children:[(0,q.jsxs)(`b`,{className:`text-sm text-teal-700`,children:[`الاختبار `,t+1]}),(0,q.jsx)(J,{className:`mt-3`,children:`الاسم`}),(0,q.jsx)(fA,{className:`mt-2`,value:e.name,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,name:t.target.value}:n)})}),(0,q.jsx)(J,{className:`mt-3`,children:`الدرجة الكلية`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`.01`,step:`.5`,value:e.total,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,total:Math.max(.01,Number(t.target.value))}:n)})})]},e.key))})}),(0,q.jsxs)(m9,{title:`حدود مستويات الأداء`,desc:`فعّل من ثلاثة إلى ستة مستويات. تغطي المستويات المختارة جميع النسب من 0 إلى 100 دون فجوات.`,children:[t.length>0&&(0,q.jsx)(`div`,{className:`mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800`,children:t.join(` `)}),(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`,children:(0,q.jsxs)(pA,{children:[(0,q.jsx)(mA,{children:(0,q.jsxs)(gA,{children:[(0,q.jsx)(_A,{children:`تفعيل`}),(0,q.jsx)(_A,{children:`اللون`}),(0,q.jsx)(_A,{className:`text-right`,children:`المستوى`}),(0,q.jsx)(_A,{children:`من`}),(0,q.jsx)(_A,{children:`إلى`}),(0,q.jsx)(_A,{className:`text-right`,children:`التجميع`})]})}),(0,q.jsx)(hA,{children:n.bands.map(e=>(0,q.jsxs)(gA,{children:[(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`checkbox`,checked:e.enabled!==false,disabled:e.enabled!==false&&n.bands.filter(b=>b.enabled!==false).length<=3,onChange:t=>o({bands:n.bands.map(b=>b.id===e.id?{...b,enabled:t.target.checked}:b)}),title:`إدراج ${e.label} في كل تقارير ومستويات التقدير`})}),(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`color`,value:e.color,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,color:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{value:e.label,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,label:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.min,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,min:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.max,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,max:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(g9,{value:e.macro,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,macro:t}:n)}),items:[{value:`above`,label:`فوق المستوى`},{value:`average`,label:`في المتوسط`},{value:`below`,label:`دون المستوى`}]})})]},e.id))})]})})]}),(0,q.jsx)(m9,{title:`التحكم في عناوين أعمدة الاستيراد`,desc:`اكتب جميع الأسماء التي قد تأتي بها الأعمدة في ملفات Excel وافصل بينها بفاصلة؛ سيستخدمها النظام في الاكتشاف التلقائي.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`studentId`,label:`عناوين رقم الطالب`},{key:`studentName`,label:`عناوين اسم الطالب`},{key:`className`,label:`عناوين الصف والشعبة`},{key:`teacher`,label:`عناوين اسم المعلم`},{key:`subject`,label:`عناوين المادة`},{key:`department`,label:`عناوين القسم`},{key:`coordinator`,label:`عناوين منسق المادة`},{key:`classes`,label:`عناوين صفوف المعلم`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.importAliases[e.key].join(`، `),onChange:t=>o({importAliases:{...n.importAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsx)(SR63.CertificateExamSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`,desc:`أضف الصيغ المستخدمة في ملفات المدرسة مثل غائب أو معذور أو محروم؛ افصل بينها بفاصلة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`absent`,label:`الغائب`},{key:`excused`,label:`المعذور`},{key:`unexcused`,label:`الغياب دون عذر`},{key:`deprived`,label:`المحروم`},{key:`not_enrolled`,label:`غير المقيد`},{key:`unentered`,label:`لم تُرصد بعد`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.statusAliases[e.key].join(`، `),onChange:t=>o({statusAliases:{...n.statusAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsxs)(`div`,{className:`sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur`,children:[(0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:i?`لديك تعديلات لم تُحفظ بعد.`:`لا توجد تعديلات معلقة.`}),(0,q.jsxs)(`div`,{className:`flex gap-2`,children:[(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1)},children:[(0,q.jsx)(Iy,{}),`إلغاء التعديلات`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات الجديدة`]})]})]})]})}function nt(){return (0,q.jsxs)('section',{className:'executive-hero sr63-start',children:[(0,q.jsx)('span',{className:'sr63-kicker',children:`برنامج نتائج المدرسة · الإصدار السحابي ${SR63.version}`}),(0,q.jsx)('h1',{children:SR63.storage.blocked?'استعادة بياناتك المحفوظة':'جهّز قاعدة حسابك السحابية'}),(0,q.jsx)('p',{children:SR63.storage.blocked?'تعذّر الاتصال أو التحقق من بيانات حسابك. أعد الاتصال ثم أعد تحميل الصفحة؛ لن نستبدل البيانات السحابية بقاعدة فارغة.':'اختر قاعدة فارغة لإدخال نتائج مدرستك، أو استعد نسخة احتياطية، أو افتح البيانات التجريبية.'}),SR63.storage.blocked&&(0,q.jsx)('p',{role:'alert',children:SR63.storage.error}),(0,q.jsxs)('div',{className:'sr63-actions',children:[!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('empty'),children:'قاعدة فارغة'}),!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('demo'),children:'جولة تجريبية'}),(0,q.jsxs)('label',{className:'sr63-button',children:['استعادة نسخة JSON',(0,q.jsx)('input',{type:'file',accept:'.json',className:'sr63-file',onChange:event=>{const file=event.target.files?.[0];if(file)ke(file);event.target.value='';}})]}),SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:async()=>{const raw=await Yj();SR63.storage.block('لم يتم اعتماد البيانات بعد.');if(raw)SR63.download(raw,'بيانات-للفحص.json');},children:'تنزيل البيانات للفحص'})]})]});}let rt;return rt=f?m?nt():o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`staffUsers`?(0,q.jsx)(SR63.StaffAdminPage,{}):o===`departmentQuant`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e,initialView:`department`}):o===`teacherPerformance`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e}):o===`aiPlans`?(0,q.jsx)(SR63.AIPlans,{workspace:e,setWorkspace:t}):o===`nationalities`?(0,q.jsx)(SR63.StudentNationalityAdmin,{workspace:e,setWorkspace:t}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):o===`teacherData`?ze():o===`data`?Be():o===`quality`?Ve():["classes","teachers","departments","school","comparison","value","levels","struggling"].includes(o)?(0,q.jsx)(SR63.OriginalAnalytics,{workspace:e,page:o,onNavigate:s}):o===`reports`?Je():o===`customReports`?Xe():o===`reportDesign`?Ye():o===`backups`?et():tt():(0,q.jsx)(`div`,{className:`grid min-h-[60vh] place-items-center`,children:(0,q.jsxs)(`div`,{className:`text-center`,children:[(0,q.jsx)(Iy,{className:`mx-auto size-8 animate-spin text-teal-700`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`جارٍ تحميل مساحة العمل الآمنة…`})]})}),(0,q.jsxs)(LA,{style:{"--sidebar-width":`19rem`},dir:`rtl`,children:[(0,q.jsxs)(RA,{side:`right`,collapsible:`icon`,className:`results-sidebar border-l-0 text-white`,children:[(0,q.jsxs)(VA,{className:`relative border-b border-white/10 px-4 pb-5 pt-6`,children:[(0,q.jsx)(`div`,{className:`absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-[#d49a2f] via-[#f5d37b] to-[#2dd4bf]`}),(0,q.jsxs)(`div`,{className:`flex items-center gap-3`,children:[(0,q.jsx)(`span`,{className:`grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#f6cf69] shadow-lg shadow-black/10`,children:(0,q.jsx)(cy,{className:`size-6`})}),(0,q.jsxs)(`div`,{className:`min-w-0 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-base`,children:`مرصد النتائج المدرسية`}),(0,q.jsx)(`small`,{className:`mt-1 block truncate text-white/55`,children:`إدارة التحليل وصناعة القرار`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 rounded-2xl border border-white/10 bg-white/[.065] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-sm`,children:e.settings.schoolName}),(0,q.jsx)(`span`,{className:`mt-2 inline-flex rounded-full bg-[#d49a2f]/15 px-2.5 py-1 text-xs font-bold text-[#f6cf69]`,children:e.settings.academicYear})]}),(0,q.jsxs)(`div`,{className:`relative mt-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(By,{className:`absolute right-3 top-3 size-4 text-white/45`}),(0,q.jsx)(fA,{value:ce,onChange:e=>V(e.target.value),placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),(0,q.jsx)(UA,{className:`min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:#5b8094_transparent] [scrollbar-width:thin]`,children:[`الرئيسية`,`التحليلات`,`القياس`,`الإدارة`].map(e=>{let t=Q9.filter(t=>t.group===e&&(!ce||ij(t.label).includes(ij(ce))));return t.length?(0,q.jsx)(Mde,{group:e,items:t,page:o,critical:be.critical,forceOpen:!!ce,onSelect:e=>{if((i||SR63.formDirty)&&!window.confirm(`توجد تعديلات لم تعتمدها. مغادرة الصفحة وإلغاء هذه التعديلات؟`))return;a(false);SR63.formDirty=false;s(e);E(`الكل`)}},`${e}-${ce?`search`:`normal`}`):null})}),(0,q.jsx)(HA,{className:`border-t border-white/10 bg-black/10 p-3`,children:(0,q.jsxs)(`div`,{className:`rounded-2xl border border-white/10 bg-white/[.06] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsxs)(`span`,{className:`flex items-center gap-2 text-xs font-bold text-emerald-300`,children:[(0,q.jsx)(py,{className:`size-4`}),c]}),(0,q.jsxs)(`div`,{className:`mt-2 flex items-center justify-between text-[11px] text-white/45`,children:[(0,q.jsx)(`span`,{children:`آخر نقاط الاستعادة`}),(0,q.jsxs)(`b`,{children:[le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`]})]}),(0,q.jsxs)(`button`,{onClick:Oe,className:`mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white`,children:[(0,q.jsx)(_y,{className:`size-4`}),`تنزيل نسخة احتياطية`]}),(0,q.jsx)(`small`,{className:`mt-3 block text-center text-white/35`,children:`الإصدار 6.10.103 — نسخة مستقرة`})]})})]}),(0,q.jsxs)(BA,{className:`min-w-0 bg-[#f6f8f7]`,children:[(0,q.jsxs)(`header`,{className:`sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6`,children:[(0,q.jsx)(zA,{}),(0,q.jsx)(`span`,{className:`hidden truncate text-sm font-bold text-slate-700 sm:inline`,children:Q9.find(e=>e.id===o)?.label}),(0,q.jsxs)(`div`,{className:`mr-auto flex min-w-0 items-center gap-2`,children:[(0,q.jsx)(g9,{className:`max-w-40 sm:max-w-none`,value:e.activeExam,onChange:e=>t(t=>({...t,activeExam:e})),items:e.settings.exams.map(e=>({value:e.key,label:e.name}))}),(0,q.jsx)(dA,{variant:`ghost`,size:`icon`,title:`ملء الشاشة`,onClick:()=>void SR63.fullscreen(),children:(0,q.jsx)(Sy,{})}),(0,q.jsxs)(dA,{size:`sm`,onClick:()=>s(`import`),className:`hidden bg-teal-700 sm:flex`,children:[(0,q.jsx)(Ky,{}),`استيراد`]})]})]}),g&&(0,q.jsxs)(`div`,{className:`sticky top-16 z-20 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6`,children:[(0,q.jsx)(`b`,{children:`يوجد تعارض في الحفظ بين النوافذ.`}),(0,q.jsx)(`span`,{children:`حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.`}),(0,q.jsx)(dA,{size:`sm`,variant:`outline`,className:`mr-auto`,onClick:()=>void Ne(),children:`تحميل أحدث نسخة سحابية`}),(0,q.jsx)(dA,{size:`sm`,className:`bg-amber-700`,onClick:()=>void Pe(),children:`اعتماد نسخة هذه النافذة`})]}),(0,q.jsx)(`main`,{className:`mx-auto w-full max-w-[1700px] flex-1 p-4 sm:p-6 lg:p-8`,children:rt})]}),(0,q.jsx)(ab,{position:`top-center`,richColors:!0})]})}var $9=document.getElementById(`root`);if(!$9)throw Error(`تعذر تشغيل واجهة البرنامج`);(0,y.createRoot)($9).render((0,q.jsx)(v.StrictMode,{children:(0,q.jsx)(SR63.CloudApp,{})}));
+}function et(){return (0,q.jsx)(SR63.Archives,{workspace:e,snapshots:le,status:c,bytes:u,onSave:()=>_e(),onBackup:Oe,onRestore:ke,onSnapshot:$e,onRollback:Qe,onNewYear:Ie,onClear:Ze,onRefresh:async()=>ue(await qj()),onChange:t});}function tt(){let t=Ej(n.bands),o=e=>{r(t=>({...t,...e})),a(!0)};return(0,q.jsxs)(`div`,{className:`space-y-6`,children:[(0,q.jsx)(p9,{kicker:`إدارة قواعد النظام`,title:`الإعدادات والمعادلات والتقارير`,desc:`عدّل القيم ثم اضغط «حفظ الإعدادات». لا تُطبّق التغييرات على التحليلات والتقارير قبل الحفظ.`,action:(0,q.jsxs)(`div`,{className:`flex flex-wrap gap-2`,children:[(0,q.jsx)(uA,{className:t.length?`bg-rose-50 text-rose-700`:i?`bg-amber-50 text-amber-700`:`bg-emerald-50 text-emerald-700`,children:t.length?`${t.length} ملاحظة`:i?`تعديلات غير محفوظة`:`الإعدادات محفوظة`}),(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1),eb.info(`تم التراجع عن التعديلات غير المحفوظة`)},children:[(0,q.jsx)(Iy,{}),`تراجع`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات`]})]})}),(0,q.jsxs)(`div`,{className:`grid gap-5 xl:grid-cols-2`,children:[(0,q.jsx)(m9,{title:`هوية المدرسة والتقرير`,children:(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-2`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolName,onChange:e=>o({schoolName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`العام الأكاديمي`}),(0,q.jsx)(fA,{className:`mt-2 bg-slate-50`,value:n.academicYear,readOnly:!0}),(0,q.jsx)(`small`,{className:`mt-1 block text-amber-700`,children:`غيّره بأمان من «النسخ والأرشيف ← بدء عام جديد» حتى لا تتغير هوية النتائج القديمة.`})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مدير/مديرة المدرسة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.principalName,onChange:e=>o({principalName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`النائب/النائبة الأكاديمية`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.academicViceName,onChange:e=>o({academicViceName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`المنسق الافتراضي عند عدم وجود ربط للمادة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.coordinatorName,onChange:e=>o({coordinatorName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`رؤية المدرسة في تذييل التقارير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.schoolVision,onChange:e=>o({schoolVision:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`البرمجة والتصميم`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.programmerDesignerName,onChange:e=>o({programmerDesignerName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`اسم البرنامج الذي طبع التقرير`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reportSystemName,onChange:e=>o({reportSystemName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`إعداد التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.preparedByName,onChange:e=>o({preparedByName:e.target.value})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`مراجعة التقرير بواسطة`}),(0,q.jsx)(fA,{className:`mt-2`,value:n.reviewedByName,onChange:e=>o({reviewedByName:e.target.value})})]})]})}),(0,q.jsxs)(m9,{title:`قواعد الحساب`,children:[(0,q.jsxs)(`div`,{className:`grid gap-4 sm:grid-cols-3`,children:[(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`حد النجاح (%)`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,value:n.pass,onChange:e=>o({pass:Math.max(0,Math.min(100,Number(e.target.value)))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`هامش الثبات في المقارنة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,step:`.1`,value:n.stable,onChange:e=>o({stable:Math.max(0,Number(e.target.value))})})]}),(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:`الحد الأدنى للعينة العادلة`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`1`,value:n.minSampleSize,onChange:e=>o({minSampleSize:Math.max(1,Number(e.target.value))})})]})]}),(0,q.jsxs)(`div`,{className:`mt-5 grid gap-3 text-sm`,children:[(0,q.jsxs)(`p`,{className:`rounded-xl bg-teal-50 p-3 text-teal-900`,children:[(0,q.jsx)(`b`,{children:`نسبة النجاح:`}),` عدد الناجحين ÷ عدد الطلاب المقيمين.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-sky-50 p-3 text-sky-900`,children:[(0,q.jsx)(`b`,{children:`نسبة التحصيل:`}),` مجموع الدرجات ÷ مجموع الدرجات الممكنة.`]}),(0,q.jsxs)(`p`,{className:`rounded-xl bg-amber-50 p-3 text-amber-900`,children:[(0,q.jsx)(`b`,{children:`القيمة المضافة:`}),` متوسط فرق النسب المئوية للعينة المشتركة الحاضرة.`]})]})]})]}),(0,q.jsx)(m9,{title:`إجماليات الاختبارات الأربعة`,desc:`يمكن أن تكون الدرجة الكلية مختلفة في كل اختبار دون أن تتأثر المقارنة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2 xl:grid-cols-4`,children:n.exams.map((e,t)=>(0,q.jsxs)(`div`,{className:`rounded-2xl border bg-slate-50 p-4`,children:[(0,q.jsxs)(`b`,{className:`text-sm text-teal-700`,children:[`الاختبار `,t+1]}),(0,q.jsx)(J,{className:`mt-3`,children:`الاسم`}),(0,q.jsx)(fA,{className:`mt-2`,value:e.name,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,name:t.target.value}:n)})}),(0,q.jsx)(J,{className:`mt-3`,children:`الدرجة الكلية`}),(0,q.jsx)(fA,{className:`mt-2`,type:`number`,min:`.01`,step:`.5`,value:e.total,onChange:t=>o({exams:n.exams.map(n=>n.key===e.key?{...n,total:Math.max(.01,Number(t.target.value))}:n)})})]},e.key))})}),(0,q.jsxs)(m9,{title:`حدود مستويات الأداء`,desc:`فعّل من ثلاثة إلى ستة مستويات. تغطي المستويات المختارة جميع النسب من 0 إلى 100 دون فجوات.`,children:[t.length>0&&(0,q.jsx)(`div`,{className:`mb-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-800`,children:t.join(` `)}),(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`,children:(0,q.jsxs)(pA,{children:[(0,q.jsx)(mA,{children:(0,q.jsxs)(gA,{children:[(0,q.jsx)(_A,{children:`تفعيل`}),(0,q.jsx)(_A,{children:`اللون`}),(0,q.jsx)(_A,{className:`text-right`,children:`المستوى`}),(0,q.jsx)(_A,{children:`من`}),(0,q.jsx)(_A,{children:`إلى`}),(0,q.jsx)(_A,{className:`text-right`,children:`التجميع`})]})}),(0,q.jsx)(hA,{children:n.bands.map(e=>(0,q.jsxs)(gA,{children:[(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`checkbox`,checked:e.enabled!==false,disabled:e.enabled!==false&&n.bands.filter(b=>b.enabled!==false).length<=3,onChange:t=>o({bands:n.bands.map(b=>b.id===e.id?{...b,enabled:t.target.checked}:b)}),title:`إدراج ${e.label} في كل تقارير ومستويات التقدير`})}),(0,q.jsx)(vA,{children:(0,q.jsx)(`input`,{type:`color`,value:e.color,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,color:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{value:e.label,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,label:t.target.value}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.min,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,min:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(fA,{className:`w-24`,type:`number`,value:e.max,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,max:Number(t.target.value)}:n)})})}),(0,q.jsx)(vA,{children:(0,q.jsx)(g9,{value:e.macro,onChange:t=>o({bands:n.bands.map(n=>n.id===e.id?{...n,macro:t}:n)}),items:[{value:`above`,label:`فوق المستوى`},{value:`average`,label:`في المتوسط`},{value:`below`,label:`دون المستوى`}]})})]},e.id))})]})})]}),(0,q.jsx)(m9,{title:`التحكم في عناوين أعمدة الاستيراد`,desc:`اكتب جميع الأسماء التي قد تأتي بها الأعمدة في ملفات Excel وافصل بينها بفاصلة؛ سيستخدمها النظام في الاكتشاف التلقائي.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`studentId`,label:`عناوين رقم الطالب`},{key:`studentName`,label:`عناوين اسم الطالب`},{key:`className`,label:`عناوين الصف والشعبة`},{key:`teacher`,label:`عناوين اسم المعلم`},{key:`subject`,label:`عناوين المادة`},{key:`department`,label:`عناوين القسم`},{key:`coordinator`,label:`عناوين منسق المادة`},{key:`classes`,label:`عناوين صفوف المعلم`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.importAliases[e.key].join(`، `),onChange:t=>o({importAliases:{...n.importAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsx)(SR63.CertificateExamSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(SR63.SubjectPresentationSettings,{settings:n,onChange:o,workspace:e}),(0,q.jsx)(m9,{title:`التحكم في مسميات حالات النتيجة`,desc:`أضف الصيغ المستخدمة في ملفات المدرسة مثل غائب أو معذور أو محروم؛ افصل بينها بفاصلة.`,children:(0,q.jsx)(`div`,{className:`grid gap-4 md:grid-cols-2`,children:[{key:`absent`,label:`الغائب`},{key:`excused`,label:`المعذور`},{key:`unexcused`,label:`الغياب دون عذر`},{key:`deprived`,label:`المحروم`},{key:`not_enrolled`,label:`غير المقيد`},{key:`unentered`,label:`لم تُرصد بعد`}].map(e=>(0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{children:e.label}),(0,q.jsx)(fA,{className:`mt-2`,value:n.statusAliases[e.key].join(`، `),onChange:t=>o({statusAliases:{...n.statusAliases,[e.key]:t.target.value.split(/[،,;؛]+/).map(e=>e.trim()).filter(Boolean)}})})]},e.key))})}),(0,q.jsxs)(`div`,{className:`sticky bottom-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white/95 p-4 shadow-xl backdrop-blur`,children:[(0,q.jsx)(`span`,{className:`text-sm font-bold text-slate-600`,children:i?`لديك تعديلات لم تُحفظ بعد.`:`لا توجد تعديلات معلقة.`}),(0,q.jsxs)(`div`,{className:`flex gap-2`,children:[(0,q.jsxs)(dA,{variant:`outline`,disabled:!i,onClick:()=>{r(structuredClone(e.settings)),a(!1)},children:[(0,q.jsx)(Iy,{}),`إلغاء التعديلات`]}),(0,q.jsxs)(dA,{disabled:!i||!!t.length,onClick:()=>void ve(),className:`bg-teal-700`,children:[(0,q.jsx)(Ry,{}),`حفظ الإعدادات الجديدة`]})]})]})]})}function nt(){return (0,q.jsxs)('section',{className:'executive-hero sr63-start',children:[(0,q.jsx)('span',{className:'sr63-kicker',children:`برنامج نتائج المدرسة · الإصدار السحابي ${SR63.version}`}),(0,q.jsx)('h1',{children:SR63.storage.blocked?'استعادة بياناتك المحفوظة':'جهّز قاعدة حسابك السحابية'}),(0,q.jsx)('p',{children:SR63.storage.blocked?'تعذّر الاتصال أو التحقق من بيانات حسابك. أعد الاتصال ثم أعد تحميل الصفحة؛ لن نستبدل البيانات السحابية بقاعدة فارغة.':'اختر قاعدة فارغة لإدخال نتائج مدرستك، أو استعد نسخة احتياطية، أو افتح البيانات التجريبية.'}),SR63.storage.blocked&&(0,q.jsx)('p',{role:'alert',children:SR63.storage.error}),(0,q.jsxs)('div',{className:'sr63-actions',children:[!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('empty'),children:'قاعدة فارغة'}),!SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:()=>Me('demo'),children:'جولة تجريبية'}),(0,q.jsxs)('label',{className:'sr63-button',children:['استعادة نسخة JSON',(0,q.jsx)('input',{type:'file',accept:'.json',className:'sr63-file',onChange:event=>{const file=event.target.files?.[0];if(file)ke(file);event.target.value='';}})]}),SR63.storage.blocked&&(0,q.jsx)('button',{className:'sr63-button',onClick:async()=>{const raw=await Yj();SR63.storage.block('لم يتم اعتماد البيانات بعد.');if(raw)SR63.download(raw,'بيانات-للفحص.json');},children:'تنزيل البيانات للفحص'})]})]});}let rt;return rt=f?m?nt():o===`dashboard`?(0,q.jsx)(SR63.Dashboard,{workspace:e,setWorkspace:t,onNavigate:s}):o===`import`?Re():o===`masterData`?(0,q.jsx)(SR63.MasterData,{workspace:e,setWorkspace:t,onNavigate:s}):o===`studentProfile`?(0,q.jsx)(SR63.StudentProfile,{workspace:e,onNavigate:s}):o===`staffUsers`?(0,q.jsx)(SR63.StaffAdminPage,{}):o===`departmentQuant`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e,initialView:`department`}):o===`teacherPerformance`?(0,q.jsx)(SR63.TeacherPerformanceCenter,{workspace:e}):o===`aiPlans`?(0,q.jsx)(SR63.AIPlans,{workspace:e,setWorkspace:t}):o===`nationalities`?(0,q.jsx)(SR63.StudentNationalityAdmin,{workspace:e,setWorkspace:t}):o===`studentGradeReview`?(0,q.jsx)(SR63.StudentGradeReview,{workspace:e,setWorkspace:t}):o===`studentResultsPrint`?(0,q.jsx)(SR63.StudentResultsPrint,{workspace:e}):o===`behaviorReports`?(0,q.jsx)(SR63.BehaviorAcademicReports,{workspace:e,setWorkspace:t}):o===`skillsReports`?(0,q.jsx)(SR63.SkillCenter,{workspace:e,setWorkspace:t,readOnly:false}):o===`teacherData`?ze():o===`data`?Be():o===`quality`?Ve():["classes","teachers","departments","school","comparison","value","levels","struggling"].includes(o)?(0,q.jsx)(SR63.OriginalAnalytics,{workspace:e,page:o,onNavigate:s}):o===`reports`?Je():o===`customReports`?Xe():o===`reportDesign`?Ye():o===`backups`?et():tt():(0,q.jsx)(`div`,{className:`grid min-h-[60vh] place-items-center`,children:(0,q.jsxs)(`div`,{className:`text-center`,children:[(0,q.jsx)(Iy,{className:`mx-auto size-8 animate-spin text-teal-700`}),(0,q.jsx)(`b`,{className:`mt-4 block`,children:`جارٍ تحميل مساحة العمل الآمنة…`})]})}),(0,q.jsxs)(LA,{style:{"--sidebar-width":`19rem`},dir:`rtl`,children:[(0,q.jsxs)(RA,{side:`right`,collapsible:`icon`,className:`results-sidebar border-l-0 text-white`,children:[(0,q.jsxs)(VA,{className:`relative border-b border-white/10 px-4 pb-5 pt-6`,children:[(0,q.jsx)(`div`,{className:`absolute inset-x-0 top-0 h-1 bg-gradient-to-l from-[#d49a2f] via-[#f5d37b] to-[#2dd4bf]`}),(0,q.jsxs)(`div`,{className:`flex items-center gap-3`,children:[(0,q.jsx)(`span`,{className:`grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-[#f6cf69] shadow-lg shadow-black/10`,children:(0,q.jsx)(cy,{className:`size-6`})}),(0,q.jsxs)(`div`,{className:`min-w-0 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-base`,children:`مرصد النتائج المدرسية`}),(0,q.jsx)(`small`,{className:`mt-1 block truncate text-white/55`,children:`إدارة التحليل وصناعة القرار`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 rounded-2xl border border-white/10 bg-white/[.065] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`b`,{className:`block truncate text-sm`,children:e.settings.schoolName}),(0,q.jsx)(`span`,{className:`mt-2 inline-flex rounded-full bg-[#d49a2f]/15 px-2.5 py-1 text-xs font-bold text-[#f6cf69]`,children:e.settings.academicYear})]}),(0,q.jsxs)(`div`,{className:`relative mt-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(By,{className:`absolute right-3 top-3 size-4 text-white/45`}),(0,q.jsx)(fA,{value:ce,onChange:e=>V(e.target.value),placeholder:`بحث في وظائف البرنامج`,className:`h-10 border-white/10 bg-white/[.07] pr-9 text-sm text-white placeholder:text-white/40 focus-visible:ring-[#f1c75b]`})]}),(0,q.jsxs)(`div`,{className:`sr69-sidebar-actions group-data-[collapsible=icon]:hidden`,children:[(0,q.jsx)(`button`,{onClick:()=>s(`import`),children:`+ رفع نتائج`}),(0,q.jsx)(`button`,{onClick:()=>s(`masterData`),children:`الهيكل الأكاديمي`})]})]}),(0,q.jsx)(UA,{className:`min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-color:#5b8094_transparent] [scrollbar-width:thin]`,children:[`الرئيسية`,`التحليلات`,`القياس`,`الإدارة`].map(e=>{let t=Q9.filter(t=>t.group===e&&(!ce||ij(t.label).includes(ij(ce))));return t.length?(0,q.jsx)(Mde,{group:e,items:t,page:o,critical:be.critical,forceOpen:!!ce,onSelect:e=>{if((i||SR63.formDirty)&&!window.confirm(`توجد تعديلات لم تعتمدها. مغادرة الصفحة وإلغاء هذه التعديلات؟`))return;a(false);SR63.formDirty=false;s(e);E(`الكل`)}},`${e}-${ce?`search`:`normal`}`):null})}),(0,q.jsx)(HA,{className:`border-t border-white/10 bg-black/10 p-3`,children:(0,q.jsxs)(`div`,{className:`rounded-2xl border border-white/10 bg-white/[.06] p-3 group-data-[collapsible=icon]:hidden`,children:[(0,q.jsxs)(`span`,{className:`flex items-center gap-2 text-xs font-bold text-emerald-300`,children:[(0,q.jsx)(py,{className:`size-4`}),c]}),(0,q.jsxs)(`div`,{className:`mt-2 flex items-center justify-between text-[11px] text-white/45`,children:[(0,q.jsx)(`span`,{children:`آخر نقاط الاستعادة`}),(0,q.jsxs)(`b`,{children:[le.filter(point=>!point.pinned).length,` نقطة · `,le.filter(point=>point.pinned).length,` أرشيف دائم`]})]}),(0,q.jsxs)(`button`,{onClick:Oe,className:`mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-bold text-white/80 transition hover:bg-white/15 hover:text-white`,children:[(0,q.jsx)(_y,{className:`size-4`}),`تنزيل نسخة احتياطية`]}),(0,q.jsx)(`small`,{className:`mt-3 block text-center text-white/35`,children:`الإصدار 6.10.104 — نسخة مستقرة`})]})})]}),(0,q.jsxs)(BA,{className:`min-w-0 bg-[#f6f8f7]`,children:[(0,q.jsxs)(`header`,{className:`sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-slate-200 bg-white/90 px-4 backdrop-blur sm:px-6`,children:[(0,q.jsx)(zA,{}),(0,q.jsx)(`span`,{className:`hidden truncate text-sm font-bold text-slate-700 sm:inline`,children:Q9.find(e=>e.id===o)?.label}),(0,q.jsxs)(`div`,{className:`mr-auto flex min-w-0 items-center gap-2`,children:[(0,q.jsx)(g9,{className:`max-w-40 sm:max-w-none`,value:e.activeExam,onChange:e=>t(t=>({...t,activeExam:e})),items:e.settings.exams.map(e=>({value:e.key,label:e.name}))}),(0,q.jsx)(dA,{variant:`ghost`,size:`icon`,title:`ملء الشاشة`,onClick:()=>void SR63.fullscreen(),children:(0,q.jsx)(Sy,{})}),(0,q.jsxs)(dA,{size:`sm`,onClick:()=>s(`import`),className:`hidden bg-teal-700 sm:flex`,children:[(0,q.jsx)(Ky,{}),`استيراد`]})]})]}),g&&(0,q.jsxs)(`div`,{className:`sticky top-16 z-20 flex flex-wrap items-center gap-3 border-b border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6`,children:[(0,q.jsx)(`b`,{children:`يوجد تعارض في الحفظ بين النوافذ.`}),(0,q.jsx)(`span`,{children:`حُميت النسخة المحفوظة. نزّل نسختك الحالية قبل اختيار النسخة الصحيحة.`}),(0,q.jsx)(dA,{size:`sm`,variant:`outline`,className:`mr-auto`,onClick:()=>void Ne(),children:`تحميل أحدث نسخة سحابية`}),(0,q.jsx)(dA,{size:`sm`,className:`bg-amber-700`,onClick:()=>void Pe(),children:`اعتماد نسخة هذه النافذة`})]}),(0,q.jsx)(`main`,{className:`mx-auto w-full max-w-[1700px] flex-1 p-4 sm:p-6 lg:p-8`,children:rt})]}),(0,q.jsx)(ab,{position:`top-center`,richColors:!0})]})}var $9=document.getElementById(`root`);if(!$9)throw Error(`تعذر تشغيل واجهة البرنامج`);(0,y.createRoot)($9).render((0,q.jsx)(v.StrictMode,{children:(0,q.jsx)(SR63.CloudApp,{})}));
