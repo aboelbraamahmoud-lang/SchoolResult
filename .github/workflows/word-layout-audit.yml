@@ -1,0 +1,57 @@
+name: Editable Word visual parity
+on:
+  pull_request:
+    paths: ['source/**', '.github/workflows/word-layout-audit.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  word-pages:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FONTCONFIG_FILE: ${{ github.workspace }}/source/tests/word-fonts.conf
+      NODE_PATH: /tmp/sr-word/node_modules:${{ github.workspace }}/source/node_modules
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Build unchanged report templates with the Word exporter
+        run: npm --prefix source ci --no-audit --no-fund && npm run build
+      - name: Install independent page renderer and browser
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libreoffice-writer poppler-utils fonts-dejavu-core fonts-liberation python3-pil python3-numpy python3-lxml
+          npm install --prefix /tmp/sr-word --no-package-lock playwright@1.56.1
+          node /tmp/sr-word/node_modules/playwright/cli.js install --with-deps chromium
+      - name: Download all thirteen reports using real UI controls
+        run: node --expose-internals source/tests/word-layout-browser.cjs
+      - name: Verify native cells, content, Arabic, colors and physical pages
+        run: python3 source/tests/word-layout-verify.py audit-artifacts/word-layout
+      - name: Edit, save and reopen a native Word table value
+        run: python3 source/tests/word-edit-roundtrip.py audit-artifacts/word-layout
+      - name: Verify 26 corresponding PDF and Word pages
+        env:
+          WORD_MODES: levels
+          WORD_ROWS: '26'
+          WORD_CLASSES: '26'
+          WORD_AUDIT_OUT: audit-artifacts/word-26
+        run: |
+          node --expose-internals source/tests/word-layout-browser.cjs
+          python3 source/tests/word-layout-verify.py audit-artifacts/word-26
+      - name: Verify repeated headers in a dense annual report
+        env:
+          WORD_MODES: yearComparison
+          WORD_YEAR_SUBJECTS: '15'
+          WORD_AUDIT_OUT: audit-artifacts/word-year-dense
+        run: |
+          node --expose-internals source/tests/word-layout-browser.cjs
+          python3 source/tests/word-layout-verify.py audit-artifacts/word-year-dense
+      - name: Preserve synthetic evidence, including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: editable-word-${{ github.sha }}
+          path: audit-artifacts/word-*/
+          retention-days: 14
