@@ -39,11 +39,15 @@ async function main(){
     const names=cp.execFileSync('unzip',['-Z','-1',filepath],{encoding:'utf8'});
     assert.doesNotMatch(names,/word\/media\/report-page-\d+\.jpg/,'the report is not a picture');
     const xml=cp.execFileSync('unzip',['-p',filepath,'word/document.xml'],{encoding:'utf8'});
-    assert.ok((xml.match(/<w:tbl>/g)||[]).length>=2,'real editable Word tables');
-    assert.ok((xml.match(/<w:tc>/g)||[]).length>3,'real editable table cells');
+    // This report displays student cards, not source HTML tables. The measured
+    // DOCX uses editable native paragraphs and vector shapes for such cards.
+    // Do not force two tables: other report modes verify actual table cells.
+    assert.match(xml,/<w:drawing>/,'native editable anchored report objects');
+    assert.ok((xml.match(/<w:t[^>]*>/g)||[]).length>3,'real editable Word text runs');
     assert.match(xml,/w:pgSz w:w="11906" w:h="16838"/,'A4 portrait Word');
-    assert.match(xml,/w:spacing w:before="0" w:after="0" w:line="240"/,'compact A4 fit');
-    assert.ok(xml.includes('طالب النطاق'),'the actual report is editable text');
+    assert.match(xml,/w:spacing w:before="\\d+" w:after="0" w:line="\\d+" w:lineRule="exact"/,'measured native text layout');
+    const wordText=[...xml.matchAll(/<w:t[^>]*>([\\s\\S]*?)<\\/w:t>/g)].map(m=>m[1]).join('');
+    assert.match(wordText,/طالب\\s+النطاق/,'the actual student labels remain editable text');
 
    }
 
