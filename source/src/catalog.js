@@ -71,6 +71,51 @@ SR63.ensureCatalog=function(workspace){
 SR63.subjectCoordinator=function(workspace,subjectName,precalculatedCatalog){const c=precalculatedCatalog||SR63.ensureCatalog(workspace),subject=c.subjects.find(s=>SR63.subjectEquivalent(s.name,subjectName));if(!subject)return '';if(subject.coordinatorId){const teacher=c.teachers.find(t=>t.id===subject.coordinatorId);if(teacher?.teacher)return teacher.teacher;}return String(subject.coordinatorName??'').trim();};
 SR63.subjectCoordinatorMap=function(workspace,precalculatedCatalog){const c=precalculatedCatalog||SR63.ensureCatalog(workspace);return Object.fromEntries(c.subjects.map(subject=>[subject.name,SR63.subjectCoordinator(workspace,subject.name,c)]));};
 SR63.withCatalog=function(workspace){const rows=SR63.normalizeSupportRows(SR63.reconcileStudentRows(workspace?.rows??[])),c=SR63.ensureCatalog({...workspace,rows});return {...workspace,version:7,catalogDetached:workspace?.catalogDetached===true,rows,students:SR63.studentRegistry({rows}),...c};};
+
+/* Identity-preserving, full-workspace subject rename. No scores or history are deleted. */
+SR63.renameAcademicSubject=function(workspace,subjectId,requestedName,requestedDepartment,requestedCoordinator){
+  const catalog=SR63.ensureCatalog(workspace),old=catalog.subjects.find(s=>s.id===subjectId);
+  if(!old)SR63.fail('المادة المطلوبة غير موجودة في الهيكل الأكاديمي.');
+  const name=String(requestedName??'').trim(),department=String(requestedDepartment??'').trim()||name;
+  if(!name)SR63.fail('لا يمكن حفظ مادة دون اسم.');
+  if(catalog.subjects.some(s=>s.id!==old.id&&SR63.subjectEquivalent(s.name,name)))SR63.fail('يوجد اسم مادة مطابق أو مكافئ لمادة أخرى. لم يتغير شيء.');
+  const same=value=>SR63.subjectEquivalent(value,old.name);
+  const remap=value=>same(value)?name:value;
+  const list=values=>[...new Set((Array.isArray(values)?values:[]).map(remap).filter(Boolean))];
+  const subjects=catalog.subjects.map(s=>s.id===old.id?{...s,name,department,coordinatorName:String(requestedCoordinator??old.coordinatorName??'').trim(),coordinatorId:String(requestedCoordinator??old.coordinatorName??'').trim()===String(old.coordinatorName??'').trim()?old.coordinatorId||'':''}:s);
+  const assignments=catalog.teacherAssignments.map(a=>a.subjectId===old.id||same(a.subject)?{...a,subjectId:old.id,subject:name,department}:a);
+  const teacherIds=new Set(assignments.filter(a=>a.subjectId===old.id).map(a=>a.profileId));
+  const teachers=catalog.teachers.map(t=>{
+    const belongs=teacherIds.has(t.id)||same(t.subject)||(t.subjects??[]).some(same);
+    return belongs?{...t,subject:remap(t.subject),subjects:list(t.subjects),department:!t.department||SR63.subjectEquivalent(t.department,old.name)||ij(t.department)===ij(old.department)?department:t.department}:t;
+  });
+  const rows=(workspace.rows??[]).map(r=>{
+    if(!same(r.subject))return r;
+    const isSupport=SR63.isSupportClass(r.className)||Object.values(r.examClasses??{}).some(SR63.isSupportClass)||SR63.isSupportRow?.(r,workspace.activeExam);
+    return {...r,subject:name,department:isSupport?r.department:department};
+  });
+  const mapRecords=records=>Array.isArray(records)?records.map(record=>record&&same(record.subject)?{...record,subject:name}:record):records;
+  const settings={...(workspace.settings??{})};
+  if(Array.isArray(settings.dashboardSubjects))settings.dashboardSubjects=list(settings.dashboardSubjects);
+  if(Array.isArray(settings.subjectReportOrder)||SR63.reportSubjectEntries){
+    const source=SR63.reportSubjectEntries?SR63.reportSubjectEntries(settings,workspace):(settings.subjectReportOrder||[]);
+    const previousKey=SR63.subjectAliasKey(old.name),nextKey=SR63.subjectAliasKey(name);
+    let updated=false;
+    settings.subjectReportOrder=source.reduce((items,entry)=>{
+      const key=SR63.subjectAliasKey(entry.key);
+      if(key===previousKey||key===nextKey){if(!updated){items.push({key:nextKey,label:name});updated=true;}}
+      else items.push({...entry});
+      return items;
+    },[]);
+    if(!updated)settings.subjectReportOrder.push({key:nextKey,label:name});
+  }
+  const changed=name!==old.name||department!==old.department;
+  const history=Array.isArray(workspace.subjectRenames)?workspace.subjectRenames:[];
+  const subjectRenames=changed?[...history,{subjectId:old.id,oldName:old.name,oldDepartment:old.department,name,department}]:history;
+  return {...workspace,...catalog,subjects,teachers,teacherAssignments:assignments,rows,settings,
+    subjectRenames,aiPlans:mapRecords(workspace.aiPlans),skillsAssessments:mapRecords(workspace.skillsAssessments)};
+};
+
 SR63.clearAcademicStructure=function(workspace){return SR63.withCatalog({...workspace,catalogDetached:true,grades:[],classes:[],subjects:[],teachers:[],teacherAssignments:[]});};
 SR63.assignmentMatches=function(workspace,subject,className){const c=SR63.ensureCatalog(workspace),classKey=lj(className);return c.teacherAssignments.filter(a=>a.active!==false&&lj(a.className)===classKey&&SR63.subjectEquivalent(a.subject,subject)&&c.teachers.some(t=>t.id===a.profileId&&t.active!==false));};
 SR63.setAssignment=function(workspace,classId,subjectId,profileId){

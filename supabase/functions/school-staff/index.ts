@@ -38,6 +38,27 @@ const availableDepartments=(ws:any)=>{
 const normalizeCoordinatorDepartments=(values:string[],allowed:string[])=>
  [...new Set(values.map(value=>specialEducationName(value)?SPECIAL_EDUCATION:
    allowed.find(name=>dept(name)===dept(value))||String(value??'').trim()))];
+
+/* Stable authorization scope for historical department labels and admin subject renames. */
+const scopeKey=(ws:any,value:unknown)=>{
+ const raw=dept(value).replace(/[\u064B-\u065F\u0670]/g,'').replace(/ة/g,'ه');
+ const visualArts=new Set(['فنيه','التربيهالفنيه','تربيهفنيه','الفنونالبصريه','فنونبصريه','الفنون','الفنبصري','التربيهالفنيهالبصريه']);
+ if(visualArts.has(raw))return 'subject:visual-arts';
+ for(const change of (Array.isArray(ws?.subjectRenames)?ws.subjectRenames:[])){
+  if(!change||!change.subjectId)continue;
+  const aliases=[change.oldName,change.oldDepartment,change.name,change.department];
+  if(aliases.some(item=>dept(item).replace(/[\u064B-\u065F\u0670]/g,'').replace(/ة/g,'ه')===raw))
+   return 'subject-id:'+String(change.subjectId);
+ }
+ return raw;
+};
+const mappedDepartments=(ws:any,names:string[])=>{
+ const allowed=availableDepartments(ws);
+ return [...new Set(names.map(name=>
+   allowed.find(current=>scopeKey(ws,current)===scopeKey(ws,name))||name
+ ))];
+};
+
 const skillKind=(value:unknown)=>{
  const x=dept(value).replace(/^قسم(?=(?:اللغة|العربية|الانجليزية|عربي|انجليزي))/,'');
  return ['عربي','العربية','لغةعربية','اللغةالعربية','arabic'].includes(x)?'arabic':
@@ -45,20 +66,20 @@ const skillKind=(value:unknown)=>{
 };
 const skillClass=(value:unknown)=>String(value??'').trim().replace(/^0([789])\//,'$1/').toUpperCase();
 const indexSubjects=(ws:any,deps:string[])=>{
- const allowed=new Set(deps.filter(name=>!specialEducationName(name)).map(dept)),subjects=new Set<string>();
+ const allowed=new Set(deps.filter(name=>!specialEducationName(name)).map(name=>scopeKey(ws,name))),subjects=new Set<string>();
  const assignments=(Array.isArray(ws.teacherAssignments)?ws.teacherAssignments:[]);
- for(const a of assignments)if(allowed.has(dept(a.department))||allowed.has(dept(a.subject)))subjects.add(dept(a.subject));
+ for(const a of assignments)if(allowed.has(scopeKey(ws,a.department))||allowed.has(scopeKey(ws,a.subject)))subjects.add(scopeKey(ws,a.subject));
  for(const d of allowed)subjects.add(d);
  return subjects;
 };
 const departmentRows=(ws:any,deps:string[])=>{
  const special=deps.some(specialEducationName);
- const depts=new Set(deps.filter(name=>!specialEducationName(name)).map(dept)),subjects=indexSubjects(ws,deps);
+ const depts=new Set(deps.filter(name=>!specialEducationName(name)).map(name=>scopeKey(ws,name))),subjects=indexSubjects(ws,deps);
  return (Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>{
   // A regular subject coordinator must NEVER see a support pupil merely
   // because an ESE pupil studied the same subject as the general cohort.
   if(specialEducationRow(r))return special;
-  return depts.has(dept(r.department))||subjects.has(dept(r.subject));
+  return depts.has(scopeKey(ws,r.department))||subjects.has(scopeKey(ws,r.subject));
  });
 };
 const summaryBenchmarks=(ws:any,examKey?:string)=>{
@@ -87,10 +108,10 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  const rows=(Array.isArray(ws.rows)?ws.rows:[]).filter((r:any)=>scoped.includes(r)||(!specialEducationRow(r)&&authorizedKinds.has(skillKind(r.subject)))),
   special=deps.some(specialEducationName),
   subjects=indexSubjects(ws,deps),
-  depts=new Set(deps.filter(name=>!specialEducationName(name)).map(dept));
- const assignments=(ws.teacherAssignments||[]).filter((r:any)=>depts.has(dept(r.department))||subjects.has(dept(r.subject)));
+  depts=new Set(deps.filter(name=>!specialEducationName(name)).map(name=>scopeKey(ws,name)));
+ const assignments=(ws.teacherAssignments||[]).filter((r:any)=>depts.has(scopeKey(ws,r.department))||subjects.has(scopeKey(ws,r.subject)));
  const teacherNames=new Set(assignments.map((x:any)=>String(x.teacher||'')));
- const teachers=(ws.teachers||[]).filter((t:any)=>depts.has(dept(t.department))||subjects.has(dept(t.subject)));
+ const teachers=(ws.teachers||[]).filter((t:any)=>depts.has(scopeKey(ws,t.department))||subjects.has(scopeKey(ws,t.subject))||(t.subjects||[]).some((s:string)=>subjects.has(scopeKey(ws,s))));
  const settings=ws.settings||{};
  // Whitelist settings. Never send whole workspace or backups, imports, other-subject records, auth metadata.
  const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','academicViceName','principalName','signatures','footerText','reportTitle','schoolVision','programmerDesignerName','reportSystemName','preparedByName','reviewedByName','showGeneratedAt','statusAliases'];
@@ -99,11 +120,11 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  if(typeof publicSettings.coordinatorName!=='string')publicSettings.coordinatorName='';
  if(!Number.isFinite(Number(publicSettings.stable)))publicSettings.stable=3;
  // Only authorized subject presentation metadata; never forward arbitrary catalog fields.
- const visibleSubjects=(Array.isArray(ws.subjects)?ws.subjects:[]).filter((s:any)=>subjects.has(dept(s.name))||depts.has(dept(s.department))||(special&&specialEducationName(s.department))).map((s:any)=>({id:s.id,name:s.name,department:s.department,gradeIds:s.gradeIds||[],order:s.order,active:s.active,coordinatorName:String(s.coordinatorName||((ws.teachers||[]).find((t:any)=>t.id===s.coordinatorId)?.teacher)||'')}));
- const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(dept(p.subject)));
+ const visibleSubjects=(Array.isArray(ws.subjects)?ws.subjects:[]).filter((s:any)=>subjects.has(scopeKey(ws,s.name))||depts.has(scopeKey(ws,s.department))||(special&&specialEducationName(s.department))).map((s:any)=>({id:s.id,name:s.name,department:s.department,gradeIds:s.gradeIds||[],order:s.order,active:s.active,coordinatorName:String(s.coordinatorName||((ws.teachers||[]).find((t:any)=>t.id===s.coordinatorId)?.teacher)||'')}));
+ const plans=(ws.aiPlans||[]).filter((p:any)=>subjects.has(scopeKey(ws,p.subject)));
  // Arabic spelling aliases are equivalent for skill reports, without widening any row permissions.
- const skillSubject=(value:unknown)=>skillKind(value)||dept(value);
- const allowedSkills=new Set([...subjects,...depts].map(skillSubject));
+ const skillSubject=(value:unknown)=>skillKind(value)||scopeKey(ws,value);
+ const allowedSkills=new Set([...subjects,...depts]);
  const skillsAssessments=(Array.isArray(ws.skillsAssessments)?ws.skillsAssessments:[]).filter((a:any)=>allowedSkills.has(skillSubject(a.subject)));
  return {workspace:{version:ws.version,settings:publicSettings,studentNationalities:scopedNationalities(ws,rows),activeExam:ws.activeExam,rows,teachers,teacherAssignments:assignments,aiPlans:plans,skillsAssessments,grades:[],classes:[],subjects:visibleSubjects,imports:[],auditLog:[],customReports:[]}};
 };
@@ -161,7 +182,13 @@ Deno.serve(async(req:Request)=>{
  const account=mine.data,ownerId=owner.data?user.id:(account?.active?account.owner_id:null),role=owner.data?'owner':account?.active?account.role:null;
  if(!ownerId||!role)return reply({error:'ACCOUNT_DISABLED_OR_UNAUTHORIZED'},403,origin);
  const profile={role,ownerId,username:account?.username||null,displayName:account?.display_name||user.email?.split('@')[0]||'مدير المدرسة',departments:account?.departments||[],permissions:readRoles.includes(role)?boolPermissions(account?.permissions):Object.fromEntries(pkeys.map(k=>[k,true])),skillsWrite:role==='coordinator'&&boolPermissions(account?.permissions).reports===true&&(account?.departments||[]).some((x:string)=>!!skillKind(x))};
- if(action==='profile')return reply({profile},200,origin);
+ if(action==='profile'){
+   if(role==='coordinator'){
+     const {data:school}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
+     if(school?.workspace)profile.departments=mappedDepartments(school.workspace,profile.departments);
+   }
+   return reply({profile},200,origin);
+  }
  if(action==='capabilities'){
   if(!['owner','admin'].includes(role))return reply({error:'ADMIN_ONLY'},403,origin);
   return reply({apiVersion:'6.10.38',leadershipRoles:true,departmentScope:'coordinator_only',supportedRoles:editableRoles},200,origin);
@@ -184,7 +211,8 @@ Deno.serve(async(req:Request)=>{
   if(!readRoles.includes(role))return reply({error:'STAFF_REPORTS_ONLY'},403,origin);
   const {data,error}=await admin.from('school_workspaces').select('workspace,revision,saved_at').eq('owner_id',ownerId).maybeSingle();
   if(error||!data)return reply({error:'WORKSPACE_NOT_AVAILABLE'},503,origin);
-  const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
+  if(role==='coordinator')profile.departments=mappedDepartments(data.workspace,profile.departments);
+   const scoped=role==='coordinator'?cleanCoordinator(data.workspace,profile.departments):cleanLeadership(data.workspace);
   if(profile.permissions.reports!==true)scoped.workspace.skillsAssessments=[];
   if(profile.permissions.reports!==true)scoped.workspace.studentNationalities={};
   return reply({...scoped,benchmarks:profile.permissions.compare===true?summaryBenchmarks(data.workspace,String(body.exam||'')):[],revision:data.revision,savedAt:data.saved_at,profile},200,origin);
@@ -309,7 +337,8 @@ Deno.serve(async(req:Request)=>{
   if(error)return reply({error:'ACCOUNT_LIST_FAILED'},503,origin);
   const {data:work}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
   const departments=availableDepartments(work?.workspace||{});
-  return reply({accounts:data,departments},200,origin);
+  const accounts=(data||[]).map((account:any)=>account.role==='coordinator'?{...account,departments:mappedDepartments(work?.workspace||{},account.departments||[])}:account);
+  return reply({accounts,departments},200,origin);
  }
  if(action==='create'){
   const username=normalize(body.username),displayName=String(body.displayName||body.username||'').trim().slice(0,120),password=String(body.password||'');
@@ -346,7 +375,7 @@ Deno.serve(async(req:Request)=>{
    if(!selected.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
    const {data:work}=await admin.from('school_workspaces').select('workspace').eq('owner_id',ownerId).maybeSingle();
    const allowed=availableDepartments(work?.workspace||{});
-   const requested=normalizeCoordinatorDepartments(selected,allowed);
+   const requested=normalizeCoordinatorDepartments(mappedDepartments(work?.workspace||{},selected),allowed);
     if(requested.some(x=>!allowed.includes(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
    patch.departments=requested;
   }else{
