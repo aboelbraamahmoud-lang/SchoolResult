@@ -45,9 +45,9 @@ async function main(){
     assert.match(xml,/<w:drawing>/,'native editable anchored report objects');
     assert.ok((xml.match(/<w:t[^>]*>/g)||[]).length>3,'real editable Word text runs');
     assert.match(xml,/w:pgSz w:w="11906" w:h="16838"/,'A4 portrait Word');
-    assert.match(xml,/w:spacing w:before="\\d+" w:after="0" w:line="\\d+" w:lineRule="exact"/,'measured native text layout');
-    const wordText=[...xml.matchAll(/<w:t[^>]*>([\\s\\S]*?)<\\/w:t>/g)].map(m=>m[1]).join('');
-    assert.match(wordText,/طالب\\s+النطاق/,'the actual student labels remain editable text');
+    assert.match(xml,/w:spacing w:before="\d+" w:after="0" w:line="\d+" w:lineRule="exact"/,'measured native text layout');
+    const wordText=[...xml.matchAll(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g)].map(m=>m[1]).join('');
+    assert.match(wordText,/طالب\s+النطاق/,'the actual student labels remain editable text');
 
    }
 
