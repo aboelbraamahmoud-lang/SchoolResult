@@ -80,5 +80,5 @@
     "test:admin-subject-rename": "node --expose-internals tests/admin-subject-rename-20261108.cjs",
     "test:term-grades": "node --expose-internals tests/term-grades-20261108.cjs"
   },
-  "version": "6.10.106"
+  "version": "6.10.107"
 }
