@@ -37,11 +37,18 @@ SR63.yearGradeBreakdown=function(row,exam,settings){
  const rawTotal=rule.examRawTotal;
  const originalPercent=Number.isFinite(rawScore)&&rawScore>=0&&rawScore<=rawTotal?100*rawScore/rawTotal:null;
  const examPart=SR63.termConvert(rawScore,rawTotal,rule.examWeight,round);
+ const firstRecord=row.termComponents?.[cfg.firstFinalExamKey];
+ const firstDetails=yearFirstTermBreakdown(row,cfg.firstFinalExamKey,settings);
  const firstCertificate=SR63.certificateScore(row,cfg.firstFinalExamKey,settings);
- // Require a genuine recorded /40 semester result; do not infer it from a bare /50 test.
- const firstIsCertified=firstCertificate&&Number.isFinite(firstCertificate.certificateScore)&&
-  (row.termComponents?.[cfg.firstFinalExamKey]?.source==='first_term_final'||firstCertificate.certificateTotal===40);
- const firstTermPart=firstIsCertified?SR63.termConvert(firstCertificate.certificateScore,firstCertificate.certificateTotal,rule.firstTermWeight,round):null;
+ // Prefer the fully composed first-semester /40 certificate. If those rules are
+ // disabled, accept the explicitly imported official /40 rather than the bare /50 exam.
+ const storedOfficial=firstRecord?.source==='first_term_final'&&Number.isFinite(firstRecord.certificateOfficial)&&
+  firstRecord.certificateOfficial>=0&&firstRecord.certificateOfficial<=40?firstRecord.certificateOfficial:null;
+ const verifiedFirst=firstDetails?.certificateScore!==null&&Number.isFinite(firstDetails?.certificateScore)
+  ?{score:firstDetails.certificateScore,total:firstDetails.certificateTotal}
+  :storedOfficial!==null?{score:storedOfficial,total:40}
+  :firstCertificate?.certificateTotal===40?{score:firstCertificate.certificateScore,total:40}:null;
+ const firstTermPart=verifiedFirst?SR63.termConvert(verifiedFirst.score,verifiedFirst.total,rule.firstTermWeight,round):null;
  const midtermScore=row.statuses?.[cfg.secondMidtermExamKey]==='present'?row.scores?.[cfg.secondMidtermExamKey]:null;
  const midtermTotal=Number(row.totals?.[cfg.secondMidtermExamKey]??settings?.exams?.find(x=>x.key===cfg.secondMidtermExamKey)?.total??15);
  const midtermPart=SR63.termConvert(midtermScore,midtermTotal,rule.secondMidtermWeight,round);
@@ -109,7 +116,7 @@ SR63.yearAttachWorkbookPreview=function(sheets,book,fileName,settings){
   if(!rule)continue;
   const sci=col('الاختبار النظري','الاختبار التحريري');
   const examCol=sci>=0?sci:col('التقييم الرئيسي','الاختبار النهائي','اختبار نهاية العام');
-  const scoreCol=examCol>=0?examCol:rule.mode==='official'?(fullCol>=0?fullCol:semesterCol):-1;
+  const scoreCol=examCol>=0?examCol:(fullCol>=0?fullCol:semesterCol);
   if(scoreCol<0)continue;
   sheet.exam=cfg.finalExamKey;sheet.period='نهاية العام';sheet.yearFinal=true;
   sheet.selectedScoreKey=String(scoreCol);

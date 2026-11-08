@@ -124,4 +124,18 @@ const upload=ctx.O9([{fileName:'annual.xlsx',sheets:[sheet]}]);
 assert.equal(upload.length,1);assert.equal(upload[0].exam,'exam4');
 assert.equal(upload[0].score,50);assert.equal(upload[0].termComponents.source,'year_end_final');
 assert.equal(upload[0].termComponents.certificateOfficial,100);
+const direct={sheet:'التربية الإسلامية',subject:'التربية الإسلامية',headerRow:3,selected:true,scoreColumns:[{index:3,key:'3',header:'نهاية العام',numericCount:1}],
+ selectedScoreKey:'3',rows:[{id:'only-official',studentId:'555555555555',studentName:'طالب افتراضي',className:'7/1',sourceRow:4,values:{'3':{score:92,status:'present',recognized:true}}}],issues:[]};
+const directBook={Sheets:{'التربية الإسلامية':ctx.Gv.aoa_to_sheet([
+ ['مدرسة افتراضية'],['المادة: التربية الإسلامية - الفترة: نهاية العام'],['الرقم','الاسم','الشعبة الصفية','نهاية العام'],
+ [555555555555,'طالب افتراضي','07/1',92]])}};
+S.yearAttachWorkbookPreview([direct],directBook,'direct.xlsx',settings);
+assert.equal(direct.selectedScoreKey,'3');assert.equal(direct.scoreColumns[0].suggestedTotal,100);
+assert.equal(direct.rows[0].termComponents.originalExamPresent,false);
+assert.equal(direct.rows[0].termComponents.certificateOfficial,92);
+const firstDisabled={...settings,termGradeRules:{...settings.termGradeRules,enabled:false}};
+const fromOfficial=makeRow('العلوم');
+fromOfficial.termComponents.exam2.certificateOfficial=38;
+assert.equal(S.yearGradeBreakdown(fromOfficial,'exam4',firstDisabled).firstTermPart,38,
+ 'When prior term rules are off, use the official semester /40, not raw exam /50');
 console.log('PASS annual /100: science/regular, first 40, mid 15, no double counting, original exam analytics, official fallback, Excel and admin weights');
