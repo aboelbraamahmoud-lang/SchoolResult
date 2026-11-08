@@ -100,6 +100,7 @@ function client(owner='account-a'){
      assert.ok(point?.id);
      assert.equal(ids.length,2);
      assert.equal(ids[0],ids[1]);
+     await c.SR63.cloud.remove(point.id);
    }finally{first.sdk.rpc=original;}
  });
  await test('Two timeouts keep the workspace unsaved instead of falsely confirming',async()=>{
