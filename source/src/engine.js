@@ -109,7 +109,7 @@ SR63.rollback = function(workspace,batchId,exam) {
     const key=change.exam??exam,row=rows.get(change.rowId);
     if(!XA.includes(key)||!row||row.importBatches?.[key]!==batchId){skipped++;continue;}
     const old=change.before??{score:null,status:'unentered',total:null,teacher:'',className:'',batch:null};
-    const next={...row,scores:{...row.scores,[key]:old.score},statuses:{...row.statuses,[key]:old.status},totals:{...row.totals,[key]:old.total},examTeachers:{...row.examTeachers,[key]:old.teacher},examClasses:{...row.examClasses,[key]:old.className??''},importBatches:{...row.importBatches,[key]:old.batch}};
+    const next={...row,scores:{...row.scores,[key]:old.score},statuses:{...row.statuses,[key]:old.status},totals:{...row.totals,[key]:old.total},examTeachers:{...row.examTeachers,[key]:old.teacher},examClasses:{...row.examClasses,[key]:old.className??''},termComponents:{...row.termComponents,[key]:old.termComponents??null},importBatches:{...row.importBatches,[key]:old.batch}};
     const otherData=XA.some(k=>next.scores[k]!==null||next.statuses[k]!=='unentered'||next.importBatches[k]);
     // A newly created row can be removed only if no later edit or other exam depends on it.
     const editedLater=workspace.auditLog.some(log=>Date.parse(log.at)>Date.parse(batch.at??0)&&log.changes?.some(c=>c.rowId===row.id));
@@ -130,6 +130,19 @@ SR63.validate = function(raw) {
   must(Array.isArray(settings.exams)&&settings.exams.length===4,'يجب أن تحتوي النسخة تعريف الاختبارات الأربعة.');
   const examSet=new Set();for(const exam of settings.exams){must(exam&&XA.includes(exam.key)&&!examSet.has(exam.key),'مفاتيح الاختبارات ناقصة أو مكررة.');examSet.add(exam.key);must(typeof exam.name==='string'&&exam.name.trim()&&Number.isFinite(exam.total)&&exam.total>0,'اسم الاختبار أو درجته الكلية غير صالح.');must(exam.certificateTotal===undefined||exam.certificateTotal===null||(typeof exam.certificateTotal==='number'&&Number.isFinite(exam.certificateTotal)&&exam.certificateTotal>=0.5&&exam.certificateTotal<=1000&&Math.abs(exam.certificateTotal*2-Math.round(exam.certificateTotal*2))<1e-8),'درجة الشهادة يجب أن تكون عددًا صحيحًا أو نصف درجة صالحًا.');}
   must(new Set(settings.exams.map(exam=>ij(exam.name))).size===4,'يجب أن تكون أسماء الاختبارات الأربعة مختلفة.');
+  if(settings.termGradeRules!==undefined){
+    const cfg=SR63.termGradeConfig(settings);
+    must(XA.includes(cfg.finalExamKey)&&XA.includes(cfg.midtermExamKey)&&cfg.finalExamKey!==cfg.midtermExamKey,'اختر اختبار نهاية فصل مختلفًا عن منتصف الفصل.');
+    must(['none','ceil-half','nearest-half'].includes(cfg.rounding),'طريقة جبر درجات الشهادة غير صالحة.');
+    for(const item of SR63.termGradeDefaults()){
+      const rule=SR63.termSubjectRule(settings,item.key);
+      must(['official','composite'].includes(rule.mode),'طريقة حساب مادة '+rule.label+' غير صالحة.');
+      for(const field of ['examRawTotal','practicalRawTotal','activityRawTotal','certificateTotal'])must(Number.isFinite(rule[field])&&rule[field]>0&&rule[field]<=200,'الدرجة العظمى في '+rule.label+' غير صالحة.');
+      for(const field of ['examWeight','practicalWeight','activityWeight','midtermWeight'])must(Number.isFinite(rule[field])&&rule[field]>=0&&rule[field]<=200,'وزن أحد المكونات في '+rule.label+' غير صالح.');
+      must(rule.mode!=='composite'||Math.abs(rule.examWeight+rule.practicalWeight+rule.activityWeight+rule.midtermWeight-rule.certificateTotal)<1e-6,'مجموع أوزان '+rule.label+' يجب أن يساوي درجة الشهادة.');
+      must(typeof rule.activityLabel==='string'&&rule.activityLabel.trim().length>0&&rule.activityLabel.length<=80,'مسمى الأنشطة في '+rule.label+' غير صالح.');
+    }
+  }
   must(Number.isFinite(settings.pass)&&settings.pass>=0&&settings.pass<=100,'حد النجاح غير صالح.');
   must(Number.isFinite(settings.stable)&&settings.stable>=0,'هامش الثبات غير صالح.');
   must(Number.isInteger(settings.minSampleSize)&&settings.minSampleSize>=1,'الحد الأدنى للعينة غير صالح.');

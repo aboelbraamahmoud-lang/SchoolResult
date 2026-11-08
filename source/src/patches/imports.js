@@ -47,11 +47,11 @@ function ode(buffer,fileName,settings){
   SR63.repairWorksheetRanges(book);
   const wide=SR63.readWideWorkbook(book,fileName,config);
   const wideSource=new Set(wide.sheets.map(s=>s.sourceSheet));
-  const legacy=SR63.readLegacyWorkbook(book,fileName,config);const sheets=[...wide.sheets,...legacy.sheets.filter(sheet=>!wideSource.has(sheet.sheet))];
+  const legacy=SR63.readLegacyWorkbook(book,fileName,config);SR63.termAttachWorkbookPreview(legacy.sheets,book,fileName,config);const sheets=[...wide.sheets,...legacy.sheets.filter(sheet=>!wideSource.has(sheet.sheet))];
   return {fileName,sheets,issues:sheets.length?[]:legacy.issues};
 }
 /* PATCH O9 */
-function O9(files){return files.flatMap(file=>file.sheets.filter(sheet=>sheet.selected&&sheet.selectedScoreKey).flatMap(sheet=>sheet.rows.map(row=>{const value=row.values[sheet.selectedScoreKey]??{score:null,status:'unentered',recognized:false};return {id:row.id,studentId:row.studentId,studentName:row.studentName,grade:row.grade,className:row.className,subject:sheet.subject.trim(),score:value.score,status:value.status,recognized:value.recognized&&!(value.status==='present'&&value.score===null),sourceFile:file.fileName,sourceSheet:sheet.sheet,sourceRow:row.sourceRow,exam:sheet.exam,totalOverride:value.total??null,teacher:row.teacher??'',department:row.department??''};})));}
+function O9(files){return files.flatMap(file=>file.sheets.filter(sheet=>sheet.selected&&sheet.selectedScoreKey).flatMap(sheet=>sheet.rows.map(row=>{const value=row.values[sheet.selectedScoreKey]??{score:null,status:'unentered',recognized:false};return {id:row.id,studentId:row.studentId,studentName:row.studentName,grade:row.grade,className:row.className,subject:sheet.subject.trim(),score:value.score,status:value.status,recognized:value.recognized&&!(value.status==='present'&&value.score===null),sourceFile:file.fileName,sourceSheet:sheet.sheet,sourceRow:row.sourceRow,exam:sheet.exam,totalOverride:value.total??null,teacher:row.teacher??'',department:row.department??'',termComponents:row.termComponents??null};})));}
 /* PATCH fde.re */
 async function re(){
   if(!o||o.issues.some(issue=>issue.severity==='error')||!o.profiles.length)return;
