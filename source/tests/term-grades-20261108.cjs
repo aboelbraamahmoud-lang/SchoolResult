@@ -60,6 +60,7 @@ assert.equal(direct.rows[0].termComponents.certificateOfficial,37);
 
 const saved={...w,settings,rows:[science]};
 assert.doesNotThrow(()=>S.validate(saved));
+assert.equal(S.validate(saved).workspace.rows[0].termComponents.exam2.practicalRaw,5,'Saving/validating must retain practical component');
 const broken={...w,settings:{...settings,termGradeRules:{...settings.termGradeRules,subjects:{[S.subjectAliasKey('العلوم')]:{examWeight:16}}}}};
 assert.throws(()=>S.validate(broken),/مجموع أوزان/);
 const xlsx=ctx.Gv,header=['الرقم','الاسم','الشعبة الصفية','نشاط الطالب','تقييمات قصيرة','الواجبات والتدريبات','المشاركة الصفية','مشروع','الاختبار العملي','الاختبار النظري','الملحق','نهاية الفصل الأول'];
