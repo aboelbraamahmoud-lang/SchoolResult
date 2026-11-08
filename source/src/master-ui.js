@@ -2,7 +2,17 @@
 SR63.MasterData=function({workspace,setWorkspace,onNavigate}){
   const [tab,setTab]=(0,v.useState)('assignments'),[gradeName,setGradeName]=(0,v.useState)(''),[classGrade,setClassGrade]=(0,v.useState)(''),[className,setClassName]=(0,v.useState)(''),[classTeachers,setClassTeachers]=(0,v.useState)({}),[subjectName,setSubjectName]=(0,v.useState)(''),[subjectDept,setSubjectDept]=(0,v.useState)(''),[subjectCoordinator,setSubjectCoordinator]=(0,v.useState)(''),[subjectGrades,setSubjectGrades]=(0,v.useState)(new Set),[teacherId,setTeacherId]=(0,v.useState)(''),[teacherName,setTeacherName]=(0,v.useState)(''),[teacherSubjects,setTeacherSubjects]=(0,v.useState)(new Set),[teacherClasses,setTeacherClasses]=(0,v.useState)(new Set);
   const c=(0,v.useMemo)(()=>SR63.ensureCatalog(workspace),[workspace]),activeGrades=c.grades.filter(x=>x.active!==false),activeClasses=c.classes.filter(x=>x.active!==false),activeSubjects=c.subjects.filter(x=>x.active!==false),activeTeachers=c.teachers.filter(x=>x.active!==false),coverage=SR63.catalogCoverage({...workspace,...c}),health=SR63.catalogHealth({...workspace,...c});
-  const save=async(reason,producer)=>{if(!await Kj(workspace,reason)){eb.error('تعذر إنشاء نقطة استعادة؛ لم يتغير شيء.');return false;}try{setWorkspace(current=>jj(SR63.withCatalog(producer(SR63.ensureCatalog(current),current)),'تحديث الهيكل الأكاديمي',reason));return true;}catch(error){eb.error('تعذّر تطبيق تعديل الهيكل: '+String(error?.message||error));return false;}};
+  const save=async(reason,producer)=>{
+  // Never start a snapshot/edit while a previous cloud write is unsettled.
+  if(SR63.storage.pending||SR63.storage.busy){
+   try{await SR63.storage.wait();}catch(error){eb.error('الحفظ السابق فشل. حدّث الصفحة لتحميل آخر نسخة مؤكّدة، ثم أعد التعديل. '+(error?.message||''));return false;}
+   if(SR63.storage.pending||SR63.storage.busy){eb.error('هناك تعديل لم يكتمل حفظه بعد. انتظر تأكيد الحفظ قبل بدء تعديل جديد.');return false;}
+  }
+  if(SR63.storage.blocked||SR63.storage.error){eb.error('الحفظ السحابي غير متاح حاليًا. أعد تحميل أحدث نسخة قبل تعديل الهيكل.');return false;}
+  if(!await Kj(workspace,reason)){eb.error('تعذر إنشاء نقطة استعادة؛ لم يتغير شيء.');return false;}
+  try{setWorkspace(current=>jj(SR63.withCatalog(producer(SR63.ensureCatalog(current),current)),'تحديث الهيكل الأكاديمي',reason));return true;}
+  catch(error){eb.error('تعذّر تطبيق تعديل الهيكل: '+String(error?.message||error));return false;}
+ };
   const toggle=(setter,set,id)=>setter(prev=>{const n=new Set(prev);n.has(id)?n.delete(id):n.add(id);return n});
   const addGrade=async()=>{const name=gradeName.trim();if(!name)return eb.error('اكتب اسم الصف.');if(c.grades.some(g=>ij(g.name)===ij(name)&&g.active!==false))return eb.error('الصف موجود بالفعل.');await save('إضافة صف دراسي',(cat,current)=>({...current,...cat,grades:[...cat.grades.filter(g=>ij(g.name)!==ij(name)),{id:SR63.stableId('grade',ij(name)),name,order:cat.grades.length+1,active:true}]}));setGradeName('');eb.success('تمت إضافة الصف الدراسي.');};
   const addSubject=async()=>{const name=subjectName.trim();if(!name)return eb.error('اكتب اسم المادة.');if(c.subjects.some(s=>SR63.subjectEquivalent(s.name,name)&&s.active!==false))return eb.error('المادة موجودة بالفعل أو مُسجَّلة بمسمّى مكافئ.');const gradeIds=[...subjectGrades];await save('إضافة مادة',(cat,current)=>({...current,...cat,subjects:[...cat.subjects.filter(s=>ij(s.name)!==ij(name)),{id:SR63.stableId('subject',ij(name)),name,department:subjectDept.trim()||name,coordinatorId:'',coordinatorName:subjectCoordinator.trim(),gradeIds,order:cat.subjects.length+1,active:true}]}));setSubjectName('');setSubjectDept('');setSubjectCoordinator('');setSubjectGrades(new Set);eb.success('تمت إضافة المادة.');};
