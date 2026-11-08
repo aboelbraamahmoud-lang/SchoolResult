@@ -38,6 +38,26 @@ assert.equal(ctx.bj([missingOfficial],'exam2',settings).achievement,70);
 const official=row('التربية البدنية',46,null,null,null,37);
 assert.equal(S.termGradeBreakdown(official,'exam2',settings).certificateScore,37);
 assert.equal(S.termGradeBreakdown(official,'exam2',settings).officialUsed,true);
+const skills=row('المهارات الحياتية والمهنية',37,null,null,null,37);
+skills.totals.exam2=40;skills.termComponents.exam2.originalExamPresent=false;
+const skillsGrade=S.termGradeBreakdown(skills,'exam2',settings);
+assert.equal(skillsGrade.certificateScore,37);assert.equal(skillsGrade.originalPercent,null);
+assert.equal(S.certificateScore(skills,'exam2',settings).passed,true);
+assert.equal(S.certificatePercentage(skills,'exam2',settings),null);
+assert.equal(ctx.bj([skills],'exam2',settings).achievement,null);
+const direct={sheet:'المهارات الحياتية والمهنية',headerRow:3,subject:'المهارات الحياتية والمهنية',selected:true,
+ scoreColumns:[{key:'3',index:3,header:'نهاية الفصل الأول',numericCount:1}],selectedScoreKey:'3',
+ rows:[{id:'direct-1',studentId:'12345678901',studentName:'طالب تجريبي',grade:'السابع',className:'7/1',sourceRow:4,
+ values:{'3':{score:37,status:'present',recognized:true}}}],issues:[]};
+const directBook={Sheets:{'المهارات الحياتية والمهنية':ctx.Gv.aoa_to_sheet([
+ ['مدرسة تجريبية'],['المادة:المهارات الحياتية والمهنية - الفترة:نهاية الفصل الأول'],
+ ['الرقم','الاسم','الشعبة الصفية','نهاية الفصل الأول'],
+ [12345678901,'طالب تجريبي','07/1',37]])}};
+S.termAttachWorkbookPreview([direct],directBook,'skills.xlsx',settings);
+assert.equal(direct.exam,'exam2');assert.equal(direct.selectedScoreKey,'3');
+assert.equal(direct.rows[0].termComponents.originalExamPresent,false);
+assert.equal(direct.rows[0].termComponents.certificateOfficial,37);
+
 const saved={...w,settings,rows:[science]};
 assert.doesNotThrow(()=>S.validate(saved));
 const broken={...w,settings:{...settings,termGradeRules:{...settings.termGradeRules,subjects:{[S.subjectAliasKey('العلوم')]:{examWeight:16}}}}};
