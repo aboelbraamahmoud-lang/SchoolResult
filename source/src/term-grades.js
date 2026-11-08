@@ -35,7 +35,7 @@ SR63.termGradeBreakdown=function(row,exam,settings){
  const cfg=SR63.termGradeConfig(settings),extra=row?.termComponents?.[exam];
  if(!row||!cfg.enabled||exam!==cfg.finalExamKey||extra?.source!=='first_term_final')return null;
  const rule=SR63.termSubjectRule(settings,row.subject);if(!rule)return null;
- const rawScore=row.statuses?.[exam]==='present'?row.scores?.[exam]:null;
+ const rawScore=extra.originalExamPresent===false?null:row.statuses?.[exam]==='present'?row.scores?.[exam]:null;
  const rawTotal=Number(rule.examRawTotal);
  const examPart=SR63.termConvert(rawScore,rawTotal,rule.examWeight,cfg.rounding);
  const midScore=row.statuses?.[cfg.midtermExamKey]==='present'?row.scores?.[cfg.midtermExamKey]:null;
@@ -61,7 +61,7 @@ const termPreviousCertificateScore=SR63.certificateScore;
 SR63.certificateScore=function(row,exam,settings){
  const term=SR63.termGradeBreakdown(row,exam,settings);
  if(!term)return termPreviousCertificateScore(row,exam,settings);
- return term.certificateScore===null?null:{...term,enabled:true,passed:term.originalPercent!==null&&term.originalPercent>=Number(settings?.pass??50)};
+ return term.certificateScore===null?null:{...term,enabled:true,passed:term.originalPercent!==null?term.originalPercent>=Number(settings?.pass??50):term.certificatePercent>=Number(settings?.pass??50)};
 };
 const termPreviousCertificatePercentage=SR63.certificatePercentage;
 SR63.certificatePercentage=function(row,exam,settings){
@@ -85,18 +85,19 @@ SR63.termAttachWorkbookPreview=function(sheets,book,fileName,settings){
   const col=name=>headers.findIndex(x=>ij(x)===ij(name));
   const sci=col('الاختبار النظري'),examCol=sci>=0?sci:col('التقييم الرئيسي'),officialCol=col('نهاية الفصل الأول');
   const hasFinal=matrix.slice(0,3).some(row=>row.some(x=>/الفترة\s*:\s*نهاية الفصل الأول/.test(String(x||''))))||officialCol>=0;
-  if(!hasFinal||examCol<0)continue;
+  if(!hasFinal)continue;
   const rule=SR63.termSubjectRule(settings,sheet.subject||sheet.sheet);if(!rule)continue;
-  sheet.exam=finalKey;sheet.period='نهاية الفصل الأول';sheet.termFinal=true;sheet.selectedScoreKey=String(examCol);
-  let examColumn=sheet.scoreColumns.find(x=>Number(x.index)===examCol);
-  if(!examColumn){examColumn={key:String(examCol),index:examCol,header:headers[examCol],numericCount:0,statusCount:0};sheet.scoreColumns.push(examColumn);}
-  Object.assign(examColumn,{key:String(examCol),suggestedTotal:rule.examRawTotal,totalKnown:true});
+  const scoreCol=examCol>=0?examCol:rule.mode==='official'?officialCol:-1;if(scoreCol<0)continue;
+  sheet.exam=finalKey;sheet.period='نهاية الفصل الأول';sheet.termFinal=true;sheet.selectedScoreKey=String(scoreCol);
+  let examColumn=sheet.scoreColumns.find(x=>Number(x.index)===scoreCol);
+  if(!examColumn){examColumn={key:String(scoreCol),index:scoreCol,header:headers[scoreCol],numericCount:0,statusCount:0};sheet.scoreColumns.push(examColumn);}
+  Object.assign(examColumn,{key:String(scoreCol),suggestedTotal:examCol>=0?rule.examRawTotal:rule.certificateTotal,totalKnown:true});
   const activityCol=col('نشاط الطالب'),practicalCol=col('الاختبار العملي');
   for(const row of sheet.rows){
    const values=matrix[row.sourceRow-1]||[],num=index=>index<0?null:T9(values[index]);
-   const examValue=num(examCol);
-   if(!row.values[String(examCol)]){const status=E9(values[examCol],examValue!==null,settings);row.values[String(examCol)]={score:examValue,status:status.status,recognized:status.recognized,raw:C9(values[examCol])};}
-   row.termComponents={source:'first_term_final',activityRaw:num(activityCol),practicalRaw:num(practicalCol),certificateOfficial:num(officialCol)};
+   const examValue=num(scoreCol);
+   if(!row.values[String(scoreCol)]){const status=E9(values[scoreCol],examValue!==null,settings);row.values[String(scoreCol)]={score:examValue,status:status.status,recognized:status.recognized,raw:C9(values[scoreCol])};}
+   row.termComponents={source:'first_term_final',originalExamPresent:examCol>=0,activityRaw:num(activityCol),practicalRaw:num(practicalCol),certificateOfficial:num(officialCol)};
    for(const [label,value,max] of [['النشاط',row.termComponents.activityRaw,rule.activityRawTotal],['العملي',row.termComponents.practicalRaw,rule.practicalRawTotal],['الشهادة',row.termComponents.certificateOfficial,rule.certificateTotal]]){
     if(value!==null&&(value<0||value>max))sheet.issues.push({severity:'error',row:row.sourceRow,sheet:sheet.sheet,message:'درجة '+label+' خارج 0 إلى '+max});
    }
