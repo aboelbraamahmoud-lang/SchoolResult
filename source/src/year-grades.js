@@ -39,9 +39,9 @@ SR63.yearGradeBreakdown=function(row,exam,settings){
  const examPart=SR63.termConvert(rawScore,rawTotal,rule.examWeight,round);
  const firstCertificate=SR63.certificateScore(row,cfg.firstFinalExamKey,settings);
  // Require a genuine recorded /40 semester result; do not infer it from a bare /50 test.
- const firstTermPart=firstCertificate&&Number.isFinite(firstCertificate.certificateScore)&&
-  firstCertificate.certificateTotal===40?
-  SR63.termConvert(firstCertificate.certificateScore,40,rule.firstTermWeight,round):null;
+ const firstIsCertified=firstCertificate&&Number.isFinite(firstCertificate.certificateScore)&&
+  (row.termComponents?.[cfg.firstFinalExamKey]?.source==='first_term_final'||firstCertificate.certificateTotal===40);
+ const firstTermPart=firstIsCertified?SR63.termConvert(firstCertificate.certificateScore,firstCertificate.certificateTotal,rule.firstTermWeight,round):null;
  const midtermScore=row.statuses?.[cfg.secondMidtermExamKey]==='present'?row.scores?.[cfg.secondMidtermExamKey]:null;
  const midtermTotal=Number(row.totals?.[cfg.secondMidtermExamKey]??settings?.exams?.find(x=>x.key===cfg.secondMidtermExamKey)?.total??15);
  const midtermPart=SR63.termConvert(midtermScore,midtermTotal,rule.secondMidtermWeight,round);
