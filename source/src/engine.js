@@ -143,6 +143,23 @@ SR63.validate = function(raw) {
       must(typeof rule.activityLabel==='string'&&rule.activityLabel.trim().length>0&&rule.activityLabel.length<=80,'مسمى الأنشطة في '+rule.label+' غير صالح.');
     }
   }
+  if(settings.yearGradeRules!==undefined){
+    const cfg=SR63.yearGradeConfig(settings),keys=[cfg.firstFinalExamKey,cfg.secondMidtermExamKey,cfg.finalExamKey];
+    must(keys.every(k=>XA.includes(k))&&new Set(keys).size===3,'اختر نهاية الفصل الأول ومنتصف الفصل الثاني والاختبار الرابع بثلاثة مفاتيح مختلفة.');
+    must(['none','ceil-half','nearest-half'].includes(cfg.rounding),'طريقة جبر نهاية العام غير صالحة.');
+    must(cfg.subjects&&typeof cfg.subjects==='object'&&!Array.isArray(cfg.subjects),'قائمة توزيع درجات نهاية العام غير صالحة.');
+    for(const base of SR63.yearGradeDefaults()){
+      const rule=SR63.yearSubjectRule(settings,base.key);
+      must(['official','composite'].includes(rule.mode),'طريقة احتساب نهاية العام في '+rule.label+' غير صالحة.');
+      for(const field of ['examRawTotal','activityRawTotal','practicalRawTotal','certificateTotal'])
+        must(Number.isFinite(rule[field])&&rule[field]>0&&rule[field]<=200,'الدرجة العظمى في نهاية عام '+rule.label+' غير صالحة.');
+      for(const field of ['firstTermWeight','secondMidtermWeight','examWeight','activityWeight','practicalWeight'])
+        must(Number.isFinite(rule[field])&&rule[field]>=0&&rule[field]<=200,'أحد أوزان نهاية عام '+rule.label+' غير صالح.');
+      must(rule.mode!=='composite'||Math.abs(rule.firstTermWeight+rule.secondMidtermWeight+rule.examWeight+rule.activityWeight+rule.practicalWeight-rule.certificateTotal)<1e-6,'مجموع أوزان نهاية عام '+rule.label+' يجب أن يساوي درجة الشهادة.');
+      must(typeof rule.activityLabel==='string'&&rule.activityLabel.trim().length>0&&rule.activityLabel.length<=80,'مسمى أنشطة نهاية العام في '+rule.label+' غير صالح.');
+      for(const name of ['showFirstTerm','showMidterm','showActivity','showPractical'])must(typeof rule[name]==='boolean','خيارات أعمدة تقرير نهاية العام غير صالحة.');
+    }
+  }
   must(Number.isFinite(settings.pass)&&settings.pass>=0&&settings.pass<=100,'حد النجاح غير صالح.');
   must(Number.isFinite(settings.stable)&&settings.stable>=0,'هامش الثبات غير صالح.');
   must(Number.isInteger(settings.minSampleSize)&&settings.minSampleSize>=1,'الحد الأدنى للعينة غير صالح.');

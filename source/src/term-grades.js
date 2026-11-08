@@ -85,7 +85,7 @@ SR63.termAttachWorkbookPreview=function(sheets,book,fileName,settings){
   const col=name=>headers.findIndex(x=>ij(x)===ij(name));
   const sci=col('الاختبار النظري'),examCol=sci>=0?sci:col('التقييم الرئيسي'),officialCol=col('نهاية الفصل الأول');
   const hasFinal=matrix.slice(0,3).some(row=>row.some(x=>/الفترة\s*:\s*نهاية الفصل الأول/.test(String(x||''))))||officialCol>=0;
-  if(!hasFinal)continue;
+  if(!hasFinal||headers.some(x=>/(نهاية الفصل الثاني|نهاية الفصل الدراسي الثاني|نهاية العام|المجموع السنوي|المجموع النهائي)/.test(String(x)))||/(نهاية\s*الفصل\s*(?:الدراسي\s*)?الثاني|نهاية\s*العام|نهاية\s*السنة)/.test(matrix.slice(0,3).flat().map(x=>String(x||'')).join(' ')))continue;
   const rule=SR63.termSubjectRule(settings,sheet.subject||sheet.sheet);if(!rule)continue;
   const scoreCol=examCol>=0?examCol:rule.mode==='official'?officialCol:-1;if(scoreCol<0)continue;
   sheet.exam=finalKey;sheet.period='نهاية الفصل الأول';sheet.termFinal=true;sheet.selectedScoreKey=String(scoreCol);
