@@ -49,7 +49,7 @@ SR63.termGradeBreakdown=function(row,exam,settings){
  const official=typeof extra.certificateOfficial==='number'&&Number.isFinite(extra.certificateOfficial)&&extra.certificateOfficial>=0&&extra.certificateOfficial<=rule.certificateTotal?extra.certificateOfficial:null;
  const certificateScore=calculated??official;
  const originalPercent=typeof rawScore==='number'&&rawScore>=0&&rawScore<=rawTotal&&rawTotal>0?100*rawScore/rawTotal:null;
- return {rule,rawScore,rawTotal,originalPercent,examPart,midtermPart,activityPart,practicalPart,
+ return {rule,rawScore,rawTotal,originalPercent,originalExamPresent:extra.originalExamPresent!==false,examPart,midtermPart,activityPart,practicalPart,
   calculated,official,certificateScore,certificateTotal:rule.certificateTotal,
   certificatePercent:certificateScore===null?null:100*certificateScore/rule.certificateTotal,
   pending:calculated===null,officialUsed:calculated===null&&official!==null,
