@@ -36,7 +36,7 @@ SR63.termGradeBreakdown=function(row,exam,settings){
  if(!row||!cfg.enabled||exam!==cfg.finalExamKey||extra?.source!=='first_term_final')return null;
  const rule=SR63.termSubjectRule(settings,row.subject);if(!rule)return null;
  const rawScore=row.statuses?.[exam]==='present'?row.scores?.[exam]:null;
- const rawTotal=Number(row.totals?.[exam]??rule.examRawTotal);
+ const rawTotal=Number(rule.examRawTotal);
  const examPart=SR63.termConvert(rawScore,rawTotal,rule.examWeight,cfg.rounding);
  const midScore=row.statuses?.[cfg.midtermExamKey]==='present'?row.scores?.[cfg.midtermExamKey]:null;
  const midTotal=Number(row.totals?.[cfg.midtermExamKey]??settings?.exams?.find(e=>e.key===cfg.midtermExamKey)?.total??15);
@@ -48,7 +48,7 @@ SR63.termGradeBreakdown=function(row,exam,settings){
  const calculated=complete?Number(parts.reduce((sum,n)=>sum+n,0).toFixed(6)):null;
  const official=typeof extra.certificateOfficial==='number'&&Number.isFinite(extra.certificateOfficial)&&extra.certificateOfficial>=0&&extra.certificateOfficial<=rule.certificateTotal?extra.certificateOfficial:null;
  const certificateScore=calculated??official;
- const originalPercent=typeof rawScore==='number'&&rawTotal>0?100*rawScore/rawTotal:null;
+ const originalPercent=typeof rawScore==='number'&&rawScore>=0&&rawScore<=rawTotal&&rawTotal>0?100*rawScore/rawTotal:null;
  return {rule,rawScore,rawTotal,originalPercent,examPart,midtermPart,activityPart,practicalPart,
   calculated,official,certificateScore,certificateTotal:rule.certificateTotal,
   certificatePercent:certificateScore===null?null:100*certificateScore/rule.certificateTotal,

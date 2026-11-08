@@ -28,7 +28,8 @@
     subjectScopeLabel=selection?'المواد المختارة: '+(includedSubjects.map(item=>item.name).join('، ')||'لا توجد مواد محددة'):'جميع مواد المدرسة';
    const exams=settings.exams||[],totalFor=(row,e)=>Number(row.totals?.[e]??exams.find(x=>x.key===e)?.total),scoreFor=(row,e)=>{
    if(!e||row.statuses?.[e]!=='present')return null;
-   const cert=SR63.certificateScore(row,e,settings);
+   const term=SR63.termGradeBreakdown(row,e,settings),cert=SR63.certificateScore(row,e,settings);
+   if(term)return Number.isFinite(term.originalPercent)?{score:term.rawScore,max:term.rawTotal,percent:term.originalPercent,originalPercent:term.originalPercent}:null;
    return cert?{score:cert.certificateScore,max:cert.certificateTotal,percent:cert.certificatePercent,originalPercent:cert.originalPercent}:null;
   };
   const entries=new Map();

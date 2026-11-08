@@ -17,7 +17,7 @@ SR63.clearResults=function(workspace,exam='all'){
   if(exam!=='all'&&!XA.includes(exam))SR63.fail('الاختبار المحدد غير صالح.');
   if(exam==='all')return jj({...workspace,rows:[],students:[],imports:(workspace.imports??[]).filter(item=>item.kind==='teachers')},'تفريغ جميع النتائج','حذف نتائج جميع الاختبارات مع الإبقاء على قاعدة المعلمين والهيكل والإعدادات');
   const label=tj(workspace.settings,exam)?.name??exam;
-  const rows=(workspace.rows??[]).map(row=>({...row,scores:{...row.scores,[exam]:null},statuses:{...row.statuses,[exam]:'unentered'},totals:{...row.totals,[exam]:null},examTeachers:{...row.examTeachers,[exam]:''},examClasses:{...row.examClasses,[exam]:''},importBatches:{...row.importBatches,[exam]:null}}));
+  const rows=(workspace.rows??[]).map(row=>({...row,scores:{...row.scores,[exam]:null},statuses:{...row.statuses,[exam]:'unentered'},totals:{...row.totals,[exam]:null},termComponents:{...row.termComponents,[exam]:null},examTeachers:{...row.examTeachers,[exam]:''},examClasses:{...row.examClasses,[exam]:''},importBatches:{...row.importBatches,[exam]:null}}));
   const imports=(workspace.imports??[]).flatMap(item=>{if(item.kind!=='results')return [item];if(item.exam===exam)return [];if(item.exam!=='multi')return [item];const changes=(item.changes??[]).filter(change=>change.exam!==exam);if(!changes.length)return [];const exams=[...new Set(changes.map(change=>change.exam).filter(Boolean))];return [{...item,changes,rows:changes.length,exam:exams.length===1?exams[0]:'multi'}];});
   return jj(SR63.withCatalog({...workspace,rows,imports}),`تفريغ نتائج ${label}`,`حذف نتائج ${label} فقط مع الحفاظ على نتائج بقية الاختبارات`);
 };
