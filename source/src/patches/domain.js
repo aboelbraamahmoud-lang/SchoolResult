@@ -54,7 +54,17 @@ async function Yj(){return SR63.storage.load();}
 /* PATCH Xj */
 async function Xj(workspace,options){return SR63.storage.save(workspace,options);}
 /* PATCH Kj */
-async function Kj(workspace,reason){try{const point={id:crypto.randomUUID(),at:new Date().toISOString(),reason,workspace:structuredClone(workspace),bytes:new Blob([JSON.stringify(workspace)]).size,pinned:reason.startsWith('أرشيف نهاية العام'),year:workspace.settings.academicYear};return await SR63.cloud.rpc('school_snapshot',{p_point:point});}catch(error){eb.error(error.message);return null;}}
+async function Kj(workspace,reason){
+ const point={id:crypto.randomUUID(),at:new Date().toISOString(),reason,workspace:structuredClone(workspace),bytes:new Blob([JSON.stringify(workspace)]).size,pinned:reason.startsWith('أرشيف نهاية العام'),year:workspace.settings.academicYear};
+ for(let attempt=0;attempt<2;attempt++){
+  try{return await SR63.cloud.rpc('school_snapshot',{p_point:point});}
+  catch(error){
+   if(error?.code==='SR_CLOUD_TIMEOUT'&&attempt===0){await new Promise(resolve=>setTimeout(resolve,350));continue;}
+   eb.error('تعذّر إنشاء نقطة استعادة: '+(error.message||'فشل الاتصال بالسحابة.'));return null;
+  }
+ }
+ return null;
+}
 /* PATCH qj */
 async function qj(){return SR63.cloud.list();}
 /* PATCH Jj */
