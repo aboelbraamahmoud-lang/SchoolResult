@@ -85,7 +85,7 @@ SR63.StaffAdminPage=function(){
 SR63.coordinatorDashboardData=function(workspace,exam,benchmarks=[]){
  const rows=Array.isArray(workspace?.rows)?workspace.rows:[],settings=workspace?.settings||{},
  exams=Array.isArray(settings.exams)?settings.exams:[],labels=exams.map(x=>({key:x.key,name:x.name}));
- const value=(r,e)=>{const cert=SR63.certificateScore(r,e,settings);return cert?{percentage:cert.certificatePercent,originalPercentage:cert.originalPercent,score:cert.rawScore,max:cert.rawTotal,certificateScore:cert.certificateScore,certificateTotal:cert.certificateTotal}:null;};
+ const value=(r,e)=>{const term=SR63.termGradeBreakdown(r,e,settings),cert=SR63.certificateScore(r,e,settings);if(term&&Number.isFinite(term.originalPercent))return {percentage:term.originalPercent,originalPercentage:term.originalPercent,score:term.rawScore,max:term.rawTotal,certificateScore:cert?.certificateScore??null,certificateTotal:term.certificateTotal};return cert?{percentage:cert.certificatePercent,originalPercentage:cert.originalPercent,score:cert.rawScore,max:cert.rawTotal,certificateScore:cert.certificateScore,certificateTotal:cert.certificateTotal}:null;};
  const key=r=>String(r.studentId||r.studentName||r.id||'غير محدد');
  const evaluated=rows.map(r=>({row:r,result:value(r,exam)})).filter(x=>x.result),
  nonSupport=evaluated.filter(x=>!SR63.isSupportRow(x.row,exam)),

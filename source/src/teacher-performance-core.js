@@ -22,7 +22,7 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  const cohort=options.cohort==='support'?'support':'general';
  const classFilter=String(options.className||'').trim();
  const round=x=>Math.round(x*10)/10;
- const pct=(r,key)=>{if(!key||r.statuses?.[key]!=='present')return null;const cert=SR63.certificateScore(r,key,settings);return cert?round(cert.certificatePercent):null;};
+ const pct=(r,key)=>{if(!key||r.statuses?.[key]!=='present')return null;const cert=SR63.certificateScore(r,key,settings);return SR63.termMetricRaw(r,key,settings)?round(SR63.certificatePercentage(r,key,settings)):cert?round(cert.certificatePercent):null;};
  const chosen=(workspace.rows||[]).filter(r=>
    SR63.subjectAliasKey(r.subject)===SR63.subjectAliasKey(subject)&&
    ij(mj(r,exam)||'')===ij(teacher)&&
