@@ -42,8 +42,8 @@ assert.match(cloud,/SR63\.cloud\.role==='admin'\?'school_staff_admin_save':'scho
 assert.match(cloud,/school_staff_admin_archive_list/,'admin archives show school owner backups');
 assert.match(cloud,/school_staff_admin_archive_get/);
 assert.match(cloud,/school_staff_admin_archive_delete/);
-assert.match(ui,/SR63\\.storage\\.pending\\|\\|SR63\\.storage\\.busy/,'admin must wait for pending cloud saves before editing again');
+assert.ok(ui.includes('SR63.storage.pending||SR63.storage.busy'),'admin must wait for pending cloud saves before editing again');
 const dbTimeout=fs.readFileSync(path.join(__dirname,'../../supabase/migrations/20261108_schoolresult_cloud_save_57014_timeout.sql'),'utf8');
-assert.match(dbTimeout,/ALTER FUNCTION public\\.school_save\\(bigint, jsonb, uuid, jsonb\\) SET statement_timeout TO '30s'/);
-assert.match(dbTimeout,/ALTER FUNCTION public\\.school_snapshot\\(jsonb\\) SET statement_timeout TO '30s'/);
+assert.ok(dbTimeout.includes("ALTER FUNCTION public.school_save(bigint, jsonb, uuid, jsonb) SET statement_timeout TO '30s'"),'save function timeout must be scoped');
+assert.ok(dbTimeout.includes("ALTER FUNCTION public.school_snapshot(jsonb) SET statement_timeout TO '30s'"),'snapshot function timeout must be scoped');
 console.log('PASS admin academic subject rename, coordinator and teacher mappings, immutable scores, UI match action');
