@@ -7,6 +7,7 @@ SR63.cloud=(function(){
     if(storage){try{if(storage===localStorage){const old=sessionStorage.getItem('school-results-cloud-session');if(old&&!storage.getItem('school-results-cloud-session')){const parsed=JSON.parse(old);if(parsed?.access_token&&parsed?.refresh_token)storage.setItem('school-results-cloud-session',old);}sessionStorage.removeItem('school-results-cloud-session');}}catch{}}
     client=SchoolSupabase.createClient(config.url,config.key,{global:{fetch:(url,options={})=>fetch(url,{...options,signal:options.signal?AbortSignal.any([options.signal,AbortSignal.timeout(45000)]):AbortSignal.timeout(45000)})},auth:{persistSession:!!storage,storage,storageKey:'school-results-cloud-session',autoRefreshToken:true,detectSessionInUrl:true}});}return client;}
   function message(error){const text=String(error?.message??'');const code=String(error?.code??'').toLowerCase();
+    if(code==='57014'||/canceling statement due to statement timeout|statement timeout/i.test(text)){const timeout=new Error('انتهت مهلة استجابة السحابة. لم يُؤكَّد الحفظ؛ ستُعاد المحاولة بأمان باستخدام نفس معرّف العملية.');timeout.code='SR_CLOUD_TIMEOUT';return timeout;}
     if(/user[_ -]?(?:is[_ -]?)?(?:banned|blocked)|account[_ -]?(?:blocked|banned)/i.test(text)||/user_banned|user_blocked|user_disabled/.test(code))return new Error('هذا الحساب محظور في خدمة المصادقة Supabase Auth. اطلب من مدير المشروع مراجعة Auth > Users وحالة Ban؛ لا تحاول إنشاء حساب بديل أو تكرار كلمة المرور. رمز: '+(code||'AUTH_BLOCKED'));
     if(/^[\u0600-\u06FF]/.test(text))return new Error(text);if(/account_disabled_or_unauthorized/i.test(text)||code==='account_disabled_or_unauthorized')return new Error('الحساب موجود، لكن صلاحياته موقوفة في إدارة المدرسة أو لا يوجد ربط نشط له. راجع حالة الحساب في المستخدمون والصلاحيات.');
     if(/email address not authorized/i.test(text)||code==='email_address_not_authorized')return new Error('خدمة Supabase لا تسمح بإرسال رسائل إلى هذا البريد في إعدادات SMTP الحالية. يجب تفعيل SMTP مخصص في إعدادات Auth أو استخدام بريد مصرح له.');if(/for security purposes|over_request_rate_limit|too_many_requests|rate.?limit|too many requests/i.test(text)||error?.status===429)return new Error('محاولات تسجيل دخول كثيرة في وقت قصير. انتظر قليلًا قبل إعادة المحاولة، ولا تكرر كلمة المرور باستمرار.');
@@ -31,7 +32,17 @@ SR63.storage=(function(){
   const signature=JSON.stringify([data,archives]);
   const writeId=retry?.signature===signature?retry.writeId:crypto.randomUUID();retry={signature,writeId};
   const endpoint=SR63.cloud.role==='admin'?'school_staff_admin_save':'school_save';
-  const result=await SR63.cloud.rpc(endpoint,{p_expected:expected,p_workspace:data,p_write_id:writeId,p_archives:archives});
+  const saveArgs={p_expected:expected,p_workspace:data,p_write_id:writeId,p_archives:archives};
+  let result;
+  // A timeout may happen after the server committed but before its response arrived.
+  // Reuse the SAME writeId and expected revision: SQL idempotence makes retries safe.
+  for(let attempt=0;attempt<2;attempt++){
+   try{result=await SR63.cloud.rpc(endpoint,saveArgs);break;}
+   catch(error){
+    if(error?.code!=='SR_CLOUD_TIMEOUT'||attempt===1)throw error;
+    await new Promise(resolve=>setTimeout(resolve,350));
+   }
+  }
   expected=result.revision;lastSavedAt=result.savedAt??new Date().toISOString();retry=null;pending=generation!==token;lastError='';notify();return {storage:'cloud',bytes:new Blob([JSON.stringify(data)]).size,revision:result.revision,savedAt:lastSavedAt};
  }).catch(error=>{pending=true;lastError=error.message;if(error.code==='LOCAL_CONFLICT')blocked=true;notify();throw error;}).finally(()=>{busy--;notify();});return queue;}
  if(typeof window!=='undefined')window.addEventListener('beforeunload',event=>{if(pending||busy||SR63.formDirty){event.preventDefault();event.returnValue='';}});
