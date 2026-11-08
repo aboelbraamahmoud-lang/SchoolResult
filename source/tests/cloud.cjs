@@ -60,6 +60,66 @@ function client(owner='account-a'){
  const other=client();await other.c.Yj();
  await test('Stale device cannot overwrite newer cloud revision',async()=>{await c.Xj(c.Aj());await assert.rejects(other.c.Xj(other.c.Aj()),e=>e.code==='LOCAL_CONFLICT');assert.equal(other.c.SR63.storage.blocked,true);});
  await test('Explicit reload releases conflict',async()=>{const w=await other.c.Yj();await other.c.Xj(w);assert.equal(other.c.SR63.storage.blocked,false);});
+
+ await test('Supabase 57014 maps to a retryable timeout, never to a success',()=>{
+   const error=c.SR63.cloud.message({code:'57014',message:'canceling statement due to statement timeout'});
+   assert.equal(error.code,'SR_CLOUD_TIMEOUT');
+   assert.match(error.message,/مهلة/);
+ });
+ await test('Transient PostgREST 57014 retries once with the identical write id',async()=>{
+   await c.Yj();
+   const initial=server.rows.get('account-a').revision;
+   const original=first.sdk.rpc,seen=[];
+   first.sdk.rpc=async(name,args)=>{
+     if(name==='school_save'){
+       seen.push(args.p_write_id);
+       if(seen.length===1)return {error:{code:'57014',message:'canceling statement due to statement timeout'}};
+     }
+     return original(name,args);
+   };
+   try{
+     c.SR63.storage.touch();
+     const saved=await c.Xj(c.Aj());
+     assert.equal(saved.revision,initial+1);
+     assert.equal(c.SR63.storage.pending,false);
+     assert.equal(seen.length,2);
+     assert.equal(seen[0],seen[1],'retry must not generate a different write ID');
+   }finally{first.sdk.rpc=original;}
+ });
+ await test('Snapshot timeout retries the same archive identity without duplicates',async()=>{
+   const original=first.sdk.rpc,ids=[];
+   first.sdk.rpc=async(name,args)=>{
+     if(name==='school_snapshot'){
+       ids.push(args.p_point.id);
+       if(ids.length===1)return {error:{code:'57014',message:'canceling statement due to statement timeout'}};
+     }
+     return original(name,args);
+   };
+   try{
+     const point=await c.Kj(c.Aj(),'اختبار معالجة مهلة الأرشفة');
+     assert.ok(point?.id);
+     assert.equal(ids.length,2);
+     assert.equal(ids[0],ids[1]);
+   }finally{first.sdk.rpc=original;}
+ });
+ await test('Two timeouts keep the workspace unsaved instead of falsely confirming',async()=>{
+   await c.Yj();
+   const original=first.sdk.rpc,rev=server.rows.get('account-a').revision;
+   let attempts=0;
+   first.sdk.rpc=async(name,args)=>{
+     if(name==='school_save'){attempts++;return {error:{code:'57014',message:'canceling statement due to statement timeout'}};}
+     return original(name,args);
+   };
+   try{
+     c.SR63.storage.touch();
+     await assert.rejects(c.Xj(c.Aj()),e=>e.code==='SR_CLOUD_TIMEOUT');
+     assert.equal(attempts,2,'bounded retry: no endless requests');
+     assert.equal(c.SR63.storage.pending,true);
+     assert.equal(server.rows.get('account-a').revision,rev);
+   }finally{first.sdk.rpc=original;}
+   await c.Xj(c.Aj());
+   assert.equal(c.SR63.storage.pending,false);
+ });
  await test('Lost response retry is idempotent',async()=>{await c.Yj();const w=c.Aj();server.loseResponse=true;await assert.rejects(c.Xj(w));const rev=server.rows.get('account-a').revision;await c.Xj(w);assert.equal(server.rows.get('account-a').revision,rev);assert.equal(c.SR63.storage.pending,false);});
  await test('Reading cloud waits for queued writes',async()=>{const w=c.Aj();w.settings.schoolName='Queued School';const saving=c.Xj(w);const read=c.Yj();await saving;assert.equal((await read).settings.schoolName,'Queued School');});
  await test('Full restore passes archives in the same save request',async()=>{const w=c.Aj(),point={id:'archive',at:new Date().toISOString(),reason:'test',workspace:w};await c.Xj(w,{snapshots:[point]});assert.equal(server.requests.at(-1).args.p_archives[0].id,'archive');});
