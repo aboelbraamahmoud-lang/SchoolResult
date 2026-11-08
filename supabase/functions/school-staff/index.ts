@@ -114,7 +114,7 @@ const cleanCoordinator=(ws:any,deps:string[])=>{
  const teachers=(ws.teachers||[]).filter((t:any)=>depts.has(scopeKey(ws,t.department))||subjects.has(scopeKey(ws,t.subject))||(t.subjects||[]).some((s:string)=>subjects.has(scopeKey(ws,s))));
  const settings=ws.settings||{};
  // Whitelist settings. Never send whole workspace or backups, imports, other-subject records, auth metadata.
- const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','termGradeRules','academicViceName','principalName','signatures','footerText','reportTitle','schoolVision','programmerDesignerName','reportSystemName','preparedByName','reviewedByName','showGeneratedAt','statusAliases'];
+ const fields=['schoolName','academicYear','exams','pass','bands','minSampleSize','subjectPresentation','subjectLabels','subjectOrder','reportDesign','coordinatorName','stable','termGradeRules','yearGradeRules','academicViceName','principalName','signatures','footerText','reportTitle','schoolVision','programmerDesignerName','reportSystemName','preparedByName','reviewedByName','showGeneratedAt','statusAliases'];
  const publicSettings=Object.fromEntries(fields.filter(k=>Object.prototype.hasOwnProperty.call(settings,k)).map(k=>[k,settings[k]]));
  if(Array.isArray(settings.subjectReportOrder))publicSettings.subjectReportOrder=settings.subjectReportOrder.filter((x:any)=>x&&typeof x.key==='string').map((x:any)=>({key:x.key,label:String(x.label??'')}));
  if(typeof publicSettings.coordinatorName!=='string')publicSettings.coordinatorName='';

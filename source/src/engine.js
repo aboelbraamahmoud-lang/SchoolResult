@@ -1,5 +1,5 @@
 /* School Results 6.6 — readable application services. Supabase cloud edition. */
-var SR63 = {version:'6.10.107', release:'2026-11-08', formDirty:false};
+var SR63 = {version:'6.10.108', release:'2026-11-08', formDirty:false};
 /* 6.10.89 — Unified and persisted enabled grade bands. */
 SR63.activeBands=function(bands){
  const enabled=(Array.isArray(bands)?bands:[]).filter(b=>b&&b.enabled!==false).slice().sort((a,b)=>a.min-b.min);
@@ -141,6 +141,23 @@ SR63.validate = function(raw) {
       for(const field of ['examWeight','practicalWeight','activityWeight','midtermWeight'])must(Number.isFinite(rule[field])&&rule[field]>=0&&rule[field]<=200,'وزن أحد المكونات في '+rule.label+' غير صالح.');
       must(rule.mode!=='composite'||Math.abs(rule.examWeight+rule.practicalWeight+rule.activityWeight+rule.midtermWeight-rule.certificateTotal)<1e-6,'مجموع أوزان '+rule.label+' يجب أن يساوي درجة الشهادة.');
       must(typeof rule.activityLabel==='string'&&rule.activityLabel.trim().length>0&&rule.activityLabel.length<=80,'مسمى الأنشطة في '+rule.label+' غير صالح.');
+    }
+  }
+  if(settings.yearGradeRules!==undefined){
+    const cfg=SR63.yearGradeConfig(settings),keys=[cfg.firstFinalExamKey,cfg.secondMidtermExamKey,cfg.finalExamKey];
+    must(keys.every(k=>XA.includes(k))&&new Set(keys).size===3,'اختر نهاية الفصل الأول ومنتصف الفصل الثاني والاختبار الرابع بثلاثة مفاتيح مختلفة.');
+    must(['none','ceil-half','nearest-half'].includes(cfg.rounding),'طريقة جبر نهاية العام غير صالحة.');
+    must(cfg.subjects&&typeof cfg.subjects==='object'&&!Array.isArray(cfg.subjects),'قائمة توزيع درجات نهاية العام غير صالحة.');
+    for(const base of SR63.yearGradeDefaults()){
+      const rule=SR63.yearSubjectRule(settings,base.key);
+      must(['official','composite'].includes(rule.mode),'طريقة احتساب نهاية العام في '+rule.label+' غير صالحة.');
+      for(const field of ['examRawTotal','activityRawTotal','practicalRawTotal','certificateTotal'])
+        must(Number.isFinite(rule[field])&&rule[field]>0&&rule[field]<=200,'الدرجة العظمى في نهاية عام '+rule.label+' غير صالحة.');
+      for(const field of ['firstTermWeight','secondMidtermWeight','examWeight','activityWeight','practicalWeight'])
+        must(Number.isFinite(rule[field])&&rule[field]>=0&&rule[field]<=200,'أحد أوزان نهاية عام '+rule.label+' غير صالح.');
+      must(rule.mode!=='composite'||Math.abs(rule.firstTermWeight+rule.secondMidtermWeight+rule.examWeight+rule.activityWeight+rule.practicalWeight-rule.certificateTotal)<1e-6,'مجموع أوزان نهاية عام '+rule.label+' يجب أن يساوي درجة الشهادة.');
+      must(typeof rule.activityLabel==='string'&&rule.activityLabel.trim().length>0&&rule.activityLabel.length<=80,'مسمى أنشطة نهاية العام في '+rule.label+' غير صالح.');
+      for(const name of ['showFirstTerm','showMidterm','showActivity','showPractical'])must(typeof rule[name]==='boolean','خيارات أعمدة تقرير نهاية العام غير صالحة.');
     }
   }
   must(Number.isFinite(settings.pass)&&settings.pass>=0&&settings.pass<=100,'حد النجاح غير صالح.');

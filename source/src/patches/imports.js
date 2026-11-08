@@ -47,7 +47,7 @@ function ode(buffer,fileName,settings){
   SR63.repairWorksheetRanges(book);
   const wide=SR63.readWideWorkbook(book,fileName,config);
   const wideSource=new Set(wide.sheets.map(s=>s.sourceSheet));
-  const legacy=SR63.readLegacyWorkbook(book,fileName,config);SR63.termAttachWorkbookPreview(legacy.sheets,book,fileName,config);const sheets=[...wide.sheets,...legacy.sheets.filter(sheet=>!wideSource.has(sheet.sheet))];
+  const legacy=SR63.readLegacyWorkbook(book,fileName,config);SR63.termAttachWorkbookPreview(legacy.sheets,book,fileName,config);SR63.yearAttachWorkbookPreview(legacy.sheets,book,fileName,config);const sheets=[...wide.sheets,...legacy.sheets.filter(sheet=>!wideSource.has(sheet.sheet))];
   return {fileName,sheets,issues:sheets.length?[]:legacy.issues};
 }
 /* PATCH O9 */

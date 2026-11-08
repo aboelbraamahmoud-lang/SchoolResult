@@ -18,7 +18,7 @@ SR63.staffStudentLevels=function(workspace,exam,className='الكل',subject='ا
   if(!totals.has(uid))totals.set(uid,{key:uid,name:String(row.studentName||'طالب'),className:klass,score:0,max:0,certificateScore:0,certificateMax:0,evaluated:0,missing:0,termRaw:false});
   const t=totals.get(uid),score=row.scores?.[exam],total=Number(row.totals?.[exam]??settings.exams?.find(x=>x.key===exam)?.total);
   if(row.statuses?.[exam]==='present'&&typeof score==='number'&&Number.isFinite(score)&&Number.isFinite(total)&&total>0){
-   const cert=srStaffCertified(row,exam,settings),term=typeof SR63.termGradeBreakdown==='function'?SR63.termGradeBreakdown(row,exam,settings):null;if(term&&Number.isFinite(term.originalPercent)){t.score+=term.rawScore;t.max+=term.rawTotal;t.termRaw=true;if(cert){t.certificateScore+=cert.certificateScore;t.certificateMax+=cert.certificateTotal;}t.evaluated++;}else if(cert){t.score+=score;t.max+=total;t.certificateScore+=cert.certificateScore;t.certificateMax+=cert.certificateTotal;t.evaluated++;}
+   const cert=srStaffCertified(row,exam,settings),term=typeof SR63.termGradeBreakdown==='function'?SR63.termGradeBreakdown(row,exam,settings):null;if(term){if(Number.isFinite(term.originalPercent)){t.score+=term.rawScore;t.max+=term.rawTotal;t.termRaw=true;if(cert){t.certificateScore+=cert.certificateScore;t.certificateMax+=cert.certificateTotal;}t.evaluated++;}else t.missing++;}else if(cert){t.score+=score;t.max+=total;t.certificateScore+=cert.certificateScore;t.certificateMax+=cert.certificateTotal;t.evaluated++;}
   }else t.missing++;
  }
  const result=[...bands.map(b=>({id:b.id||b.label,label:b.label,color:/^#[a-f\d]{6}$/i.test(b.color||'')?b.color:'#426579',min:b.min,max:b.max,students:[]})),{id:'not_assessed',label:'غائب أو غير مرصود',color:'#64748b',students:[]}];
@@ -56,7 +56,7 @@ SR63.staffExamComparison=function(workspace,from,to){
    if(seen.has(key)||row.statuses?.[e]!=='present'||typeof grade!=='number'||!Number.isFinite(grade)||!Number.isFinite(max)||max<=0)continue;
    seen.add(key);
    if(!groups.has(klass))groups.set(klass,{className:klass,results:{[older]:{earned:0,max:0,passed:0,count:0},[later]:{earned:0,max:0,passed:0,count:0}}});
-   const bucket=groups.get(klass).results[e];const cert=srStaffCertified(row,e,settings),term=typeof SR63.termGradeBreakdown==='function'?SR63.termGradeBreakdown(row,e,settings):null;if(term&&Number.isFinite(term.originalPercent)){bucket.count++;bucket.earned+=term.rawScore;bucket.max+=term.rawTotal;if(term.originalPercent>=Number(settings.pass??50))bucket.passed++;continue;}if(!cert)continue;bucket.count++;bucket.earned+=cert.certificateScore;bucket.max+=cert.certificateTotal;
+   const bucket=groups.get(klass).results[e];const cert=srStaffCertified(row,e,settings),term=typeof SR63.termGradeBreakdown==='function'?SR63.termGradeBreakdown(row,e,settings):null;if(term){if(Number.isFinite(term.originalPercent)){bucket.count++;bucket.earned+=term.rawScore;bucket.max+=term.rawTotal;if(term.originalPercent>=Number(settings.pass??50))bucket.passed++;}continue;}if(!cert)continue;bucket.count++;bucket.earned+=cert.certificateScore;bucket.max+=cert.certificateTotal;
    if(cert.passed)bucket.passed++;
   }
  }
