@@ -1852,3 +1852,18 @@
 /* 6.10.101: export toolbar is below report settings, not under cards. */
 .sr-word-report-card-wrap{display:flex;flex-direction:column;min-width:0}
 .sr-word-report-card-wrap>.sr644-report-card{flex:1;min-width:0}
+
+
+/* First-term certificate weights editor */
+.sr-term-settings{border:1px solid #ccd9e4;border-radius:18px;padding:22px;margin:24px 0;background:#fff;direction:rtl}
+.sr-term-settings>header h2{font-size:1.25rem;font-weight:800;color:#194c5c;margin-bottom:6px}
+.sr-term-settings>header p,.sr-term-note{font-size:.9rem;color:#526779;line-height:1.8}
+.sr-term-general,.sr-term-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;padding:12px 0}
+.sr-term-general label,.sr-term-field{display:flex;flex-direction:column;gap:5px;color:#234255;font-size:.84rem;font-weight:650}
+.sr-term-general select,.sr-term-field input,.sr-term-grid select{width:100%;border:1px solid #b7cbd8;border-radius:9px;padding:9px;background:white;min-height:39px;font-size:.95rem}
+.sr-term-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:7px;font-weight:650;color:#214759}
+.sr-term-toggle input{width:18px;height:18px;accent-color:#086b73}
+.sr-term-subject{margin:10px 0;background:#f8fbfd;border:1px solid #dce6ef;border-radius:12px;padding:10px 14px}
+.sr-term-subject summary{cursor:pointer;font-weight:800;color:#0b6274;padding:6px;line-height:1.7}
+.sr-term-equation{font-weight:750;color:#1e6778}
+@media print{.sr-term-settings{display:none!important}}

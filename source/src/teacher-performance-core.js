@@ -22,7 +22,7 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
  const cohort=options.cohort==='support'?'support':'general';
  const classFilter=String(options.className||'').trim();
  const round=x=>Math.round(x*10)/10;
- const pct=(r,key)=>{if(!key||r.statuses?.[key]!=='present')return null;const cert=SR63.certificateScore(r,key,settings);return cert?round(cert.certificatePercent):null;};
+ const pct=(r,key)=>{if(!key||r.statuses?.[key]!=='present')return null;const cert=SR63.certificateScore(r,key,settings);return SR63.termMetricRaw(r,key,settings)?round(SR63.certificatePercentage(r,key,settings)):cert?round(cert.certificatePercent):null;};
  const chosen=(workspace.rows||[]).filter(r=>
    SR63.subjectAliasKey(r.subject)===SR63.subjectAliasKey(subject)&&
    ij(mj(r,exam)||'')===ij(teacher)&&
@@ -56,12 +56,12 @@ SR63.teacherPerformanceAnalyze=function(workspace,options={}){
      current,previous,previousMark:prevExam?midway(prevExam):null,
      midFirst:midway('exam1'),midSecond:idx>=2?midway('exam3'):null,change:current!==null&&previous!==null?round(current-previous):null,
      currentStatus:r.statuses?.[exam]||'unentered',previousStatus:prevExam?r.statuses?.[prevExam]||'unentered':null,
-     score:r.scores?.[exam],total:pj(r,exam,settings),certificateScore:SR63.certificateScore(r,exam,settings)?.certificateScore??null,certificateTotal:SR63.certificateScore(r,exam,settings)?.certificateTotal??null,
+     score:r.scores?.[exam],total:pj(r,exam,settings),certificateScore:SR63.certificateScore(r,exam,settings)?.certificateScore??null,certificateTotal:SR63.certificateScore(r,exam,settings)?.certificateTotal??null,analysisScore:SR63.termGradeBreakdown(r,exam,settings)?.rawScore??SR63.certificateScore(r,exam,settings)?.certificateScore??null,analysisTotal:SR63.termGradeBreakdown(r,exam,settings)?.rawTotal??SR63.certificateScore(r,exam,settings)?.certificateTotal??null,
      band:current===null?'missing':current<lower?'low':current<upper?'middle':'high'};
  }).sort((a,b)=>a.className.localeCompare(b.className,'ar',{numeric:true})||a.studentName.localeCompare(b.studentName,'ar'));
  const summary=list=>{
   const valid=list.filter(s=>s.current!==null),compared=valid.filter(s=>s.previous!==null);
-  const marks=valid.reduce((acc,s)=>({achieved:acc.achieved+s.certificateScore,possible:acc.possible+s.certificateTotal}),{achieved:0,possible:0});
+  const marks=valid.reduce((acc,s)=>({achieved:acc.achieved+(Number.isFinite(s.analysisScore)?s.analysisScore:0),possible:acc.possible+(Number.isFinite(s.analysisTotal)?s.analysisTotal:0)}),{achieved:0,possible:0});
   const midAchievement=key=>{const marks=list.reduce((a,s)=>{const m=s[key];return m?{score:a.score+m.score,total:a.total+m.total}:a;},{score:0,total:0});return marks.total?round(100*marks.score/marks.total):null;};
   return {students:list.length,evaluated:valid.length,missing:list.length-valid.length,
     passed:valid.filter(s=>s.current>=Number(settings.pass??50)).length,
