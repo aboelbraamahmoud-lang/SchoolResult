@@ -45,7 +45,7 @@ SR63.CloudApp=function(){
    try{
     const profile=await profileFor(next.id);
     if(!alive||nonce!==sessionTask.current||recoveryRef.current)return;
-    if(!['owner','admin','coordinator','vice_principal','principal'].includes(profile.role))throw new Error('الحساب ليس لديه صلاحيات نشطة.');
+    if(!['owner','admin','coordinator','vice_principal','principal','psychologist','social_worker'].includes(profile.role))throw new Error('الحساب ليس لديه صلاحيات نشطة.');
     if(next.id!==bound.current){
      if(bound.current&&(SR63.storage.pending||SR63.storage.busy))throw new Error('توجد تغييرات معلّقة؛ أكمل حفظ الحساب السابق قبل تبديل المستخدم.');
      bound.current=next.id;SR63.cloud.bind(next.id);SR63.cloud.setAccess(profile);SR63.storage.reset();setMounted(next.id);
@@ -134,10 +134,10 @@ SR63.CloudApp=function(){
  if(!ready)return el('main',{className:'sr-cloud-login',dir:'rtl'},el('p',{role:'status'},'جارٍ التحقق من جلسة الدخول وصلاحياتها…'));
  const authorized=user&&mounted===user.id&&role&&!recovery;
  return el(v.Fragment,{},[
-  authorized&&el('div',{key:mounted,children:null},['coordinator','vice_principal','principal'].includes(role.role)?el(SR63.CoordinatorPortal,{profile:role}):el(Nde,{})),
+  authorized&&el('div',{key:mounted,children:null},['coordinator','vice_principal','principal','psychologist','social_worker'].includes(role.role)?el(SR63.CoordinatorPortal,{profile:role}):el(Nde,{})),
   authorized&&el('aside',{className:'sr-cloud-account',dir:'rtl','aria-label':'الحساب السحابي'},[
    el('span',{},role.displayName||role.username||user.email),
-   el('strong',{role:'status'},role.role==='coordinator'?'منسق · '+(role.departments||[]).join('، '):role.role==='vice_principal'?'النائب الأكاديمي · تقارير المدرسة':role.role==='principal'?'مدير المدرسة · تقارير المدرسة':SR63.storage.busy?'جارٍ الحفظ السحابي…':SR63.storage.pending?'تغييرات لم تُحفظ':SR63.storage.error?'تعذر الاتصال':role.role==='admin'?'الأدمن · حفظ سحابي محمي':'الأدمن · متصل'),
+   el('strong',{role:'status'},role.role==='coordinator'?'منسق · '+(role.departments||[]).join('، '):role.role==='vice_principal'?'النائب الأكاديمي · تقارير المدرسة':role.role==='principal'?'مدير المدرسة · تقارير المدرسة':role.role==='psychologist'?'الأخصائي النفسي · تقارير المدرسة':role.role==='social_worker'?'الأخصائي الاجتماعي · تقارير المدرسة':SR63.storage.busy?'جارٍ الحفظ السحابي…':SR63.storage.pending?'تغييرات لم تُحفظ':SR63.storage.error?'تعذر الاتصال':role.role==='admin'?'الأدمن · حفظ سحابي محمي':'الأدمن · متصل'),
    el('button',{type:'button',disabled:busy,onClick:logout},'تسجيل الخروج'),error&&el('p',{role:'alert'},error)]),
   !authorized&&el('main',{className:'sr-cloud-login'+(mounted?' sr-cloud-overlay':''),dir:'rtl'},el('section',{className:'sr-cloud-card'},[
    el('span',{className:'sr63-kicker'},`مرصد النتائج المدرسية · الإصدار ${SR63.version}`),

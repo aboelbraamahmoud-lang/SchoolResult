@@ -6,10 +6,10 @@ const reply=(body:unknown,status=200,origin='*')=>new Response(JSON.stringify(bo
 const normalize=(v:unknown)=>String(v??'').normalize('NFKC').trim().replace(/\s+/g,' ').toLocaleLowerCase('en');
 const safeUsername=(s:string)=>s.length>=3&&s.length<=42&&/^[\p{L}\p{N}_. \-]+$/u.test(s);
 const pkeys=['reports','plans','savePlans','compare','failedStudents','teacherAnalysis','generateAI','export','studentLevels'];
-const readRoles=['coordinator','vice_principal','principal'];
+const readRoles=['coordinator','vice_principal','principal','psychologist','social_worker'];
 const editableRoles=['admin',...readRoles];
 const needsDepartment=(role:string)=>role==='coordinator';
-const leadershipRoles=['vice_principal','principal'];
+const leadershipRoles=['vice_principal','principal','psychologist','social_worker'];
 const boolPermissions=(value:any)=>Object.fromEntries(pkeys.map(k=>[k,value?.[k]===true]));
 const dept=(text:unknown)=>String(text??'').normalize('NFKC').replace(/[\s\u0640]+/g,'').replace(/[أإآ]/g,'ا').replace(/ى/g,'ي').toLowerCase();
 /* 6.10.87 — standalone Special Education coordinator without teacher assignments. */
@@ -349,7 +349,7 @@ Deno.serve(async(req:Request)=>{
   const requestedDepartments=normalizeCoordinatorDepartments(departments,allowed);
   if(needsDepartment(newRole)&&!requestedDepartments.length)return reply({error:'COORDINATOR_NEEDS_DEPARTMENT'},400,origin);
   if(needsDepartment(newRole)&&requestedDepartments.some(x=>!allowed.includes(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
-  // Leadership and admin roles have school-wide scope; discard any stale client department values.
+  // School leadership and specialist reporting roles are school-wide; discard stale department selections.
   const scopedDepartments=needsDepartment(newRole)?requestedDepartments:[];
   const email=await emailForUsername(username);
   const {data:created,error:creationError}=await admin.auth.admin.createUser({email,password,email_confirm:true,app_metadata:{schoolresult_staff:true}});
@@ -379,7 +379,7 @@ Deno.serve(async(req:Request)=>{
     if(requested.some(x=>!allowed.includes(x)))return reply({error:'INVALID_DEPARTMENT'},400,origin);
    patch.departments=requested;
   }else{
-   // Owner-approved leadership accounts supervise every department and require no department list.
+   // School-wide reporting accounts supervise every department and require no department list.
    patch.departments=[];
   }
   if(body.permissions!==undefined)patch.permissions=boolPermissions(body.permissions);
