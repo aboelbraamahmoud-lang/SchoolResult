@@ -37,20 +37,20 @@ SR63.StaffAdminPage=function(){
  [busy,setBusy]=(0,v.useState)(false),[error,setError]=(0,v.useState)(''),[success,setSuccess]=(0,v.useState)(''),[leadershipStatus,setLeadershipStatus]=(0,v.useState)('checking'),
  [form,setForm]=(0,v.useState)({username:'',displayName:'',password:'',role:'coordinator',departments:[],permissions:{reports:true,plans:false,savePlans:false,compare:true,failedStudents:true,teacherAnalysis:true,generateAI:false,export:true,studentLevels:true}});
  const reload=async()=>{setBusy(true);setError('');try{const data=await SR63.staff.call({action:'list'});setAccounts(data.accounts||[]);setDepartments(data.departments||[]);}catch(e){setError(e.message);}finally{setBusy(false);}};
- const checkLeadership=async()=>{try{const data=await SR63.staff.call({action:'capabilities'});const ok=data?.leadershipRoles===true&&data?.departmentScope==='coordinator_only';setLeadershipStatus(ok?'ready':'outdated');return ok;}catch{setLeadershipStatus('outdated');return false;}};
+ const checkLeadership=async()=>{try{const data=await SR63.staff.call({action:'capabilities'});const ok=data?.leadershipRoles===true&&data?.departmentScope==='coordinator_only'&&['psychologist','social_worker'].every(role=>data?.supportedRoles?.includes(role));setLeadershipStatus(ok?'ready':'outdated');return ok;}catch{setLeadershipStatus('outdated');return false;}};
  (0,v.useEffect)(()=>{void reload();void checkLeadership()},[]);
  const permissions=[['reports','إنشاء التقارير وطباعتها'],['teacherAnalysis','تحليل المعلمين في القسم'],['compare','مقارنة القسم بالأقسام الأخرى (إجماليات فقط)'],['failedStudents','عرض الطلاب المتعثرين في مادة القسم'],['export','تصدير Word والتقارير'],['studentLevels','عرض مستويات طلاب الصفوف بالألوان']];
  const toggle=(key,checked)=>setForm(p=>({...p,permissions:{...p.permissions,[key]:checked}}));
  const save=async e=>{e.preventDefault();setBusy(true);setError('');setSuccess('');try{
-  const isLeadership=['vice_principal','principal'].includes(form.role);
+  const isLeadership=['vice_principal','principal','psychologist','social_worker'].includes(form.role);
   if(isLeadership&&!(await checkLeadership()))throw Object.assign(new Error('يلزم نشر وظيفة school-staff الجديدة وتطبيق ترحيل صلاحيات الإدارة في Supabase قبل إنشاء حساب النائب الأكاديمي أو المدير.'),{code:'STAFF_FUNCTION_OUTDATED'});
   await SR63.staff.call({action:'create',...form,departments:form.role==='coordinator'?form.departments:[],permissions:form.role==='admin'?form.permissions:{...form.permissions,plans:false,savePlans:false,generateAI:false}});setSuccess('تم إنشاء الحساب. يستطيع المستخدم الدخول بالاسم وكلمة المرور مباشرة.');setForm({...form,username:'',displayName:'',password:''});await reload();
- }catch(ex){setError(['INVALID_DEPARTMENT','INVALID_ACCOUNT_DATA','ACCOUNT_SAVE_FAILED'].includes(ex.code)&&['vice_principal','principal'].includes(form.role)?'تعذر إنشاء حساب القيادة. تأكد من تطبيق ترحيل أدوار النائب والمدير ونشر وظيفة school-staff الجديدة في مشروع Supabase المرتبط بالموقع.':ex.message);}finally{setBusy(false);}};
- const edit=async(account,patch)=>{setBusy(true);setError('');setSuccess('');try{const targetRole=patch.role||account.role;if(['vice_principal','principal'].includes(targetRole)&&!(await checkLeadership()))throw new Error('يلزم تحديث خدمة school-staff قبل تعديل صلاحيات حساب المدير أو النائب الأكاديمي.');await SR63.staff.call({action:'update',userId:account.user_id,...patch,departments:targetRole==='coordinator'?(patch.departments??account.departments):[],...(targetRole==='admin'?{}:{permissions:{...account.permissions,...patch.permissions,plans:false,savePlans:false,generateAI:false}})});setSuccess('تم حفظ صلاحيات الحساب.');await reload();}catch(ex){setError(ex.message);}finally{setBusy(false);}};
+ }catch(ex){setError(['INVALID_DEPARTMENT','INVALID_ACCOUNT_DATA','ACCOUNT_SAVE_FAILED'].includes(ex.code)&&['vice_principal','principal','psychologist','social_worker'].includes(form.role)?'تعذر إنشاء حساب القيادة. تأكد من تطبيق ترحيل أدوار النائب والمدير ونشر وظيفة school-staff الجديدة في مشروع Supabase المرتبط بالموقع.':ex.message);}finally{setBusy(false);}};
+ const edit=async(account,patch)=>{setBusy(true);setError('');setSuccess('');try{const targetRole=patch.role||account.role;if(['vice_principal','principal','psychologist','social_worker'].includes(targetRole)&&!(await checkLeadership()))throw new Error('يلزم تحديث خدمة school-staff قبل تعديل صلاحيات حساب المدير أو النائب الأكاديمي.');await SR63.staff.call({action:'update',userId:account.user_id,...patch,departments:targetRole==='coordinator'?(patch.departments??account.departments):[],...(targetRole==='admin'?{}:{permissions:{...account.permissions,...patch.permissions,plans:false,savePlans:false,generateAI:false}})});setSuccess('تم حفظ صلاحيات الحساب.');await reload();}catch(ex){setError(ex.message);}finally{setBusy(false);}};
  const field=(title,node)=>(0,q.jsxs)('label',{className:'srstaff-field',children:[(0,q.jsx)('span',{children:title}),node]});
  return (0,q.jsxs)('main',{className:'srstaff-page',dir:'rtl',children:[
   (0,q.jsx)('h1',{children:'إدارة المستخدمين والصلاحيات'}),
-  (0,q.jsx)('p',{children:'أنشئ حسابات أدمن أو منسقين أو نائب أكاديمي أو مدير مدرسة. المنسق يُربط بقسمه فقط؛ أما النائب والمدير فيشرفان على المدرسة بكل أقسامها دون ربط بالأقسام.'}),
+  (0,q.jsx)('p',{children:'أنشئ حسابات أدمن أو منسقين أو نائب أكاديمي أو مدير مدرسة أو أخصائي نفسي أو أخصائي اجتماعي. المنسق يُربط بقسمه فقط؛ أما الإدارة والأخصائيان فيطلعون على لوحات وتقارير المدرسة بأكملها دون صلاحيات تعديل نتائج الطلاب.'}),
   leadershipStatus==='outdated'?(0,q.jsx)('p',{className:'srstaff-alert',role:'alert',children:'خدمة إدارة المستخدمين في Supabase بإصدار قديم أو لا تعلن دعم أدوار القيادة. يلزم نشر وظيفة school-staff الجديدة وتطبيق ترحيل الصلاحيات، قبل إنشاء المدير أو النائب.'}):null,
   error?(0,q.jsx)('p',{className:'srstaff-alert',role:'alert',children:error}):null,success?(0,q.jsx)('p',{className:'srstaff-success',role:'status',children:success}):null,
   (0,q.jsxs)('form',{className:'srstaff-panel',onSubmit:save,children:[
@@ -58,16 +58,16 @@ SR63.StaffAdminPage=function(){
     field('اسم المستخدم (عربي أو إنجليزي)',(0,q.jsx)('input',{required:true,minLength:3,maxLength:42,autoComplete:'off',value:form.username,onChange:e=>setForm(x=>({...x,username:e.target.value})),placeholder:'مثال: منسق_الرياضيات'})),
     field('الاسم الظاهر',(0,q.jsx)('input',{required:true,value:form.displayName,onChange:e=>setForm(x=>({...x,displayName:e.target.value})),placeholder:'اسم الموظف'})),
     field('كلمة المرور — 10 أحرف على الأقل',(0,q.jsx)('input',{required:true,type:'password',autoComplete:'new-password',minLength:10,maxLength:128,value:form.password,onChange:e=>setForm(x=>({...x,password:e.target.value}))})),
-    field('نوع الحساب',(0,q.jsx)('select',{value:form.role,onChange:e=>setForm(x=>({...x,role:e.target.value,departments:e.target.value==='coordinator'?x.departments:[]})),children:[(0,q.jsx)('option',{value:'coordinator',children:'منسق — صلاحيات محددة'}),(0,q.jsx)('option',{value:'admin',children:'أدمن — جميع صلاحيات البرنامج'}),(0,q.jsx)('option',{value:'vice_principal',children:'النائب الأكاديمي — تقارير جميع الأقسام'}),(0,q.jsx)('option',{value:'principal',children:'مدير المدرسة — متابعة المدرسة كاملة'})]}))
+    field('نوع الحساب',(0,q.jsx)('select',{value:form.role,onChange:e=>setForm(x=>({...x,role:e.target.value,departments:e.target.value==='coordinator'?x.departments:[]})),children:[(0,q.jsx)('option',{value:'coordinator',children:'منسق — صلاحيات محددة'}),(0,q.jsx)('option',{value:'admin',children:'أدمن — جميع صلاحيات البرنامج'}),(0,q.jsx)('option',{value:'vice_principal',children:'النائب الأكاديمي — تقارير جميع الأقسام'}),(0,q.jsx)('option',{value:'principal',children:'مدير المدرسة — متابعة المدرسة كاملة'}),(0,q.jsx)('option',{value:'psychologist',children:'الأخصائي النفسي — متابعة المدرسة كاملة'}),(0,q.jsx)('option',{value:'social_worker',children:'الأخصائي الاجتماعي — متابعة المدرسة كاملة'})]}))
    ]}),
-   ['vice_principal','principal'].includes(form.role)?(0,q.jsx)('p',{className:'srstaff-success',children:'نطاق الحساب: جميع أقسام المدرسة وكل المعلمين والصفوف. لا يلزم اختيار أي قسم.'}):null,
+   ['vice_principal','principal','psychologist','social_worker'].includes(form.role)?(0,q.jsx)('p',{className:'srstaff-success',children:'نطاق الحساب: جميع أقسام المدرسة وكل المعلمين والصفوف. لا يلزم اختيار أي قسم.'}):null,
    form.role==='coordinator'?(0,q.jsxs)('div',{children:[(0,q.jsx)('h3',{children:'الأقسام التي يستطيع المنسق الوصول إليها'}),(0,q.jsx)('div',{className:'srstaff-checks',children:departments.map(name=>(0,q.jsxs)('label',{children:[(0,q.jsx)('input',{type:'checkbox',checked:form.departments.includes(name),onChange:e=>setForm(p=>({...p,departments:e.target.checked?[...p.departments,name]:p.departments.filter(x=>x!==name)}))}),name]},name))})]}):null,
    form.role!=='admin'?(0,q.jsxs)('div',{children:[(0,q.jsx)('h3',{children:'صلاحيات العرض والتقارير للحساب'}),(0,q.jsx)('div',{className:'srstaff-checks',children:permissions.map(([key,label])=>(0,q.jsxs)('label',{children:[(0,q.jsx)('input',{type:'checkbox',checked:form.permissions[key]===true,onChange:e=>toggle(key,e.target.checked)}),label]},key))})]}):null,
-   (0,q.jsx)('button',{type:'submit',disabled:busy||form.role==='coordinator'&&!form.departments.length||['vice_principal','principal'].includes(form.role)&&leadershipStatus!=='ready',children:busy?'جارٍ الحفظ…':'إنشاء الحساب'})
+   (0,q.jsx)('button',{type:'submit',disabled:busy||form.role==='coordinator'&&!form.departments.length||['vice_principal','principal','psychologist','social_worker'].includes(form.role)&&leadershipStatus!=='ready',children:busy?'جارٍ الحفظ…':'إنشاء الحساب'})
   ]}),
   (0,q.jsxs)('section',{className:'srstaff-panel',children:[(0,q.jsxs)('header',{className:'srstaff-flex',children:[(0,q.jsx)('h2',{children:'الحسابات الحالية ('+accounts.length+')'}),(0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>void reload(),children:'تحديث القائمة'})]}),
    accounts.length?(0,q.jsx)('div',{className:'srstaff-users',children:accounts.map(user=>(0,q.jsxs)('article',{className:'srstaff-user',children:[
-    (0,q.jsxs)('div',{children:[(0,q.jsx)('strong',{children:user.display_name}),(0,q.jsx)('small',{children:user.username+' · '+(user.role==='admin'?'أدمن كامل':user.role==='coordinator'?'منسق':user.role==='vice_principal'?'النائب الأكاديمي':'مدير المدرسة')+' · '+(user.active?'مفعّل':'موقوف')})]}),
+    (0,q.jsxs)('div',{children:[(0,q.jsx)('strong',{children:user.display_name}),(0,q.jsx)('small',{children:user.username+' · '+(user.role==='admin'?'أدمن كامل':user.role==='coordinator'?'منسق':user.role==='vice_principal'?'النائب الأكاديمي':user.role==='psychologist'?'الأخصائي النفسي':user.role==='social_worker'?'الأخصائي الاجتماعي':'مدير المدرسة')+' · '+(user.active?'مفعّل':'موقوف')})]}),
     user.role==='coordinator'?(0,q.jsx)('p',{children:(user.departments||[]).join('، ')}):null,
     (0,q.jsxs)('div',{className:'srstaff-flex',children:[
       (0,q.jsx)('button',{type:'button',disabled:busy,onClick:()=>void edit(user,{active:!user.active}),children:user.active?'إيقاف الحساب':'تفعيل الحساب'}),
@@ -144,7 +144,7 @@ SR63.getReportCenterSafeBoundary=function(){
 };
 // Route leadership before mounting coordinator hooks and school-wide calculations.
 SR63.CoordinatorPortal=function({profile}){
- return (0,q.jsx)(['principal','vice_principal'].includes(profile.role)?SR63.LeadershipLoader:SR63.CoordinatorDashboard,{profile});
+ return (0,q.jsx)(['principal','vice_principal','psychologist','social_worker'].includes(profile.role)?SR63.LeadershipLoader:SR63.CoordinatorDashboard,{profile});
 };
 SR63.CoordinatorDashboard=function({profile}){
  const [payload,setPayload]=(0,v.useState)(null),[error,setError]=(0,v.useState)(''),[loading,setLoading]=(0,v.useState)(true),
@@ -160,7 +160,7 @@ SR63.CoordinatorDashboard=function({profile}){
  // and label/subject ordering. Always bind it to THIS authenticated school;
  // clear the reference when staff exits or switches account/exam.
  (0,v.useEffect)(()=>{if(!workspace)return;const reportWorkspace=SR63.staffReportWorkspace(workspace,exam,profile);SR63.currentWorkspace=reportWorkspace;return()=>{if(SR63.currentWorkspace===reportWorkspace)SR63.currentWorkspace=null;};},[workspace,exam,profile.ownerId,profile.username]);
- const isLeadership=['vice_principal','principal'].includes(profile.role),scopeLabel=isLeadership?'المدرسة':'القسم';
+ const isLeadership=['vice_principal','principal','psychologist','social_worker'].includes(profile.role),scopeLabel=isLeadership?'المدرسة':'القسم';
  const scopedClasses=[...new Set((workspace?.rows||[]).map(r=>String(r.examClasses?.[exam]||r.className||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar',{numeric:true}));
  const scopedSubjects=[...new Set((workspace?.rows||[]).map(r=>String(r.subject||'')).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'ar'));
  const levelGroups=(0,v.useMemo)(()=>workspace&&page==='levels'?SR63.staffStudentLevels(workspace,exam,levelClass,levelSubject):[],[workspace,exam,levelClass,levelSubject,page]);
@@ -247,7 +247,7 @@ SR63.CoordinatorDashboard=function({profile}){
   h('div',{className:'srcoord-brand'},[
    h('img',{src:'./moehe.png',alt:'شعار وزارة التربية والتعليم والتعليم العالي'}),
    h('div',{},[h('span',{className:'srcoord-kicker'},'مرصد النتائج المدرسية · SchoolResult'),h('h1',{},settings.schoolName||'اسم المدرسة غير محدد'),h('p',{},`العام الأكاديمي: ${settings.academicYear||'—'} · لوحة التحليل والمتابعة ${isLeadership?'للمدرسة':'للقسم'}`)])
-  ]),h('div',{className:'srcoord-identity'},[h('span',{},profile.role==='principal'?'حساب مدير المدرسة':profile.role==='vice_principal'?'حساب النائب الأكاديمي':'حساب المنسق'),h('strong',{},profile.displayName||profile.username),h('small',{},isLeadership?'المدرسة بالكامل':(profile.departments||[]).join('، '))]),
+  ]),h('div',{className:'srcoord-identity'},[h('span',{},profile.role==='principal'?'حساب مدير المدرسة':profile.role==='vice_principal'?'حساب النائب الأكاديمي':profile.role==='psychologist'?'حساب الأخصائي النفسي':profile.role==='social_worker'?'حساب الأخصائي الاجتماعي':'حساب المنسق'),h('strong',{},profile.displayName||profile.username),h('small',{},isLeadership?'المدرسة بالكامل':(profile.departments||[]).join('، '))]),
   h('div',{className:'srcoord-head-controls'},[
    h('label',{},[h('span',{},'اختيار التقييم'),h('select',{value:exam,onChange:e=>{setChosenExam(e.target.value);void reload(e.target.value);}},exams.map(x=>h('option',{key:x.key,value:x.key},x.name)))]),
    h('button',{type:'button',disabled:loading,onClick:()=>void reload()},loading?'جارٍ التحديث…':'تحديث النتائج')

@@ -26,8 +26,8 @@ const sandbox={exports:{},require:()=>({createClient:(url,key)=>key==='service'?
 vm.runInNewContext(js,sandbox,{timeout:20000});
 async function call(action,body={}){const input={action,...body};requests.push(input);const req=new Request('https://unit.test/functions/v1/school-staff',{method:'POST',headers:{Authorization:'Bearer TEST','Content-Type':'application/json'},body:JSON.stringify(input)});const out=await handler(req);return {status:out.status,data:await out.json()}}
 async function main(){
- let caps=await call('capabilities');assert.equal(caps.status,200);assert.equal(caps.data.leadershipRoles,true);assert.equal(caps.data.departmentScope,'coordinator_only');
- for(const role of ['vice_principal','principal']){
+ let caps=await call('capabilities');assert.equal(caps.status,200);assert.equal(caps.data.leadershipRoles,true);assert.equal(caps.data.departmentScope,'coordinator_only');for(const role of ['psychologist','social_worker'])assert.ok(caps.data.supportedRoles.includes(role));
+ for(const role of ['vice_principal','principal','psychologist','social_worker']){
   const result=await call('create',{username:role+'1',displayName:'موظف قيادي',password:'securepass123!',role,departments:['قسم غير موجود'],permissions:{reports:true,savePlans:true,generateAI:true}});
   assert.equal(result.status,200,JSON.stringify(result));
   assert.deepEqual(Array.from(created.at(-1).departments),[]);
@@ -54,7 +54,7 @@ async function main(){
 
  const valid=await call('create',{username:'coordinator3',displayName:'منسق',password:'securepass123!',role:'coordinator',departments:['الرياضيات']});
  assert.equal(valid.status,200);assert.deepEqual(Array.from(created.at(-1).departments),['الرياضيات']);
- for(const role of ['vice_principal','principal']){
+ for(const role of ['vice_principal','principal','psychologist','social_worker']){
    roleExisting=role;departmentsExisting=['قسم قديم'];
    const res=await call('update',{userId:staffId,permissions:{reports:true,savePlans:true},departments:['قسم غير موجود']});
    assert.equal(res.status,200,JSON.stringify(res));
@@ -64,9 +64,20 @@ async function main(){
  roleExisting='coordinator';departmentsExisting=['الرياضيات'];
  rejected=await call('update',{userId:staffId,departments:['قسم غير موجود']});
  assert.equal(rejected.status,400);assert.equal(rejected.data.error,'INVALID_DEPARTMENT');
- let converted=await call('update',{userId:staffId,role:'principal',departments:['قسم غير موجود']});
+ let converted=await call('update',{userId:staffId,role:'social_worker',departments:['قسم غير موجود']});
  assert.equal(converted.status,200);assert.deepEqual(Array.from(updated.at(-1).departments),[]);
  const ui=fs.readFileSync(path.join(root,'source/src/staff.js'),'utf8');
+ for(const role of ['psychologist','social_worker'])assert.ok(ui.includes("value:'"+role+"'"),'Admin form must offer '+role);
+ const loginUI=fs.readFileSync(path.join(root,'source/src/cloud-ui.js'),'utf8');
+ const leadershipUI=fs.readFileSync(path.join(root,'source/src/leadership.js'),'utf8');
+ const cloud=fs.readFileSync(path.join(root,'source/src/cloud.js'),'utf8');
+ for(const role of ['psychologist','social_worker']){
+  assert.ok(loginUI.includes(role),'Login route must recognize '+role);
+  assert.ok(leadershipUI.includes(role),'Leadership dashboard must name '+role);
+  assert.ok(cloud.includes(role),'Full workspace must be blocked for '+role);
+ }
+ const migration=fs.readFileSync(path.join(root,'supabase/migrations/20261108_school_specialists_roles.sql'),'utf8');
+ for(const role of ['psychologist','social_worker'])assert.ok(migration.includes("'"+role+"'"),'DB role constraint must include '+role);
  assert(ui.includes('form.role===\'coordinator\'?form.departments:[]'));
  assert(ui.includes('user.role===\'coordinator\'?(0,q.jsx)(\'div\''));
  assert(ui.includes("action:'capabilities'"));
