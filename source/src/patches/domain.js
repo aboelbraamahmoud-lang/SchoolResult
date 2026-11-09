@@ -36,13 +36,13 @@ function bj(rows,exam,settings){
   const field=fields[row.statuses[exam]];if(field)metric[field]++;
   const term=SR63.termGradeBreakdown(row,exam,settings),cert=SR63.certificateScore(row,exam,settings);
   if(term){
-   if(!Number.isFinite(term.originalPercent))continue;
+   if(!Number.isFinite(term.originalPercent)){if(cert){certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;}continue;}
    metric.evaluated++;metric.raw+=term.rawScore;earned+=term.rawScore;possible+=term.rawTotal;
    if(term.originalPercent>=settings.pass)metric.passed++;
    const band=yj(term.originalPercent,settings.bands);if(band){bandCounts[band.id]++;macro[band.macro]++;}
    if(cert){certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;}
   }else if(cert&&row.termComponents?.[exam]?.source==='midterm_certificate'){
-   if(!Number.isFinite(cert.originalPercent))continue;
+   if(!Number.isFinite(cert.originalPercent)){certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;continue;}
    metric.evaluated++;metric.raw+=cert.rawScore;earned+=cert.rawScore;possible+=cert.rawTotal;
    certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;
    if(cert.originalPercent>=settings.pass)metric.passed++;
