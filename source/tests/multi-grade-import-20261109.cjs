@@ -84,4 +84,17 @@ const wide=load('العلوم','منتصف الفصل الثاني',['الرقم
 });
 assert.equal(wide.sheet.gradeColumns.raw,'3');assert.equal(wide.sheet.gradeColumns.certificate,'4');
 assert.equal(wide.item.termComponents.certificateOfficial,13);
+const officialOnlyNew={...officialMid.item,termComponents:{...officialMid.item.termComponents,certificateOfficial:13}};
+const keepExistingRaw=S.gradeImportMergeRow(normal,officialOnlyNew,'exam1',15);
+assert.equal(keepExistingRaw.score,24,'official-only reimport cannot destroy saved raw test /30');
+assert.equal(keepExistingRaw.total,30);
+assert.equal(keepExistingRaw.components.originalExamPresent,true);
+assert.equal(keepExistingRaw.components.certificateOfficial,13,'new official midterm mark retained');
+const rawOnlyAgain={...mid1.item,termComponents:{...mid1.item.termComponents,certificateOfficial:null}};
+const keepOfficial=S.gradeImportMergeRow(normal,rawOnlyAgain,'exam1',30);
+assert.equal(keepOfficial.score,24);
+assert.equal(keepOfficial.components.certificateOfficial,11,'raw-only reimport must retain stored official /15');
+const partialActivity={...end.item,termComponents:{...end.item.termComponents,activityRaw:null}};
+const keepActivity=S.gradeImportMergeRow(normal,partialActivity,'exam4',50);
+assert.equal(keepActivity.components.activityRaw,45,'reimport may not silently clear activity /50');
 console.log('PASS multi-column mapping: four exams, official midterms, 50-to-5 activity, science practical, official-only, wide Excel and validation');

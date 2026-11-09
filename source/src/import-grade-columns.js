@@ -97,6 +97,23 @@ SR63.gradeImportItem=function(sheet,row,fileName,settings){
   totalOverride:hasRaw?null:hasOfficial?officialMax:null,teacher:row.teacher??'',
   department:row.department??'',termComponents};
 };
+/* Partial Excel uploads must never overwrite a previously recorded raw mark
+   with a certificate-only carrier, or silently erase other saved components. */
+SR63.gradeImportMergeRow=function(previous,item,exam,total){
+ const incoming=item.termComponents;
+ if(!incoming)return {score:item.score,status:item.status,total,components:null};
+ const old=previous?.termComponents?.[exam]||{},parts={...old,...incoming};
+ for(const key of ['certificateOfficial','activityRaw','practicalRaw','secondTermOfficial']){
+  if(parts[key]===null&&Number.isFinite(old[key]))parts[key]=old[key];
+ }
+ const priorRaw=previous?.statuses?.[exam]==='present'&&Number.isFinite(previous?.scores?.[exam])&&
+  Number.isFinite(previous?.totals?.[exam])&&old.originalExamPresent!==false;
+ const preserveRaw=incoming.originalExamPresent===false&&priorRaw;
+ if(preserveRaw)parts.originalExamPresent=true;
+ return {score:preserveRaw?previous.scores[exam]:item.score,
+  status:preserveRaw?previous.statuses[exam]:item.status,
+  total:preserveRaw?previous.totals[exam]:total,components:parts};
+};
 SR63.ImportGradeColumnFields=function({sheet,onChange}){
  const h=v.createElement,exam=sheet.exam||'',m=sheet.gradeColumns||{raw:sheet.selectedScoreKey||'',certificate:'',activity:'',practical:'',secondTerm:''};
  const final=exam==='exam2'||exam==='exam4';
