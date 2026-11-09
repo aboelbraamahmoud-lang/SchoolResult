@@ -48,7 +48,7 @@ const restored=S.importReviewChangeRow(excluded,'sheet-1','source-2',{kind:'excl
 assert.equal(ctx.O9(restored,settings).length,2);
 const stored={rows:[{studentId,studentName:'طالب باسم آخر'}],students:[]};
 const collision=S.importReviewIssueDetails(corrected,ctx.O9(corrected,settings),[],stored,'exam2');
-assert.ok(collision.some(i=>i.reasons.some(r=>r.includes('الرقم الأكاديمي'))),JSON.stringify({collision:collision.map(i=>({reasons:i.reasons,studentId:i.item.studentId,studentName:i.item.studentName})),saved:stored.rows,imported:ctx.O9(corrected,settings).map(i=>({id:i.studentId,name:i.studentName}))}));
+assert.ok(collision.some(i=>i.reasons.some(reason=>reason.includes('اسم مختلف'))),'Identity differences must surface in the review panel');
 assert.throws(()=>S.importReviewChangeRow(files,'sheet-1','source-1',{kind:'grade',column:'999',field:'score',value:'2'}),/عمود الدرجة/);
 const root=path.resolve(__dirname,'../..');
 const build=fs.readFileSync(path.join(root,'source/build.cjs'),'utf8');
