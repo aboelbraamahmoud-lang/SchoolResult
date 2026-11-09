@@ -51,7 +51,7 @@ function ode(buffer,fileName,settings){
   return {fileName,sheets,issues:sheets.length?[]:legacy.issues};
 }
 /* PATCH O9 */
-function O9(files){return files.flatMap(file=>file.sheets.filter(sheet=>sheet.selected&&sheet.selectedScoreKey).flatMap(sheet=>sheet.rows.map(row=>{const value=row.values[sheet.selectedScoreKey]??{score:null,status:'unentered',recognized:false};return {id:row.id,studentId:row.studentId,studentName:row.studentName,grade:row.grade,className:row.className,subject:sheet.subject.trim(),score:value.score,status:value.status,recognized:value.recognized&&!(value.status==='present'&&value.score===null),sourceFile:file.fileName,sourceSheet:sheet.sheet,sourceRow:row.sourceRow,exam:sheet.exam,totalOverride:value.total??null,teacher:row.teacher??'',department:row.department??'',termComponents:row.termComponents??null};})));}
+function O9(files,settings){return files.flatMap(file=>file.sheets.filter(sheet=>sheet.selected&&sheet.selectedScoreKey).flatMap(sheet=>sheet.rows.map(row=>{const mapped=sheet.gradeColumns?SR63.gradeImportItem(sheet,row,file.fileName,settings??ej):null;if(mapped)return mapped;const value=row.values[sheet.selectedScoreKey]??{score:null,status:'unentered',recognized:false};return {id:row.id,studentId:row.studentId,studentName:row.studentName,grade:row.grade,className:row.className,subject:sheet.subject.trim(),score:value.score,status:value.status,recognized:value.recognized&&!(value.status==='present'&&value.score===null),sourceFile:file.fileName,sourceSheet:sheet.sheet,sourceRow:row.sourceRow,exam:sheet.exam,totalOverride:value.total??null,teacher:row.teacher??'',department:row.department??'',termComponents:row.termComponents??null};})));}
 /* PATCH fde.re */
 async function re(){
   if(!o||o.issues.some(issue=>issue.severity==='error')||!o.profiles.length)return;
@@ -72,9 +72,9 @@ async function ie(files){
   if(files.length>50||files.some(file=>file.size>25000000)||files.reduce((size,file)=>size+file.size,0)>100000000)return eb.error('الحد الأقصى 50 ملفًا، و25 ميجابايت للملف، و100 ميجابايت للدفعة.');
   d('results');A(0);
   try{const parsed=[];for(const [index,file] of files.entries()){parsed.push(ode(await file.arrayBuffer(),file.name,e.settings));A(Math.round((index+1)/files.length*100));await new Promise(resolve=>setTimeout(resolve,0));}
-    if(O9(parsed).length>400000)throw new Error('تجاوزت الدفعة 400 ألف نتيجة اختبار.');
+    if(O9(parsed,e.settings).length>400000)throw new Error('تجاوزت الدفعة 400 ألف نتيجة اختبار.');
     const totals={};for(const file of parsed)for(const sheet of file.sheets){const column=sheet.scoreColumns.find(c=>c.key===sheet.selectedScoreKey);totals[A9(file.fileName,sheet.sheet)]=column?.totalKnown?column.suggestedTotal:tj(e.settings,sheet.exam??f).total;}
-    l(parsed);b({});S(false);w(false);_(totals);eb.success(`تم فحص ${files.length} ملف: ${O9(parsed).length} نتيجة في ${new Set(O9(parsed).map(item=>item.className)).size} شعبة. راجع التوزيع الظاهر لكل ورقة قبل الاعتماد.`);
+    l(parsed);b({});S(false);w(false);_(totals);eb.success(`تم فحص ${files.length} ملف: ${O9(parsed,e.settings).length} نتيجة في ${new Set(O9(parsed,e.settings).map(item=>item.className)).size} شعبة. راجع التوزيع الظاهر لكل ورقة قبل الاعتماد.`);
   }catch(error){eb.error(`تعذر الاستيراد: ${error.message}`);}finally{d('');A(0);}
 }
 /* PATCH fde.B */

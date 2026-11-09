@@ -51,7 +51,8 @@ SR63.yearGradeBreakdown=function(row,exam,settings){
  const firstTermPart=verifiedFirst?SR63.termConvert(verifiedFirst.score,verifiedFirst.total,rule.firstTermWeight,round):null;
  const midtermScore=row.statuses?.[cfg.secondMidtermExamKey]==='present'?row.scores?.[cfg.secondMidtermExamKey]:null;
  const midtermTotal=Number(row.totals?.[cfg.secondMidtermExamKey]??settings?.exams?.find(x=>x.key===cfg.secondMidtermExamKey)?.total??15);
- const midtermPart=SR63.termConvert(midtermScore,midtermTotal,rule.secondMidtermWeight,round);
+ const midOfficial=row.termComponents?.[cfg.secondMidtermExamKey]?.source==='midterm_certificate'?row.termComponents[cfg.secondMidtermExamKey].certificateOfficial:null;
+  const midtermPart=Number.isFinite(midOfficial)&&midOfficial>=0&&midOfficial<=15?SR63.termConvert(midOfficial,15,rule.secondMidtermWeight,round):SR63.termConvert(midtermScore,midtermTotal,rule.secondMidtermWeight,round);
  const activityPart=rule.activityWeight>0?SR63.termConvert(data.activityRaw,rule.activityRawTotal,rule.activityWeight,round):0;
  const practicalPart=rule.practicalWeight>0?SR63.termConvert(data.practicalRaw,rule.practicalRawTotal,rule.practicalWeight,round):0;
  const pieces=[firstTermPart,midtermPart,examPart,activityPart,practicalPart];

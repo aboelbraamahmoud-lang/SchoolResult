@@ -272,12 +272,12 @@ function SRSupportDepartmentReport({page:e,exam:t,workspace:n}){
           (0,q.jsx)('th',{children:'الشعبة'}),
           (0,q.jsx)('th',{children:'المعلم'}),
           (0,q.jsxs)('th',{children:['درجة الاختبار',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+rawMax})]}),
-          termFlags.firstFinal?(0,q.jsx)('th',{children:'نهاية الفصل الأول من 40'}):null,termFlags.exam?(0,q.jsx)('th',{children:'الاختبار بعد التحويل'}):null,termFlags.midterm?(0,q.jsx)('th',{children:t===SR63.yearGradeConfig(n.settings).finalExamKey?'منتصف الفصل الثاني':'منتصف الفصل الأول'}):null,termFlags.activity?(0,q.jsx)('th',{children:SR63.termSubjectRule(n.settings,e.subject)?.activityLabel||'أعمال الفصل'}):null,termFlags.practical?(0,q.jsx)('th',{children:'العملي'}):null,(0,q.jsxs)('th',{children:['الدرجة في الشهادة',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+certificateMax})]}),
+          termFlags.firstFinal?(0,q.jsx)('th',{children:'نهاية الفصل الأول من 40'}):null,termFlags.exam?(0,q.jsx)('th',{children:'الاختبار بعد التحويل'}):null,termFlags.midterm?(0,q.jsx)('th',{children:t===SR63.yearGradeConfig(n.settings).finalExamKey?'منتصف الفصل الثاني':'منتصف الفصل الأول'}):null,termFlags.activity?(0,q.jsx)('th',{children:(t===SR63.yearGradeConfig(n.settings).finalExamKey?SR63.yearSubjectRule(n.settings,e.subject):SR63.termSubjectRule(n.settings,e.subject))?.activityLabel||'أعمال الفصل'}):null,termFlags.practical?(0,q.jsx)('th',{children:'العملي'}):null,(0,q.jsxs)('th',{children:['الدرجة في الشهادة',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+certificateMax})]}),
           (0,q.jsx)('th',{children:'النسبة الأصلية'}),
           (0,q.jsx)('th',{children:'الحالة'})
         ]})}),
         (0,q.jsx)('tbody',{children:e.rows.map((row,index)=>{
-          const result=SR63.certificateScore(row,t,n.settings),term=SR63.termGradeBreakdown(row,t,n.settings),original=vj(row,t,n.settings);
+          const result=SR63.certificateScore(row,t,n.settings),term=SR63.termGradeBreakdown(row,t,n.settings),original=term?term.originalPercent:row.termComponents?.[t]?.source==='midterm_certificate'?result?.originalPercent??null:vj(row,t,n.settings);
           return (0,q.jsxs)('tr',{children:[
             (0,q.jsx)('td',{children:e.rowOffset+index+1}),
             (0,q.jsx)('td',{className:'sr686-student-name',children:(0,q.jsx)('strong',{children:row.studentName})}),
