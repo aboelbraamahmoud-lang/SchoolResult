@@ -78,4 +78,16 @@ async function ie(files){
   }catch(error){eb.error(`تعذر الاستيراد: ${error.message}`);}finally{d('');A(0);}
 }
 /* PATCH fde.B */
-function B(sheetId,patch){l(files=>files.map(file=>({...file,sheets:file.sheets.map(sheet=>sheet.id===sheetId?{...sheet,...patch}:sheet)})));b({});w(false);}
+function B(sheetId,patch){
+ if(patch.gradeColumns||patch.exam){
+  const found=c.flatMap(file=>file.sheets.map(sheet=>({file,sheet}))).find(x=>x.sheet.id===sheetId);
+  if(found){
+   const sheet={...found.sheet,...patch},map=sheet.gradeColumns||{},exam=sheet.exam||f;
+   const expected=map.raw?SR63.gradeImportRawMax(e.settings,sheet.subject,exam):
+    map.certificate?SR63.gradeImportCertificateMax(e.settings,sheet.subject,exam):null;
+   if(Number.isFinite(expected)&&expected>0)_(prev=>({...prev,[A9(found.file.fileName,found.sheet.sheet)]:expected}));
+  }
+ }
+ l(files=>files.map(file=>({...file,sheets:file.sheets.map(sheet=>sheet.id===sheetId?{...sheet,...patch}:sheet)})));
+ b({});w(false);
+}

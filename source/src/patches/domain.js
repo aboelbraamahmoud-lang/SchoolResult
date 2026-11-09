@@ -10,7 +10,7 @@ function E9(value,isNumber,settings){
   return {status:'unentered',recognized:false};
 }
 /* PATCH vj */
-vj=(row,exam,settings)=>SR63.validResult(row,exam,settings)&&row.statuses[exam]==='present'?row.scores[exam]/pj(row,exam,settings)*100:null
+vj=(row,exam,settings)=>row.termComponents?.[exam]?.originalExamPresent===false?null:SR63.validResult(row,exam,settings)&&row.statuses[exam]==='present'?row.scores[exam]/pj(row,exam,settings)*100:null
 /* PATCH yj */
 yj=(value,bands)=>typeof value==='number'&&Number.isFinite(value)?[...bands].sort((a,b)=>b.min-a.min).find(band=>value>=band.min&&(value<band.max||band.max===100&&value<=100)):undefined
 /* PATCH wj */
@@ -41,6 +41,12 @@ function bj(rows,exam,settings){
    if(term.originalPercent>=settings.pass)metric.passed++;
    const band=yj(term.originalPercent,settings.bands);if(band){bandCounts[band.id]++;macro[band.macro]++;}
    if(cert){certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;}
+  }else if(cert&&row.termComponents?.[exam]?.source==='midterm_certificate'){
+   if(!Number.isFinite(cert.originalPercent))continue;
+   metric.evaluated++;metric.raw+=cert.rawScore;earned+=cert.rawScore;possible+=cert.rawTotal;
+   certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;
+   if(cert.originalPercent>=settings.pass)metric.passed++;
+   const band=yj(cert.originalPercent,settings.bands);if(band){bandCounts[band.id]++;macro[band.macro]++;}
   }else if(cert){
    metric.evaluated++;metric.raw+=cert.rawScore;earned+=cert.certificateScore;possible+=cert.certificateTotal;
    certificateEarned+=cert.certificateScore;certificatePossible+=cert.certificateTotal;

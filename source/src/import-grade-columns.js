@@ -79,8 +79,9 @@ SR63.gradeImportItem=function(sheet,row,fileName,settings){
  const officialMax=SR63.gradeImportCertificateMax(settings,sheet.subject,exam);
  const activity=cell(m.activity)?.score??null,practical=cell(m.practical)?.score??null,secondTerm=cell(m.secondTerm)?.score??null;
  const keys=[m.raw,m.certificate,m.activity,m.practical,m.secondTerm].filter(Boolean);
- const valid=(key,limit)=>!key||cell(key)?.score==null||Number.isFinite(cell(key)?.score)&&cell(key).score>=0&&cell(key).score<=limit;
- const recognized=new Set(keys).size===keys.length&&selected.recognized!==false&&
+ const valid=(key,limit)=>!key||cell(key)?.recognized!==false&&(cell(key)?.score==null||Number.isFinite(cell(key)?.score)&&cell(key).score>=0&&cell(key).score<=limit);
+ const rawStatusConflict=!!m.raw&&!hasRaw&&raw?.status&&raw.status!=='unentered'&&hasOfficial;
+ const recognized=!rawStatusConflict&&new Set(keys).size===keys.length&&selected.recognized!==false&&
   valid(m.certificate,officialMax)&&valid(m.activity,50)&&valid(m.practical,5)&&valid(m.secondTerm,45);
  const source=exam==='exam2'?'first_term_final':exam==='exam4'?'year_end_final':'midterm_certificate';
  const termComponents=['exam1','exam2','exam3','exam4'].includes(exam)?{
