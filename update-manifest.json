@@ -1,22 +1,22 @@
 {
   "product": "School Results Cloud",
-  "version": "6.10.109",
+  "version": "6.10.110",
   "files": [
     {
       "name": "app.js",
-      "sha256": "6825ad17f57c3c6f227d8c9572e702b528f7d58c93c90eec15dd2482b7c8fd16"
+      "sha256": "3640fd0b9286cb8d768e54df786420d73ce752f14abe8f95de57ddbf29c8b2ea"
     },
     {
       "name": "style.css",
-      "sha256": "8e7eb2fa3936562b045d37a69f9ff5463b9082bbbcfc0f2ca324dc16ac16c77f"
+      "sha256": "a5f4dbdc5c11abc969bfa44ee835ed6f759e998fe2f3cb10284c40e295b0b028"
     },
     {
       "name": "version.json",
-      "sha256": "7e1dec32cd3e8f2e67cf8677257688053fc2c440a271a814f51294f595bed017"
+      "sha256": "0635d333d8755e420ca35096607b83ecd78f9af7f9b1cbcc911a72dc944cb7d8"
     },
     {
       "name": "index.html",
-      "sha256": "c7caff0a42a96958d6dabd61ee883ad8df889dca57d82b61755b581680baf43d"
+      "sha256": "b088705dea405376d2b01b7c8784563d8698ebedf242cdfe8206cfd04101e836"
     },
     {
       "name": "supabase.js",

@@ -1870,3 +1870,61 @@
 .sr-term-subject summary{cursor:pointer;font-weight:800;color:#0b6274;padding:6px;line-height:1.7}
 .sr-term-equation{font-weight:750;color:#1e6778}
 @media print{.sr-term-settings{display:none!important}}
+
+
+/* 6.10.110 — one sheet per line, readable multi-column grade selector. */
+.sr-import-sheet-list{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:18px!important;direction:rtl}
+.sr-import-sheet-card{width:100%;max-width:100%;min-width:0;padding:18px 20px!important;border-radius:18px!important;border:1px solid #bfd2dc!important;box-shadow:0 4px 16px rgba(19,56,75,.055)}
+.sr-import-sheet-card>div:first-child b{font-size:1.13rem;line-height:1.7;white-space:normal;overflow:visible;text-overflow:clip}
+.sr-import-sheet-card>div:first-child small{font-size:.87rem;line-height:1.9;display:block}
+.sr-import-sheet-controls{display:grid!important;grid-template-columns:minmax(250px,1fr) minmax(170px,235px);gap:16px!important;align-items:start}
+.sr-import-sheet-controls>div{min-width:0}
+.sr-import-sheet-controls input,.sr-import-sheet-controls select{width:100%;max-width:100%;min-width:0;font-size:1rem;min-height:45px}
+.sr-import-grade-map{grid-column:1/-1;min-width:0;background:#f0f7fc;border:1px solid #b6d2e2;border-radius:15px;padding:18px;direction:rtl}
+.sr-import-grade-map-title{font-size:1.08rem;font-weight:850;color:#164b63;margin-bottom:12px}
+.sr-import-grade-map-fields{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:start}
+.sr-import-grade-map-fields .sr-term-field{min-width:0;line-height:1.65;font-size:.95rem}
+.sr-import-grade-map-fields select{width:100%;min-height:46px;padding:9px 12px;border:1px solid #9fbaca;border-radius:9px;background:#fff;font-size:.98rem}
+.sr-import-grade-map select{width:100%;max-width:100%}
+.sr-import-grade-preview{overflow-x:auto;background:white;border:1px solid #c7dce7;border-radius:10px;margin-top:14px;padding:12px;direction:rtl}
+.sr-import-grade-preview-table{border-collapse:collapse;min-width:620px;width:100%;text-align:right;font-size:.9rem}
+.sr-import-grade-preview-table th{background:#e9f3f8;color:#17485f;font-weight:750;padding:10px}
+.sr-import-grade-preview-table td{padding:9px 10px;border-bottom:1px solid #e4edf1}
+@media(max-width:1050px){.sr-import-grade-map-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:700px){.sr-import-sheet-controls,.sr-import-grade-map-fields{grid-template-columns:minmax(0,1fr)!important}.sr-import-sheet-card{padding:12px!important}.sr-import-grade-map{padding:12px}}
+
+/* 6.10.110 — review and correct import conflicts without touching saved results. */
+.sr-import-fix-workbench{border:1px solid #c0d6e1;background:#f9fcfe;border-radius:17px;padding:19px;margin:18px 0;direction:rtl;text-align:right;max-width:100%;min-width:0}
+.sr-import-fix-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.sr-import-fix-header h3{font-weight:850;color:#16465b;font-size:1.22rem;margin:0 0 6px}
+.sr-import-fix-header p{font-size:.93rem;color:#577182;line-height:1.8;margin:0}
+.sr-import-fix-count{font-size:.85rem;padding:7px 12px;border-radius:20px;background:#e9f8f0;color:#126348;font-weight:800;white-space:nowrap}
+.sr-import-fix-count.is-risk{background:#fff0e8;color:#9f481f}
+.sr-import-fix-group{margin-top:16px}
+.sr-import-fix-workbench h4{font-size:1.03rem;font-weight:850;color:#1c5164;margin:0 0 12px}
+.sr-import-fix-card{background:#fff;border:1px solid #d2e1e9;border-radius:13px;padding:16px;margin-bottom:12px;min-width:0}
+.sr-import-fix-card-head{display:flex;gap:8px 15px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.sr-import-fix-card-head strong{font-size:1rem;color:#123e51}
+.sr-import-fix-card-head span,.sr-import-fix-card-head small{font-size:.85rem;color:#596d7a}
+.sr-import-fix-error{font-size:.85rem;background:#fff1ee;color:#a63236;border-radius:9px;padding:5px 8px}
+.sr-import-fix-fields{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.sr-import-fix-field{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:.89rem;color:#24495c;font-weight:650}
+.sr-import-fix-field input,.sr-import-fix-field select{display:block;max-width:100%;min-width:0;width:100%;padding:10px 12px;min-height:45px;background:#fff;border:1px solid #bbccd8;border-radius:9px;color:#162f40;font-size:.97rem}
+.sr-import-fix-field input[aria-invalid=true]{border-color:#c64449;background:#fff7f7}
+.sr-import-fix-field:focus-within span{color:#006e79}
+.sr-import-fix-invalid{color:#ad303e}
+.sr-import-fix-actions{margin-top:12px;display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.sr-import-fix-actions small{font-size:.83rem;color:#537084}
+.sr-import-fix-button{background:white;color:#166378;border:1px solid #83b1c4;border-radius:9px;padding:9px 13px;font-size:.87rem;font-weight:750;cursor:pointer}
+.sr-import-fix-button:hover{background:#eef9fc}
+.sr-import-fix-danger{color:#a33739;border-color:#e4b5b7}
+.sr-import-fix-danger:hover{background:#fff4f4}
+.sr-import-fix-cleared{font-size:.9rem;color:#1a7759;margin-top:15px}
+.sr-import-fix-parser{margin-top:15px;padding:12px;border-radius:10px;background:#fff4e6;border:1px solid #f0cc94;color:#7a4b1e;font-size:.9rem;line-height:1.8}
+.sr-import-fix-parser h4{color:#804316}
+.sr-import-fix-alias{margin-top:16px;padding:12px;border:1px solid #d4e4e9;border-radius:10px;background:#fff}
+.sr-import-fix-alias summary{cursor:pointer;color:#135e6d;font-weight:800}
+.sr-import-fix-alias p{color:#607b89;font-size:.85rem;margin:10px 0}
+@media(max-width:1050px){.sr-import-fix-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:650px){.sr-import-fix-fields{grid-template-columns:minmax(0,1fr)}.sr-import-fix-workbench{padding:12px}}
+@media print{.sr-import-fix-workbench{display:none!important}}
