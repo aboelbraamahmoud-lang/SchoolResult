@@ -101,4 +101,21 @@ assert.equal(keepOfficial.components.certificateOfficial,11,'raw-only reimport m
 const partialActivity={...end.item,termComponents:{...end.item.termComponents,activityRaw:null}};
 const keepActivity=S.gradeImportMergeRow(normal,partialActivity,'exam4',50);
 assert.equal(keepActivity.components.activityRaw,45,'reimport may not silently clear activity /50');
+// Exercise the actual uploaded workbook parser and item mapper, not just the helpers.
+const uploaded={SheetNames:['العلوم'],Sheets:{العلوم:G.aoa_to_sheet([
+ ['مدرسة افتراضية'],['المادة: العلوم - الفترة: نهاية العام'],
+ ['الرقم','الاسم','الشعبة الصفية','الاختبار النظري','نشاط الطالب','الاختبار العملي','نهاية العام'],
+ [id,name,'07/1',25,40,4,69]
+])}};
+const bytes=G.write(uploaded,{type:'array',bookType:'xlsx'});
+const parsed=ctx.ode(bytes,'uploaded-science.xlsx',settings);
+assert.ok(parsed.sheets.length>0,'Excel upload must produce a selectable sheet');
+const readSheet=parsed.sheets.find(s=>s.exam==='exam4'&&S.subjectAliasKey(s.subject)===S.subjectAliasKey('العلوم'));
+assert.ok(readSheet,'Period and subject must be detected from workbook metadata');
+assert.ok(readSheet.gradeColumns.raw&&readSheet.gradeColumns.activity&&readSheet.gradeColumns.practical&&readSheet.gradeColumns.certificate);
+const items=ctx.O9([parsed],settings);
+assert.equal(items.length,1);
+assert.equal(items[0].score,25);assert.equal(items[0].termComponents.activityRaw,40);
+assert.equal(items[0].termComponents.practicalRaw,4);
+assert.equal(items[0].termComponents.certificateOfficial,69);
 console.log('PASS multi-column mapping: four exams, official midterms, 50-to-5 activity, science practical, official-only, wide Excel and validation');
