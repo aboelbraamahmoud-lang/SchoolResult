@@ -72,7 +72,8 @@ SR63.ImportReconcileFixPanel=function(props){
  const h=v.createElement;
  const {files,setFiles,items,invalid,unmatched,matches,setAssignments,workspace,defaultExam,getTotal,totals,setTotals,onSheetPatch,metadataIssues}=props;
  const [limit,setLimit]=v.useState(20);
- const issues=SR63.importReviewIssueDetails(files,items,invalid,workspace,defaultExam);
+ const allIssues=SR63.importReviewIssueDetails(files,items,invalid,workspace,defaultExam);
+ const issues=props.identityUnresolved===0?allIssues.map(item=>({...item,reasons:item.reasons.filter(reason=>!reason.includes('اسم مختلف للرقم الأكاديمي'))})).filter(item=>item.reasons.length):allIssues;
  const sheetProblems=[];
  for(const file of files||[]){
   for(const error of file.issues||[])if(error.severity==='error')sheetProblems.push({file,sheet:null,issue:error});
