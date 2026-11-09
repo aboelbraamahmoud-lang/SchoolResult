@@ -107,8 +107,10 @@ const uploaded={SheetNames:['العلوم'],Sheets:{العلوم:G.aoa_to_sheet(
  ['الرقم','الاسم','الشعبة الصفية','الاختبار النظري','نشاط الطالب','الاختبار العملي','نهاية العام'],
  [id,name,'07/1',25,40,4,69]
 ])}};
-const bytes=G.write(uploaded,{type:'array',bookType:'xlsx'});
-const parsed=ctx.ode(bytes,'uploaded-science.xlsx',settings);
+const oldReader=ctx.hv;
+let parsed;
+try{ctx.hv=()=>uploaded;parsed=ctx.ode(new Uint8Array(0),'uploaded-science.xlsx',settings);}
+finally{ctx.hv=oldReader;}
 assert.ok(parsed.sheets.length>0,'Excel upload must produce a selectable sheet');
 const readSheet=parsed.sheets.find(s=>s.exam==='exam4'&&S.subjectAliasKey(s.subject)===S.subjectAliasKey('العلوم'));
 assert.ok(readSheet,'Period and subject must be detected from workbook metadata');
