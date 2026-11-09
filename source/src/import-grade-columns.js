@@ -102,6 +102,9 @@ SR63.ImportGradeColumnFields=function({sheet,onChange}){
  const final=exam==='exam2'||exam==='exam4';
  const science=SR63.subjectAliasKey(sheet.subject)===SR63.subjectAliasKey('العلوم');
  const options=[h('option',{key:'none',value:''},'— غير محدد —'),...(sheet.scoreColumns||[]).map(c=>h('option',{key:c.key,value:String(c.key)},String(c.header)+' (عمود '+(Number(c.index)+1)+')'))];
+ const previewValue=(row,key)=>{const x=key?row.values?.[String(key)]?.score:null;return Number.isFinite(x)?String(x):'—';};
+ const activityLabel=row=>{const x=m.activity?row.values?.[String(m.activity)]?.score:null;return Number.isFinite(x)?String(x)+' / 50 ← '+String(Number((x/10).toFixed(3)))+' / 5 قبل الجبر':'—';};
+ const sample=sheet.rows.slice(0,3);
  const update=(key,value)=>{
   const next={...m,[key]:value},patch={gradeColumns:next};
   if(key==='raw')patch.selectedScoreKey=value||next.certificate||'';
@@ -124,6 +127,16 @@ SR63.ImportGradeColumnFields=function({sheet,onChange}){
     ...(science?[select('العملي للعلوم من 5','practical')]:[]),
     ...(exam==='exam4'?[select('مجموع الفصل الثاني من 45 (اختياري)','secondTerm')]:[])]:[])),
   h('p',{className:'mt-2 text-xs text-sky-800'},'تبقى الدرجتان الأصلية والرسمية محفوظتين. النشاط من 50 ويحول إلى 5. لا تُضاف أنشطة الفصل الأول مرتين.'),
+  h('div',{className:'mt-3 overflow-auto rounded-lg border border-sky-200 bg-white p-2'},
+   h('p',{className:'mb-2 text-xs font-bold text-sky-900'},'معاينة أول '+sample.length+' نتائج من الأعمدة المختارة'),
+   h('table',{className:'w-full text-xs text-right'},
+    h('thead',{},h('tr',{},...['الطالب','الاختبار الخام','الشهادة الرسمية','النشاط (50 ← 5)','العملي'].map(title=>h('th',{key:title,className:'border-b p-1'},title)))),
+    h('tbody',{},...sample.map(row=>h('tr',{key:row.id},
+     h('td',{className:'border-b p-1'},row.studentName||'—'),
+     h('td',{className:'border-b p-1'},previewValue(row,m.raw)),
+     h('td',{className:'border-b p-1'},previewValue(row,m.certificate)),
+     h('td',{className:'border-b p-1'},activityLabel(row)),
+     h('td',{className:'border-b p-1'},previewValue(row,m.practical))))))),
   new Set(Object.values(m).filter(Boolean)).size!==Object.values(m).filter(Boolean).length?
    h('p',{className:'mt-2 font-bold text-rose-700'},'اختر عمودًا مختلفًا لكل مكوّن.'):null);
 };

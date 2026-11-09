@@ -82,5 +82,5 @@
     "test:year-grades": "node --expose-internals tests/year-grades-20261109.cjs",
     "test:multi-grade-import": "node --expose-internals tests/multi-grade-import-20261109.cjs"
   },
-  "version": "6.10.108"
+  "version": "6.10.109"
 }

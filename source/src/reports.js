@@ -284,7 +284,7 @@ function SRSupportDepartmentReport({page:e,exam:t,workspace:n}){
             (0,q.jsx)('td',{children:SR63.displayClass(hj(row,t)||row.className)}),
             (0,q.jsx)('td',{children:mj(row,t)||row.teacher||'غير مربوط'}),
             (0,q.jsx)('td',{children:term?.rawScore??result?.rawScore??'—'}),termFlags.firstFinal?(0,q.jsx)('td',{children:term?.rule?.showFirstTerm?(term.firstTermPart??'—'):'—'}):null,termFlags.exam?(0,q.jsx)('td',{children:term?.examPart??'—'}):null,termFlags.midterm?(0,q.jsx)('td',{children:term?.rule?.showMidterm?(term.midtermPart??'—'):'—'}):null,termFlags.activity?(0,q.jsx)('td',{children:term?.rule?.showActivity?(term.activityPart??'—'):'—'}):null,termFlags.practical?(0,q.jsx)('td',{children:term?.rule?.showPractical?(term.practicalPart??'—'):'—'}):null,
-            (0,q.jsx)('td',{title:term?.discrepancy?'اختلاف عن المستوردة':term?.officialUsed?'شهادة مستوردة لم تكتمل مكوناتها':'',children:result?String(result.certificateScore)+(term?.officialUsed?' (مستوردة)':term?.discrepancy?' ⚠':''):'—'}),
+            (0,q.jsx)('td',{title:term?.discrepancy||result?.discrepancy?'اختلاف عن المستوردة':term?.officialUsed||result?.officialUsed?'شهادة رسمية مستوردة':'',children:result?String(result.certificateScore)+(term?.discrepancy||result?.discrepancy?' ⚠':term?.officialUsed||result?.officialUsed?' (مستوردة)':''):'—'}),
             (0,q.jsx)('td',{children:original===null?'—':wj(original,1)}),
             (0,q.jsx)('td',{children:term&&Number.isFinite(term.originalPercent)?(term.originalPercent>=n.settings.pass?'ناجح':'راسب'):result?(result.passed?'ناجح':'راسب'):Dj(row.statuses?.[t]||'unentered')})
           ]},row.id||index);
