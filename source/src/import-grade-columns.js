@@ -17,6 +17,8 @@ SR63.gradeImportRawMax=(settings,subject,exam)=>exam==='exam2'?(SR63.termSubject
 SR63.gradeImportPrepare=function(sheets,book,settings){
  for(const sheet of sheets){
   const worksheet=book.Sheets[sheet.sourceSheet||sheet.sheet];if(!worksheet||!sheet.rows?.length)continue;
+  // Keep the legacy one-column import untouched when the assessment period is unknown.
+  const exam=SR63.gradeImportPeriod(sheet);if(!exam)continue;
   const matrix=Gv.sheet_to_json(worksheet,{header:1,raw:true,defval:null,blankrows:true});
   const headers=(matrix[sheet.headerRow-1]||[]).map(C9);
   const columns=new Map((sheet.scoreColumns||[]).map(c=>[String(c.key),c]));
@@ -39,8 +41,7 @@ SR63.gradeImportPrepare=function(sheets,book,settings){
     }
    }
   }
-  const exam=SR63.gradeImportPeriod(sheet);
-  if(exam)sheet.exam=exam;
+  sheet.exam=exam;
   const science=SR63.subjectAliasKey(sheet.subject)===SR63.subjectAliasKey('العلوم');
   const find=(rules,avoid=[])=>{
    for(const re of rules){const c=sheet.scoreColumns.find(x=>re.test(String(x.header||''))&&!avoid.includes(String(x.key)));if(c)return String(c.key);}
