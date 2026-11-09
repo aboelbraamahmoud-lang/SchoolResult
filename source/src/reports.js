@@ -272,19 +272,19 @@ function SRSupportDepartmentReport({page:e,exam:t,workspace:n}){
           (0,q.jsx)('th',{children:'الشعبة'}),
           (0,q.jsx)('th',{children:'المعلم'}),
           (0,q.jsxs)('th',{children:['درجة الاختبار',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+rawMax})]}),
-          termFlags.firstFinal?(0,q.jsx)('th',{children:'نهاية الفصل الأول من 40'}):null,termFlags.exam?(0,q.jsx)('th',{children:'الاختبار بعد التحويل'}):null,termFlags.midterm?(0,q.jsx)('th',{children:t===SR63.yearGradeConfig(n.settings).finalExamKey?'منتصف الفصل الثاني':'منتصف الفصل الأول'}):null,termFlags.activity?(0,q.jsx)('th',{children:SR63.termSubjectRule(n.settings,e.subject)?.activityLabel||'أعمال الفصل'}):null,termFlags.practical?(0,q.jsx)('th',{children:'العملي'}):null,(0,q.jsxs)('th',{children:['الدرجة في الشهادة',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+certificateMax})]}),
+          termFlags.firstFinal?(0,q.jsx)('th',{children:'نهاية الفصل الأول من 40'}):null,termFlags.exam?(0,q.jsx)('th',{children:'الاختبار بعد التحويل'}):null,termFlags.midterm?(0,q.jsx)('th',{children:t===SR63.yearGradeConfig(n.settings).finalExamKey?'منتصف الفصل الثاني':'منتصف الفصل الأول'}):null,termFlags.activity?(0,q.jsx)('th',{children:(t===SR63.yearGradeConfig(n.settings).finalExamKey?SR63.yearSubjectRule(n.settings,e.subject):SR63.termSubjectRule(n.settings,e.subject))?.activityLabel||'أعمال الفصل'}):null,termFlags.practical?(0,q.jsx)('th',{children:'العملي'}):null,(0,q.jsxs)('th',{children:['الدرجة في الشهادة',(0,q.jsx)('small',{className:'sr685-maximum',children:'العظمى '+certificateMax})]}),
           (0,q.jsx)('th',{children:'النسبة الأصلية'}),
           (0,q.jsx)('th',{children:'الحالة'})
         ]})}),
         (0,q.jsx)('tbody',{children:e.rows.map((row,index)=>{
-          const result=SR63.certificateScore(row,t,n.settings),term=SR63.termGradeBreakdown(row,t,n.settings),original=vj(row,t,n.settings);
+          const result=SR63.certificateScore(row,t,n.settings),term=SR63.termGradeBreakdown(row,t,n.settings),original=term?term.originalPercent:row.termComponents?.[t]?.source==='midterm_certificate'?result?.originalPercent??null:vj(row,t,n.settings);
           return (0,q.jsxs)('tr',{children:[
             (0,q.jsx)('td',{children:e.rowOffset+index+1}),
             (0,q.jsx)('td',{className:'sr686-student-name',children:(0,q.jsx)('strong',{children:row.studentName})}),
             (0,q.jsx)('td',{children:SR63.displayClass(hj(row,t)||row.className)}),
             (0,q.jsx)('td',{children:mj(row,t)||row.teacher||'غير مربوط'}),
             (0,q.jsx)('td',{children:term?.rawScore??result?.rawScore??'—'}),termFlags.firstFinal?(0,q.jsx)('td',{children:term?.rule?.showFirstTerm?(term.firstTermPart??'—'):'—'}):null,termFlags.exam?(0,q.jsx)('td',{children:term?.examPart??'—'}):null,termFlags.midterm?(0,q.jsx)('td',{children:term?.rule?.showMidterm?(term.midtermPart??'—'):'—'}):null,termFlags.activity?(0,q.jsx)('td',{children:term?.rule?.showActivity?(term.activityPart??'—'):'—'}):null,termFlags.practical?(0,q.jsx)('td',{children:term?.rule?.showPractical?(term.practicalPart??'—'):'—'}):null,
-            (0,q.jsx)('td',{title:term?.discrepancy?'اختلاف عن المستوردة':term?.officialUsed?'شهادة مستوردة لم تكتمل مكوناتها':'',children:result?String(result.certificateScore)+(term?.officialUsed?' (مستوردة)':term?.discrepancy?' ⚠':''):'—'}),
+            (0,q.jsx)('td',{title:term?.discrepancy||result?.discrepancy?'اختلاف عن المستوردة':term?.officialUsed||result?.officialUsed?'شهادة رسمية مستوردة':'',children:result?String(result.certificateScore)+(term?.discrepancy||result?.discrepancy?' ⚠':term?.officialUsed||result?.officialUsed?' (مستوردة)':''):'—'}),
             (0,q.jsx)('td',{children:original===null?'—':wj(original,1)}),
             (0,q.jsx)('td',{children:term&&Number.isFinite(term.originalPercent)?(term.originalPercent>=n.settings.pass?'ناجح':'راسب'):result?(result.passed?'ناجح':'راسب'):Dj(row.statuses?.[t]||'unentered')})
           ]},row.id||index);

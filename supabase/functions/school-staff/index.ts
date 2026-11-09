@@ -90,7 +90,7 @@ const summaryBenchmarks=(ws:any,examKey?:string)=>{
   if(specialEducationRow(row)||/دمج|دعم إضافي/.test(String(row.department||'')))continue;
   const name=String(row.department||row.subject||'').trim();if(!name)continue;
   const status=row.statuses?.[exam],score=row.scores?.[exam],max=row.totals?.[exam]??ws.settings?.exams?.find((e:any)=>e.key===exam)?.total;
-  if(status!=='present'||typeof score!=='number'||!Number.isFinite(score)||typeof max!=='number'||!Number.isFinite(max)||max<=0)continue;
+  if(status!=='present'||row.termComponents?.[exam]?.originalExamPresent===false||typeof score!=='number'||!Number.isFinite(score)||typeof max!=='number'||!Number.isFinite(max)||max<=0)continue;
   const x=per.get(name)||{department:name,evaluated:0,passed:0,score:0,total:0};
   x.evaluated++;x.score+=score;x.total+=max;if(score/max*100>=Number(ws.settings?.pass??50))x.passed++;per.set(name,x);
  }

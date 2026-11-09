@@ -40,7 +40,8 @@ SR63.termGradeBreakdown=function(row,exam,settings){
  const examPart=SR63.termConvert(rawScore,rawTotal,rule.examWeight,cfg.rounding);
  const midScore=row.statuses?.[cfg.midtermExamKey]==='present'?row.scores?.[cfg.midtermExamKey]:null;
  const midTotal=Number(row.totals?.[cfg.midtermExamKey]??settings?.exams?.find(e=>e.key===cfg.midtermExamKey)?.total??15);
- const midtermPart=SR63.termConvert(midScore,midTotal,rule.midtermWeight,cfg.rounding);
+ const midOfficial=row.termComponents?.[cfg.midtermExamKey]?.source==='midterm_certificate'?row.termComponents[cfg.midtermExamKey].certificateOfficial:null;
+  const midtermPart=Number.isFinite(midOfficial)&&midOfficial>=0&&midOfficial<=15?SR63.termConvert(midOfficial,15,rule.midtermWeight,cfg.rounding):SR63.termConvert(midScore,midTotal,rule.midtermWeight,cfg.rounding);
  const activityPart=rule.activityWeight>0?SR63.termConvert(extra.activityRaw,rule.activityRawTotal,rule.activityWeight,cfg.rounding):0;
  const practicalPart=rule.practicalWeight>0?SR63.termConvert(extra.practicalRaw,rule.practicalRawTotal,rule.practicalWeight,cfg.rounding):0;
  const parts=[examPart,midtermPart,activityPart,practicalPart];
@@ -87,7 +88,7 @@ SR63.termAttachWorkbookPreview=function(sheets,book,fileName,settings){
   const hasFinal=matrix.slice(0,3).some(row=>row.some(x=>/الفترة\s*:\s*نهاية الفصل الأول/.test(String(x||''))))||officialCol>=0;
   if(!hasFinal||headers.some(x=>/(نهاية الفصل الثاني|نهاية الفصل الدراسي الثاني|نهاية العام|المجموع السنوي|المجموع النهائي)/.test(String(x)))||/(نهاية\s*الفصل\s*(?:الدراسي\s*)?الثاني|نهاية\s*العام|نهاية\s*السنة)/.test(matrix.slice(0,3).flat().map(x=>String(x||'')).join(' ')))continue;
   const rule=SR63.termSubjectRule(settings,sheet.subject||sheet.sheet);if(!rule)continue;
-  const scoreCol=examCol>=0?examCol:rule.mode==='official'?officialCol:-1;if(scoreCol<0)continue;
+  const scoreCol=examCol>=0?examCol:officialCol;if(scoreCol<0)continue;
   sheet.exam=finalKey;sheet.period='نهاية الفصل الأول';sheet.termFinal=true;sheet.selectedScoreKey=String(scoreCol);
   let examColumn=sheet.scoreColumns.find(x=>Number(x.index)===scoreCol);
   if(!examColumn){examColumn={key:String(scoreCol),index:scoreCol,header:headers[scoreCol],numericCount:0,statusCount:0};sheet.scoreColumns.push(examColumn);}
