@@ -77,7 +77,10 @@ SR63.gradeReviewPrint=function(items,workspace,exam,cohort){
   const tr=items.map((item,index)=>`<tr><td>${index+1}</td><td><strong style="font-size:12pt;font-weight:900">${safe(item.studentName)}</strong></td><td>${safe(item.className)}</td><td>${safe(item.subject)}</td><td>${safe(item.score===null?'—':item.score)}</td><td>${safe(item.certificate?.certificateScore??'—')}</td><td>${safe(item.reasonLabel)}</td></tr>`).join('');
   root.innerHTML=`<div class="sr613-print-heading"><h1>${safe(workspace.settings.schoolName)}</h1><h2>كشف مراجعة الدرجات غير المكتملة</h2><p>${safe(examName)} — ${safe(scope)} — ${items.length} حالة</p><p>العام الأكاديمي: ${safe(workspace.settings.academicYear)}</p></div><table><thead><tr><th>م</th><th>اسم الطالب</th><th>الشعبة</th><th>المادة</th><th>درجة الاختبار<br>العظمى ${safe(rawMax)}</th><th>درجة الشهادة<br>العظمى ${safe(certMax)}</th><th>السبب</th></tr></thead><tbody>${tr}</tbody></table><p class="sr613-print-note">لم تُحوَّل حالات الغياب أو عدم الرصد إلى درجة صفر. التقرير يعرض الحالات المطابقة للفلاتر المختارة.</p>`;
   document.body.appendChild(root);document.body.classList.add('sr613-printing');
-  const cleanup=()=>{root.remove();document.body.classList.remove('sr613-printing');};
+  // This root is hidden on screen; inspect it once print-media styles apply.
+  const prepareContrast=()=>SR63.ensureReportContrast?.(root);
+  const cleanup=()=>{window.removeEventListener('beforeprint',prepareContrast);root.remove();document.body.classList.remove('sr613-printing');};
+  window.addEventListener('beforeprint',prepareContrast);
   window.addEventListener('afterprint',cleanup,{once:true});
   try{window.print();}catch(error){cleanup();eb.error('تعذر فتح نافذة الطباعة.');}
 };

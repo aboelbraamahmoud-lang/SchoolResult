@@ -169,6 +169,9 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
     const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');
+    // HTML-string reports have no live preview node to repair before cloning.
+    // Recheck every final popup after its own styles and fonts are available.
+    SR63.ensureReportContrast?.(win.document);
     const fit=SR63.fitReportPagesForPrint(win.document,landscape);
     if(fit.some(page=>page.zoom<.35))throw Error('عرض التقرير يتجاوز مساحة A4 بشكل كبير؛ اختر صفًا أو معلمًا أو عددًا أقل من الأعمدة.');
     win.focus();win.print();
@@ -186,6 +189,6 @@ SR63.printScopedStaffPanel=function(selector,title='تقرير المدرسة'){
  void SR63.getReportStyleText().then(css=>{
   if(win.closed)return;
   win.document.open();win.document.write('<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>'+String(title).replace(/[<>"']/g,'')+'</title><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;padding:12px;background:white}.srstaff-panel{border:0;box-shadow:none}.srstaff-band-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}button{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>'+node.outerHTML+'</body></html>');win.document.close();
-  void (win.document.fonts?.ready||Promise.resolve()).then(()=>{if(!win.closed){win.focus();win.print();}});
+  void (win.document.fonts?.ready||Promise.resolve()).then(()=>{if(!win.closed){SR63.ensureReportContrast?.(win.document);win.focus();win.print();}});
  }).catch(()=>{if(!win.closed)win.document.body.textContent='تعذر تحميل تنسيق التقرير. لم تُنفذ الطباعة.';});
 };

@@ -1643,6 +1643,8 @@ SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',o
   const s=String(value||'').trim();
   const rgb=s.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)$/i);
   if(rgb)return [+rgb[1],+rgb[2],+rgb[3],rgb[4]===undefined?1:+rgb[4]];
+  const srgb=s.match(/^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\)$/i);
+  if(srgb)return [+srgb[1]*255,+srgb[2]*255,+srgb[3]*255,srgb[4]===undefined?1:+srgb[4]];
   const h=s.match(/^#([a-f\d]{3,8})$/i);
   if(h){let v=h[1];if(v.length===3||v.length===4)v=v.split('').map(c=>c+c).join('');if(v.length===6||v.length===8)return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16),v.length===8?parseInt(v.slice(6,8),16)/255:1];}
   return null;
@@ -1650,32 +1652,31 @@ SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',o
  const blend=(front,back)=>{const alpha=front?.[3]??1;return [0,1,2].map(i=>(front?.[i]??back[i])*alpha+back[i]*(1-alpha)).concat([1]);};
  const lum=color=>[.2126,.7152,.0722].reduce((n,weight,i)=>{let v=color[i]/255;return n+weight*(v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));},0);
  const ratio=(a,b)=>{const la=lum(a),lb=lum(b);return (Math.max(la,lb)+.05)/(Math.min(la,lb)+.05)};
- const rgbString=a=>'rgb('+a.slice(0,3).map(v=>Math.max(0,Math.min(255,Math.round(v)))).join(',')+')';
  const bgColor=(el)=>{
-  let color=[255,255,255,1],stack=[];
+  let colors=[[255,255,255,1]],stack=[];
   for(let node=el;node?.nodeType===1;node=node.parentElement)stack.push(node);
   for(let i=stack.length-1;i>=0;i--){
    const style=stack[i].ownerDocument.defaultView.getComputedStyle(stack[i]),bg=rgba(style.backgroundColor);
-   if(bg&&bg[3]>0)color=blend(bg,color);
-   const gradients=String(style.backgroundImage||'').match(/(?:rgba?\([^)]+\)|#[0-9a-f]{3,8})/gi);
+   if(bg&&bg[3]>0)colors=colors.map(color=>blend(bg,color));
+   const gradients=String(style.backgroundImage||'').match(/(?:rgba?\([^)]+\)|color\(srgb[^)]+\)|#[0-9a-f]{3,8})/gi);
    if(gradients&&/gradient/i.test(style.backgroundImage)){
     const samples=gradients.map(rgba).filter(Boolean);
     if(samples.length){
-     // If every gradient stop is dark, white text is correct; otherwise use average surface.
-     const avg=[0,1,2].map(c=>samples.reduce((sum,item)=>sum+item[c],0)/samples.length).concat([1]);
-     color=blend(avg,color);
+     // Check every stop rather than hiding a dark endpoint in an average.
+     colors=colors.flatMap(color=>samples.map(sample=>blend(sample,color)));
+     if(colors.length>32)colors=[colors.reduce((a,b)=>lum(a)<lum(b)?a:b),colors.reduce((a,b)=>lum(a)>lum(b)?a:b)];
     }
    }
   }
-  return color;
+  return colors;
  };
  SR63.readableReportColor=function(foreground,background){
   const fg=rgba(foreground),bg=rgba(background);
   if(!fg||!bg)return foreground;
   const painted=blend(fg,bg);
   if(ratio(painted,bg)>=4.5)return foreground;
-  const light=[255,255,255,1],dark=[22,49,65,1];
-  return ratio(light,bg)>ratio(dark,bg)?'#ffffff':'#163141';
+  const light=[255,255,255,1],dark=[0,0,0,1];
+  return ratio(light,bg)>ratio(dark,bg)?'#ffffff':'#000000';
  };
  SR63.ensureReportContrast=function(root){
   if(!root||typeof getComputedStyle!=='function')return 0;
@@ -1687,11 +1688,25 @@ SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',o
    if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
    const style=el.ownerDocument.defaultView.getComputedStyle(el);
    if(style.display==='none'||style.visibility==='hidden')continue;
-   const fg=style.color,background=bgColor(el),painted=blend(rgba(fg)||[0,0,0,1],background);
-   if(ratio(painted,background)>=4.5)continue;
-   const replacement=ratio([255,255,255],background)>ratio([22,49,65],background)?'#ffffff':'#163141';
+   const fg=style.webkitTextFillColor&&style.webkitTextFillColor!=='currentcolor'?style.webkitTextFillColor:style.color;
+   const backgrounds=bgColor(el),foreground=rgba(fg)||[0,0,0,1];
+   const readable=backgrounds.every(background=>{const painted=blend(foreground,background);return ratio(painted,background)>=4.5;});
+   if(readable){
+    // Word reads color, while browser paint can use -webkit-text-fill-color.
+    if(style.color!==fg)el.style.setProperty('color',fg,'important');
+    continue;
+   }
+   const white=Math.min(...backgrounds.map(background=>ratio([255,255,255],background)));
+   const black=Math.min(...backgrounds.map(background=>ratio([0,0,0],background)));
+   const replacement=white>black?'#ffffff':'#000000';
+   if(Math.max(white,black)<4.5){
+    // A single foreground cannot cover a dark-to-light gradient safely.
+    el.style.setProperty('background-color',replacement==='#ffffff'?'#000000':'#ffffff','important');
+    el.style.setProperty('background-image','none','important');
+   }
    el.style.setProperty('color',replacement,'important');
-   if(el.tagName==='TH'||el.tagName==='TD')el.style.setProperty('text-shadow','none','important');
+   el.style.setProperty('-webkit-text-fill-color',replacement,'important');
+   el.style.setProperty('text-shadow','none','important');
    changed++;
   }
   return changed;
@@ -1984,7 +1999,10 @@ SR63.gradeReviewPrint=function(items,workspace,exam,cohort){
   const tr=items.map((item,index)=>`<tr><td>${index+1}</td><td><strong style="font-size:12pt;font-weight:900">${safe(item.studentName)}</strong></td><td>${safe(item.className)}</td><td>${safe(item.subject)}</td><td>${safe(item.score===null?'—':item.score)}</td><td>${safe(item.certificate?.certificateScore??'—')}</td><td>${safe(item.reasonLabel)}</td></tr>`).join('');
   root.innerHTML=`<div class="sr613-print-heading"><h1>${safe(workspace.settings.schoolName)}</h1><h2>كشف مراجعة الدرجات غير المكتملة</h2><p>${safe(examName)} — ${safe(scope)} — ${items.length} حالة</p><p>العام الأكاديمي: ${safe(workspace.settings.academicYear)}</p></div><table><thead><tr><th>م</th><th>اسم الطالب</th><th>الشعبة</th><th>المادة</th><th>درجة الاختبار<br>العظمى ${safe(rawMax)}</th><th>درجة الشهادة<br>العظمى ${safe(certMax)}</th><th>السبب</th></tr></thead><tbody>${tr}</tbody></table><p class="sr613-print-note">لم تُحوَّل حالات الغياب أو عدم الرصد إلى درجة صفر. التقرير يعرض الحالات المطابقة للفلاتر المختارة.</p>`;
   document.body.appendChild(root);document.body.classList.add('sr613-printing');
-  const cleanup=()=>{root.remove();document.body.classList.remove('sr613-printing');};
+  // This root is hidden on screen; inspect it once print-media styles apply.
+  const prepareContrast=()=>SR63.ensureReportContrast?.(root);
+  const cleanup=()=>{window.removeEventListener('beforeprint',prepareContrast);root.remove();document.body.classList.remove('sr613-printing');};
+  window.addEventListener('beforeprint',prepareContrast);
   window.addEventListener('afterprint',cleanup,{once:true});
   try{window.print();}catch(error){cleanup();eb.error('تعذر فتح نافذة الطباعة.');}
 };
@@ -2791,6 +2809,9 @@ SR63.printReportBatch=async function(selector,title='تقرير المدرسة',
     // If any page cannot be styled correctly, do not send broken, unformatted sheets to the printer.
     const logo=win.document.querySelector('.report-logo-image,.student-result-header img');
     if(logo && logo.getBoundingClientRect().width>230)throw Error('لم يكتمل تنسيق شعار التقرير؛ تم إيقاف الطباعة لتجنب الصفحات غير المنسقة.');
+    // HTML-string reports have no live preview node to repair before cloning.
+    // Recheck every final popup after its own styles and fonts are available.
+    SR63.ensureReportContrast?.(win.document);
     const fit=SR63.fitReportPagesForPrint(win.document,landscape);
     if(fit.some(page=>page.zoom<.35))throw Error('عرض التقرير يتجاوز مساحة A4 بشكل كبير؛ اختر صفًا أو معلمًا أو عددًا أقل من الأعمدة.');
     win.focus();win.print();
@@ -2808,7 +2829,7 @@ SR63.printScopedStaffPanel=function(selector,title='تقرير المدرسة'){
  void SR63.getReportStyleText().then(css=>{
   if(win.closed)return;
   win.document.open();win.document.write('<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>'+String(title).replace(/[<>"']/g,'')+'</title><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;padding:12px;background:white}.srstaff-panel{border:0;box-shadow:none}.srstaff-band-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}button{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>'+node.outerHTML+'</body></html>');win.document.close();
-  void (win.document.fonts?.ready||Promise.resolve()).then(()=>{if(!win.closed){win.focus();win.print();}});
+  void (win.document.fonts?.ready||Promise.resolve()).then(()=>{if(!win.closed){SR63.ensureReportContrast?.(win.document);win.focus();win.print();}});
  }).catch(()=>{if(!win.closed)win.document.body.textContent='تعذر تحميل تنسيق التقرير. لم تُنفذ الطباعة.';});
 };
 
@@ -3799,7 +3820,7 @@ SR63.staffReportBuild=function(type,args){
   const logoSrc=new URL('./moehe.png',document.baseURI).href;
   const html=students.map(stu=>certificateHtml(stu,{...options,logoSrc})).join('');
   win.document.open();win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقارير الأكاديمية والسلوكية</title><style>${certificatePrintStyle}</style></head><body>${html}</body></html>`);win.document.close();
-  let printed=false;const print=()=>{if(printed||win.closed)return;printed=true;win.focus();win.print();};
+  let printed=false;const print=()=>{if(printed||win.closed)return;printed=true;SR63.ensureReportContrast?.(win.document);win.focus();win.print();};
   Promise.race([win.document.fonts?.ready||Promise.resolve(),new Promise(resolve=>setTimeout(resolve,1500))]).then(()=>{
    if(win.closed)return;
    const image=win.document.querySelector('img');if(!image||image.complete)print();else{image.addEventListener('load',print,{once:true});image.addEventListener('error',print,{once:true});setTimeout(print,2000);}
@@ -4398,7 +4419,10 @@ SR63.AIPlans=function({workspace,setWorkspace,coordinator=false,canSave=true,can
     const root=document.createElement('section');root.id='sr616-print-root';root.className='sr616-print-root';
     root.innerHTML=`<h1>${safe(workspace.settings.schoolName)}</h1><h2>${safe(plan.title)}</h2><p>المادة: ${safe(plan.subject)} | التقييم: ${safe(plan.exam)} | ${safe(plan.cohort==='support'?'الدعم الإضافي':'التعليم العام')}</p><p>عدد الطلاب: ${plan.members.length} | الحالة: ${safe(plan.status)} | مصدر المسودة: ${safe(plan.source)}</p><h3>الطلاب المستهدفون (نسخة داخلية)</h3><p>${plan.members.map(m=>safe(m.studentName)+' - '+safe(m.className)).join('، ')}</p><h3>التشخيص</h3><p>${safe(plan.diagnosis)}</p><h3>الهدف</h3><p>${safe(plan.goal)}</p><h3>معيار النجاح</h3><p>${safe(plan.successCriterion)}</p><table><thead><tr><th>الأسبوع</th><th>الإجراء</th><th>الموارد</th><th>أداة القياس</th><th>التنفيذ والمتابعة</th></tr></thead><tbody>${plan.steps.map(s=>`<tr><td>${s.week}</td><td>${safe(s.action)}</td><td>${safe(s.resources)}</td><td>${safe(s.measure)}</td><td>${safe(s.completed?'تم':'لم يُنفذ')}: ${safe(s.followUp||'—')}</td></tr>`).join('')}</tbody></table><p>ملاحظات: ${safe(plan.cautions)}</p><p>اعتماد المسؤول: ${safe(plan.approvedBy||'________________')}</p>`;
     document.body.append(root);document.body.classList.add('sr616-printing');
-    const clear=()=>{root.remove();document.body.classList.remove('sr616-printing');};
+    // Hidden until print media activates; check the actual printed palette.
+    const prepareContrast=()=>SR63.ensureReportContrast?.(root);
+    const clear=()=>{window.removeEventListener('beforeprint',prepareContrast);root.remove();document.body.classList.remove('sr616-printing');};
+    window.addEventListener('beforeprint',prepareContrast);
     window.addEventListener('afterprint',clear,{once:true});try{window.print();}catch(e){clear();setError('تعذر فتح الطباعة.');}
   };
   return (0,q.jsxs)('div',{className:'sr616-plans',children:[

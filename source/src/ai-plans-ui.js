@@ -127,7 +127,10 @@ SR63.AIPlans=function({workspace,setWorkspace,coordinator=false,canSave=true,can
     const root=document.createElement('section');root.id='sr616-print-root';root.className='sr616-print-root';
     root.innerHTML=`<h1>${safe(workspace.settings.schoolName)}</h1><h2>${safe(plan.title)}</h2><p>المادة: ${safe(plan.subject)} | التقييم: ${safe(plan.exam)} | ${safe(plan.cohort==='support'?'الدعم الإضافي':'التعليم العام')}</p><p>عدد الطلاب: ${plan.members.length} | الحالة: ${safe(plan.status)} | مصدر المسودة: ${safe(plan.source)}</p><h3>الطلاب المستهدفون (نسخة داخلية)</h3><p>${plan.members.map(m=>safe(m.studentName)+' - '+safe(m.className)).join('، ')}</p><h3>التشخيص</h3><p>${safe(plan.diagnosis)}</p><h3>الهدف</h3><p>${safe(plan.goal)}</p><h3>معيار النجاح</h3><p>${safe(plan.successCriterion)}</p><table><thead><tr><th>الأسبوع</th><th>الإجراء</th><th>الموارد</th><th>أداة القياس</th><th>التنفيذ والمتابعة</th></tr></thead><tbody>${plan.steps.map(s=>`<tr><td>${s.week}</td><td>${safe(s.action)}</td><td>${safe(s.resources)}</td><td>${safe(s.measure)}</td><td>${safe(s.completed?'تم':'لم يُنفذ')}: ${safe(s.followUp||'—')}</td></tr>`).join('')}</tbody></table><p>ملاحظات: ${safe(plan.cautions)}</p><p>اعتماد المسؤول: ${safe(plan.approvedBy||'________________')}</p>`;
     document.body.append(root);document.body.classList.add('sr616-printing');
-    const clear=()=>{root.remove();document.body.classList.remove('sr616-printing');};
+    // Hidden until print media activates; check the actual printed palette.
+    const prepareContrast=()=>SR63.ensureReportContrast?.(root);
+    const clear=()=>{window.removeEventListener('beforeprint',prepareContrast);root.remove();document.body.classList.remove('sr616-printing');};
+    window.addEventListener('beforeprint',prepareContrast);
     window.addEventListener('afterprint',clear,{once:true});try{window.print();}catch(e){clear();setError('تعذر فتح الطباعة.');}
   };
   return (0,q.jsxs)('div',{className:'sr616-plans',children:[
