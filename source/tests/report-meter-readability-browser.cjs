@@ -26,7 +26,7 @@ const {chromium}=require('playwright');
  for(const media of ['screen','print']){
  await page.emulateMedia({media});
  for(const [scope,count] of [['school',2],['department',3],['teacher',4]]){
- const result=await page.$eval('#signatures-'+scope+' .report-signatures',e=>({count:e.children.length,columns:getComputedStyle(e).gridTemplateColumns.split(' ').length,text:e.innerText}));
+ const result=await page.$eval('#signatures-'+scope+' .report-signatures',e=>({count:e.children.length,columns:getComputedStyle(e).gridTemplateColumns.split(' ').length,text:e.textContent}));
  assert.equal(result.count,count);assert.equal(result.columns,count);
  assert.equal(result.text.includes('معلم المادة'),scope==='teacher');
  assert.equal(result.text.includes('منسق المادة'),scope!=='school');
