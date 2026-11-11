@@ -167,7 +167,7 @@ SR63.skillReports=function(assessment,workspace,{type='school',grade='الكل',
    '<header class="srskill-header"><img src="./moehe.png" alt="شعار الوزارة"><div><strong>'+esc(settings.schoolName||'المدرسة')+'</strong><h2>'+esc(title)+'</h2><p>'+esc(assessment.subject)+' · '+esc(settings.exams?.find(e=>e.key===assessment.exam)?.name||assessment.exam)+' · '+esc(assessment.academicYear||'')+'</p></div></header>'+
    '<div class="srskill-body"><h3>'+esc(title)+'</h3><table class="srskill-table"><thead><tr>'+columns.map(s=>'<th>'+esc(s)+'</th>').join('')+
    '</tr></thead><tbody>'+chunk.map(row=>'<tr>'+row.map(x=>'<td>'+esc(x??'—')+'</td>').join('')+'</tr>').join('')+'</tbody></table></div>'+
-   SR63.reportFooterHTML({...workspace,settings},assessment.subject)+
+   SR63.reportFooterHTML({...workspace,settings},assessment.subject,'','',{scope:className&&className!=='الكل'?'className':grade&&grade!=='الكل'?'grade':'subject'})+
    '<div class="srskill-page-number">صفحة '+p+' من '+count+'</div></section>');
  }
  return {pages,rows,columns,title};

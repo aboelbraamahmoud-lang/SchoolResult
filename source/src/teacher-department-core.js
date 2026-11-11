@@ -77,7 +77,7 @@ SR63.departmentPerformanceAnalyze=function(workspace,options={}){
   prevExam:previousExam,prevExamName:previousExam?tj(settings,previousExam).name:null,
   cohort,grades:byGrade,...summarize(entries),
   schoolName:settings.schoolName||'',academicYear:settings.academicYear||'',coordinator:SR63.subjectCoordinator(workspace,subject)||'',
-  academicViceName:settings.academicViceName||'',entries,gradeNames};
+  academicViceName:settings.academicViceName||'',principalName:settings.principalName||'',entries,gradeNames};
 };
 /* The department and teacher reports now share the same *five-slot*
    official teacher form. Both reports derive the metric labels and rows

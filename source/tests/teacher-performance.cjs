@@ -48,6 +48,11 @@ check('Word documents contain no inherited Office sensitivity labels or stale cu
   assert.ok(o['word/document.xml'].includes('الطلبة')||o['word/document.xml'].includes('الشعب الدراسية'),'official form was removed');
  }
 });
+check('teacher quantitative report includes all relevant approval roles',()=>{
+ const a=improvementAnalyze();a.academicViceName='نائب تجريبي';a.principalName='مدير تجريبي';
+ const x=parts(S.teacherQuantitativeWordBuild(a))['word/document.xml'];
+ for(const label of ['اسم المعلم وتوقيعه','اسم المنسق وتوقيعه','اسم النائب الأكاديمي وتوقيعه','اطلاع واعتماد مدير المدرسة','نائب تجريبي','مدير تجريبي'])assert.ok(x.includes(label),label);
+});
 check('class-only plan cannot merge different classes',()=>{assert.throws(()=>S.teacherImprovementWordBuild(analyze(fixture())),/شعبة/);});
 check('class-only plan includes students not yet graded in that subject',()=>{const w=fixture();w.rows.push({...w.rows[0],id:'uns',studentId:'missing-student',studentName:'طالب من دون درجة مادة',subject:'العلوم',scores:{},statuses:{}});const a=analyze(w,{className:'7/1'});assert.ok(a.bands.missing.some(s=>s.studentName==='طالب من دون درجة مادة'));});
 check('official Word templates keep RTL and both original logos',()=>{const a=improvementAnalyze();for(const doc of [S.teacherImprovementWordBuild(a),S.teacherQuantitativeWordBuild(a)]){const o=parts(doc);for(const word of ['w:bidiVisual','w:bidi','w:rtl'])assert.ok(o['word/document.xml'].includes(word),word);assert.ok(Object.keys(o).some(k=>k.startsWith('word/media/')));assert.ok(Object.keys(o).some(k=>k.startsWith('word/_rels/header')));}});

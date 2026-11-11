@@ -49,6 +49,12 @@ check('Word injects school, name of assessment, targets and department feedback 
  const parts=zipParts(S.departmentQuantWordBuild(an(),{targets:{success:90,achievement:90,valueAdded:15,high90:30},interpretation:'تفسير & تعقيب',feedback:'توقيع النائب <اعتماد>'})),x=parts['word/document.xml'].toString('utf8');
  for(const t of ['مدرسة المرحلة الإعدادية التجريبية','أ. نائب المدير','إجمالي','تفسير &amp; تعقيب','توقيع النائب &lt;اعتماد&gt;','غير متحقق','متحقق'])assert.ok(x.includes(t),t);
 });
+check('department approval names coordinator, vice and principal without teacher signature',()=>{
+ const w=fixture();w.settings.principalName='مدير تجريبي';
+ const x=zipParts(S.departmentQuantWordBuild(an(w)))['word/document.xml'].toString('utf8');
+ for(const label of ['اسم منسق المادة وتوقيعه','اعتماد النائب الأكاديمي','اطلاع واعتماد مدير المدرسة','مدير تجريبي'])assert.ok(x.includes(label),label);
+ assert.ok(!x.includes('اسم المعلم وتوقيعه'));
+});
 check('unprovided operational targets are not fabricated',()=>{const x=zipParts(S.departmentQuantWordBuild(an()))['word/document.xml'].toString('utf8');assert.equal((x.match(/غير محدد/g)||[]).length,5);});
 check('Word export leaves student names out of department aggregation',()=>{const x=zipParts(S.departmentQuantWordBuild(an()))['word/document.xml'].toString('utf8');assert.ok(!x.includes('طالب سابع أ'));});
 check('UI and Word export remain local; no secret or network access',()=>{const root=path.resolve(__dirname,'..'),code=fs.readFileSync(path.join(root,'src/teacher-department-template.js'),'utf8'),app=fs.readFileSync(path.join(root,'../app.js'),'utf8');for(const bad of ['GEMINI_API_KEY','service_role','fetch('])assert.ok(!code.includes(bad),bad);assert.ok(app.includes('departmentQuant'));});

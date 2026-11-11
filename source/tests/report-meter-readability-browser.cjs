@@ -14,8 +14,24 @@ const {chromium}=require('playwright');
  root.innerHTML='<h2>اختبار وضوح الدرجات والنسب</h2><table class="level-analysis-table"><tbody>'+colors.map((color,i)=>'<tr><td>طالب تجريبي '+(i+1)+'</td>'+['level-score-visual','level-certificate-visual','level-percent-visual'].map((cls,j)=>'<td class="'+cls+'"><div class="report-meter sr-band-linked" style="--sr-band-color:'+color+'"><i style="width:'+([0,25,50,70,95,100][i])+'%"></i><b>'+(['28.5','14.5','95%'][j])+'</b></div></td>').join('')+'</tr>').join('')+'</tbody></table><div class="dark" style="background:#11283d;color:#132638;-webkit-text-fill-color:#142638">عنوان داكن</div><div class="mid" style="background:#777;color:#888">عنوان متوسط</div>';
  document.body.append(root);SR63.ensureReportContrast(root);
  });
+ await page.evaluate(()=>{SR63.escape=v=>String(v??'');SR63.subjectCoordinator=()=> 'منسق';});
+ await page.addScriptTag({content:fs.readFileSync(path.resolve(__dirname,'../src/report-footer.js'),'utf8')});
+ await page.evaluate(()=>{
+ const ws={settings:{reportDesign:{showSignatures:true},academicViceName:'نائب',principalName:'مدير'}};
+ for(const scope of ['school','department','teacher']){
+ const section=document.createElement('section');section.id='signatures-'+scope;
+ section.innerHTML=SR63.reportFooterHTML(ws,'رياضيات','معلم','',{scope});document.body.append(section);
+ }
+ });
  for(const media of ['screen','print']){
  await page.emulateMedia({media});
+ for(const [scope,count] of [['school',2],['department',3],['teacher',4]]){
+ const result=await page.$eval('#signatures-'+scope+' .report-signatures',e=>({count:e.children.length,columns:getComputedStyle(e).gridTemplateColumns.split(' ').length,text:e.innerText}));
+ assert.equal(result.count,count);assert.equal(result.columns,count);
+ assert.equal(result.text.includes('معلم المادة'),scope==='teacher');
+ assert.equal(result.text.includes('منسق المادة'),scope!=='school');
+ }
+
  const geometry=()=>page.evaluate(()=>[...document.querySelectorAll('#fixture,table,tr,td,.report-meter')].map(e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return [r.width,r.height,s.zoom,s.transform];}));
  const current=await geometry();
  const baseline=await page.addStyleTag({content:'.school-report-page .level-analysis-table .report-meter > b {font-size:9pt!important;line-height:1.2!important;padding:0 .22em!important;background:#fff!important}.school-report-page .level-analysis-table .level-certificate-visual .report-meter > b {font-size:inherit!important}'});

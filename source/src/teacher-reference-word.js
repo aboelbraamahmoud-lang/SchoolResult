@@ -136,6 +136,23 @@
     if(inner.includes('<w:t>'+before+'</w:t>'))inner=inner.replace('<w:t>'+before+'</w:t>','<w:t>'+xmlEsc(after)+'</w:t>');
    }
   }
+  // Match approval roles to the report audience. Keep the original signature
+  // row and its grid; add only the missing leadership approval beneath it.
+  if(!schoolMode){
+   const signatureRow=[...inner.matchAll(/<w:tr(?:\s[^>]*)?>[\s\S]*?<\/w:tr>/g)].map(m=>m[0]).find(row=>row.includes('{{TEACHER_NAME}}')&&row.includes('{{COORDINATOR_NAME}}'));
+   if(!signatureRow)throw Error('تعذر تحديد صف اعتماد التقرير الأصلي.');
+   let leadership=signatureRow.replace(/\s+w14:paraId="[0-9A-F]+"/g,'');
+   if(departmentMode){
+    leadership=leadership.replace('اسم منسق المادة وتوقيعه','اطلاع واعتماد مدير المدرسة').replace('{{TEACHER_NAME}}','{{PRINCIPAL_NAME}}')
+     .replace('اعتماد النائب الأكاديمي','').replace('{{COORDINATOR_NAME}}','');
+   }else{
+    leadership=leadership.replace('اسم المعلم وتوقيعه','اسم النائب الأكاديمي وتوقيعه').replace('{{TEACHER_NAME}}','{{VICE_NAME}}')
+     .replace('اسم المنسق وتوقيعه','اطلاع واعتماد مدير المدرسة').replace('{{COORDINATOR_NAME}}','{{PRINCIPAL_NAME}}');
+   }
+   values.VICE_NAME=analysis.academicViceName||'........................';
+   values.PRINCIPAL_NAME=analysis.principalName||'........................';
+   inner=inner.replace(signatureRow,signatureRow+leadership);
+  }
   if(!analysis.prevExam){
    // The first assessment must not show a preceding assessment or value added.
    // Remove only those two Word table rows; retain the official table design.
