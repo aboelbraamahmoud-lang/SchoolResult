@@ -1928,3 +1928,27 @@
 @media(max-width:1050px){.sr-import-fix-fields{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:650px){.sr-import-fix-fields{grid-template-columns:minmax(0,1fr)}.sr-import-fix-workbench{padding:12px}}
 @media print{.sr-import-fix-workbench{display:none!important}}
+
+/* Report readability: an opaque numeric label stays readable over both the
+   filled and unfilled portions of every meter, including monochrome print.
+   Keep band colors and proportional fills unchanged. */
+.report-meter > b {
+  background:#fff!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+  font-weight:900!important;
+  text-shadow:none!important;
+  padding:0 .22em!important;
+  border-radius:.18em;
+  line-height:1.2;
+  font-variant-numeric:tabular-nums;
+  -webkit-print-color-adjust:exact!important;
+  print-color-adjust:exact!important;
+}
+.school-report-page .level-analysis-table .report-meter > b {
+  font-family:Arial,Tahoma,sans-serif!important;
+  font-size:9pt!important;
+  font-weight:900!important;
+  color:#000!important;
+  -webkit-text-fill-color:#000!important;
+}

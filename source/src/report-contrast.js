@@ -5,6 +5,8 @@
   const s=String(value||'').trim();
   const rgb=s.match(/^rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,/]\s*([\d.]+))?\s*\)$/i);
   if(rgb)return [+rgb[1],+rgb[2],+rgb[3],rgb[4]===undefined?1:+rgb[4]];
+  const srgb=s.match(/^color\(srgb\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)(?:\s*\/\s*([\d.]+))?\)$/i);
+  if(srgb)return [+srgb[1]*255,+srgb[2]*255,+srgb[3]*255,srgb[4]===undefined?1:+srgb[4]];
   const h=s.match(/^#([a-f\d]{3,8})$/i);
   if(h){let v=h[1];if(v.length===3||v.length===4)v=v.split('').map(c=>c+c).join('');if(v.length===6||v.length===8)return [parseInt(v.slice(0,2),16),parseInt(v.slice(2,4),16),parseInt(v.slice(4,6),16),v.length===8?parseInt(v.slice(6,8),16)/255:1];}
   return null;
@@ -12,32 +14,31 @@
  const blend=(front,back)=>{const alpha=front?.[3]??1;return [0,1,2].map(i=>(front?.[i]??back[i])*alpha+back[i]*(1-alpha)).concat([1]);};
  const lum=color=>[.2126,.7152,.0722].reduce((n,weight,i)=>{let v=color[i]/255;return n+weight*(v<=.04045?v/12.92:Math.pow((v+.055)/1.055,2.4));},0);
  const ratio=(a,b)=>{const la=lum(a),lb=lum(b);return (Math.max(la,lb)+.05)/(Math.min(la,lb)+.05)};
- const rgbString=a=>'rgb('+a.slice(0,3).map(v=>Math.max(0,Math.min(255,Math.round(v)))).join(',')+')';
  const bgColor=(el)=>{
-  let color=[255,255,255,1],stack=[];
+  let colors=[[255,255,255,1]],stack=[];
   for(let node=el;node?.nodeType===1;node=node.parentElement)stack.push(node);
   for(let i=stack.length-1;i>=0;i--){
    const style=stack[i].ownerDocument.defaultView.getComputedStyle(stack[i]),bg=rgba(style.backgroundColor);
-   if(bg&&bg[3]>0)color=blend(bg,color);
-   const gradients=String(style.backgroundImage||'').match(/(?:rgba?\([^)]+\)|#[0-9a-f]{3,8})/gi);
+   if(bg&&bg[3]>0)colors=colors.map(color=>blend(bg,color));
+   const gradients=String(style.backgroundImage||'').match(/(?:rgba?\([^)]+\)|color\(srgb[^)]+\)|#[0-9a-f]{3,8})/gi);
    if(gradients&&/gradient/i.test(style.backgroundImage)){
     const samples=gradients.map(rgba).filter(Boolean);
     if(samples.length){
-     // If every gradient stop is dark, white text is correct; otherwise use average surface.
-     const avg=[0,1,2].map(c=>samples.reduce((sum,item)=>sum+item[c],0)/samples.length).concat([1]);
-     color=blend(avg,color);
+     // Check every stop rather than hiding a dark endpoint in an average.
+     colors=colors.flatMap(color=>samples.map(sample=>blend(sample,color)));
+     if(colors.length>32)colors=[colors.reduce((a,b)=>lum(a)<lum(b)?a:b),colors.reduce((a,b)=>lum(a)>lum(b)?a:b)];
     }
    }
   }
-  return color;
+  return colors;
  };
  SR63.readableReportColor=function(foreground,background){
   const fg=rgba(foreground),bg=rgba(background);
   if(!fg||!bg)return foreground;
   const painted=blend(fg,bg);
   if(ratio(painted,bg)>=4.5)return foreground;
-  const light=[255,255,255,1],dark=[22,49,65,1];
-  return ratio(light,bg)>ratio(dark,bg)?'#ffffff':'#163141';
+  const light=[255,255,255,1],dark=[0,0,0,1];
+  return ratio(light,bg)>ratio(dark,bg)?'#ffffff':'#000000';
  };
  SR63.ensureReportContrast=function(root){
   if(!root||typeof getComputedStyle!=='function')return 0;
@@ -49,11 +50,25 @@
    if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
    const style=el.ownerDocument.defaultView.getComputedStyle(el);
    if(style.display==='none'||style.visibility==='hidden')continue;
-   const fg=style.color,background=bgColor(el),painted=blend(rgba(fg)||[0,0,0,1],background);
-   if(ratio(painted,background)>=4.5)continue;
-   const replacement=ratio([255,255,255],background)>ratio([22,49,65],background)?'#ffffff':'#163141';
+   const fg=style.webkitTextFillColor&&style.webkitTextFillColor!=='currentcolor'?style.webkitTextFillColor:style.color;
+   const backgrounds=bgColor(el),foreground=rgba(fg)||[0,0,0,1];
+   const readable=backgrounds.every(background=>{const painted=blend(foreground,background);return ratio(painted,background)>=4.5;});
+   if(readable){
+    // Word reads color, while browser paint can use -webkit-text-fill-color.
+    if(style.color!==fg)el.style.setProperty('color',fg,'important');
+    continue;
+   }
+   const white=Math.min(...backgrounds.map(background=>ratio([255,255,255],background)));
+   const black=Math.min(...backgrounds.map(background=>ratio([0,0,0],background)));
+   const replacement=white>black?'#ffffff':'#000000';
+   if(Math.max(white,black)<4.5){
+    // A single foreground cannot cover a dark-to-light gradient safely.
+    el.style.setProperty('background-color',replacement==='#ffffff'?'#000000':'#ffffff','important');
+    el.style.setProperty('background-image','none','important');
+   }
    el.style.setProperty('color',replacement,'important');
-   if(el.tagName==='TH'||el.tagName==='TD')el.style.setProperty('text-shadow','none','important');
+   el.style.setProperty('-webkit-text-fill-color',replacement,'important');
+   el.style.setProperty('text-shadow','none','important');
    changed++;
   }
   return changed;
