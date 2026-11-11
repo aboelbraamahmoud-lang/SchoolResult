@@ -22,7 +22,7 @@
  '.top-ranks-export .report-signatures>div{border:1px solid #d2e1e6;text-align:center;min-height:42px}.top-ranks-export .report-signatures b{display:block;background:#e5eff1;color:#28576a;padding:3px}.top-ranks-export .report-signatures span{display:block;padding:3px}',
  '.top-ranks-export .report-custom-footer,.top-ranks-export .report-attribution{margin:3px 0;font-size:9.5px}.top-ranks-export .report-stamp-image{max-width:60px;max-height:38px}.tr-page-num{text-align:left;font-size:10px;color:#607583}'
  ].join('');
- const foot=(meta,page)=>SR63.reportFooterHTML(meta.workspace,meta.mode==='subject'?page.group.subject:'');
+ const foot=(meta,page)=>SR63.reportFooterHTML(meta.workspace,meta.mode==='subject'?page.group.subject:'','','',{scope:page.group.className?'className':meta.mode==='subject'?'subject':'grade'});
  function pageHtml(p,meta,n,count){
   const s=meta.workspace.settings,logo=new URL('./moehe.png',document.baseURI).href;
   const rows=p.rows.map((r,i)=>'<tr>'+cells(r).map((v,j)=>'<td'+((j===3||j===5)?' style="font-weight:800;color:#24516b"':'')+'>'+esc(v)+'</td>').join('')+'</tr>').join('');

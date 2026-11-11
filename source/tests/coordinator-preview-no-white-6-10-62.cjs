@@ -20,7 +20,7 @@ workspace.rows=[{
  scores:{exam1:23},statuses:{exam1:'present'},totals:{exam1:30}
 }];
 workspace.teachers=[];
-assert.throws(()=>ctx.N9({workspace,subject:'الرياضيات',teacher:'معلم الرياضيات'}),/trim/,'verify missing coordinatorName was the actual preview rendering crash');
+assert.doesNotThrow(()=>ctx.N9({workspace,subject:'الرياضيات',teacher:'معلم الرياضيات'}),'central signature selector now also handles missing coordinatorName directly');
 const safe=SR.staffReportWorkspace(workspace,'exam1');
 assert.equal(safe.settings.coordinatorName,'');
 assert.equal(safe.settings.stable,3);

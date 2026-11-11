@@ -114,7 +114,7 @@ SR63.skillPages=function(assessment,{grade='الكل',className='الكل',pageS
 SR63.skillPageHTML=function(page,assessment,settings={}){
  const esc=SR63.escape,num=v=>Number.isFinite(v)?(Math.round(v*10)/10).toLocaleString('en-US',{maximumFractionDigits:1}):'—',pct=v=>Number.isFinite(v)?num(v)+'%':'—';
  const heading={7:'السابع',8:'الثامن',9:'التاسع'}[page.grade]||page.grade;
- const foot=SR63.reportFooterHTML({settings,rows:[],teachers:[],subjects:[]},assessment.subject);
+ const foot=SR63.reportFooterHTML({settings,rows:[],teachers:[],subjects:[]},assessment.subject,'','',{scope:page.className?'className':page.grade?'grade':'subject'});
  const skills=assessment.skills||[],max=skills.map(s=>Number.isFinite(s.max)&&s.max>0?num(s.max):'غير محددة');
  const header='<header class="srskill-header"><img src="./moehe.png" alt="شعار وزارة التربية والتعليم والتعليم العالي"><div><strong>'+esc(settings.schoolName||'المدرسة')+'</strong><h2>تحليل درجات مهارات '+esc(assessment.subject)+'</h2><p>'+esc((settings.exams||[]).find(x=>x.key===assessment.exam)?.name||assessment.exam)+' · '+esc(assessment.academicYear||settings.academicYear||'')+' · الصف '+esc(heading)+(page.className?' · الشعبة '+esc(page.className):'')+'</p></div></header>';
  let body='';

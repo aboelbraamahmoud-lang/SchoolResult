@@ -166,8 +166,12 @@ async function main(){
    await page.evaluate(()=>document.fonts.ready);
    const previewGeometry=await page.locator('#printable-reports .school-report-page').evaluateAll(reportGeometry);
    const previewFooters=await page.locator('#printable-reports .report-footer').allTextContents();
-   const footerTokens=['FOOTER61070','VISION61070','PREPARED61070',...(role==='coordinator'?['COORDINATOR61070']:[])];
+   const footerTokens=['FOOTER61070','VISION61070','PREPARED61070',...(role==='coordinator'&&mode!=='subjects'?['COORDINATOR61070']:[])];
    for(const footer of previewFooters)for(const token of footerTokens)assert.ok(footer.includes(token),'preview footer includes '+token);
+   if(mode==='subjects'){
+    const labels=await page.locator('#printable-reports .report-signatures').evaluateAll(nodes=>nodes.map(node=>[...node.querySelectorAll('b')].map(el=>el.textContent)));
+    for(const roles of labels){assert.equal(roles.length,2,'school comparison has two approval roles');assert.ok(roles.some(x=>x.includes('النائب')));assert.ok(roles.some(x=>x.includes('مدير')));assert.ok(!roles.some(x=>x.includes('معلم')||x.includes('منسق')));}
+   }
    const landscape=['subjects','departmentStats'].includes(mode);
    let expectedPages=mode==='comparison'?classes*Math.ceil(Math.ceil(count/classes)/40):
     mode==='levels'?classes*Math.ceil(Math.ceil(count/classes)/40):undefined;

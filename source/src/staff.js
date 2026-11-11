@@ -167,7 +167,7 @@ SR63.CoordinatorDashboard=function({profile}){
  const otherExam=exams.some(x=>x.key===previousExam&&x.key!==exam)?previousExam:(exams.find(x=>x.key!==exam&&exams.indexOf(x)<exams.findIndex(y=>y.key===exam))?.key||exams.find(x=>x.key!==exam)?.key||'');
  const chronological=SR63.staffExamChronology(settings,exam,otherExam),canCompare=!!chronological;
  const compared=(0,v.useMemo)(()=>workspace&&chronological&&page==='comparison'?SR63.staffExamComparison(workspace,chronological.older,chronological.later):[],[workspace,chronological?.older,chronological?.later,page]);
- const staffReportMeta={schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace:active,subject:isLeadership?'':(profile.departments||[])[0]||''};
+ const staffReportMeta={schoolName:settings.schoolName,academicYear:settings.academicYear,principalName:settings.principalName,workspace:active,subject:isLeadership?'':(profile.departments||[])[0]||'',signatureScope:isLeadership?'school':'department'};
  const staffPrint=(type,args)=>{try{SR63.staffReportPrint(type,args,staffReportMeta);}catch(error){setError(error.message||'تعذرت الطباعة.');}};
  const staffWord=async(type,args)=>{try{if(!perms.export)return;
   const report=SR63.staffReportBuild(type,args);

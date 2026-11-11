@@ -230,9 +230,15 @@ replace('label:`المشكلات الحرجة`,value:Q(be.critical),hint:`يجب
 // 6.10.0 — final terminology cleanup after legacy transforms.
 code=code.split('`نتيجة مقيمة`').join('`نتيجة مرصودة`').split('`نتائج مقيمة`').join('`نتائج مرصودة`');
 // 6.9.10 coordinator names in report signatures come from the academic catalog.
-replace('function N9({workspace:e,teacher:t=``,subject:n=``,customFooter:r=``})','function N9({workspace:e,teacher:t=``,subject:n=``,customFooter:r=``,supportLevel:srSupport=false,supportCoordinatorName:srSupportName=``})');
+replace('function N9({workspace:e,teacher:t=``,subject:n=``,customFooter:r=``})','function N9({workspace:e,teacher:t=``,subject:n=``,customFooter:r=``,supportLevel:srSupport=false,supportCoordinatorName:srSupportName=``,scope:srSignatureScope=``,reportType:srSignatureType=``})');
 replace('i.signatureLabels.coordinator,fj(e,n)','srSupport?`منسق التربية الخاصة`:i.signatureLabels.coordinator,srSupport?srSupportName:(SR63.subjectCoordinator(e,n)||fj(e,n))');
 {const start=code.indexOf('function N9('),end=code.indexOf('var pde=',start);if(start<0||end<0)throw Error('Admin footer not found');const footer=code.slice(start,end).replace('new Date().toLocaleString(`ar-EG`)','(e.reportGeneratedAt||new Date().toLocaleString(`ar-EG`))');code=code.slice(0,start)+footer+code.slice(end);}
+replace('subject:n.subject===`الكل`?``:n.subject,customFooter:n.footerText','subject:n.subject===`الكل`?``:n.subject,customFooter:n.footerText,scope:n.entity&&n.entity!==`الكل`?n.entityDimension:(n.subject&&n.subject!==`الكل`?`subject`:`school`),teacher:n.entityDimension===`teacher`&&n.entity!==`الكل`?n.entity:``');
+// Shared role selection for React, HTML, PDF and Word-derived exports.
+{const start=code.indexOf('function N9('),end=code.indexOf('var pde=',start);let footer=code.slice(start,end);
+ footer=footer.replace(/o=\[\[i\.signatureLabels\.teacher,t\][\s\S]*?\],s=\[/,'o=SR63.reportSignatureItems(e,n,t,{scope:srSignatureScope,reportType:srSignatureType,supportLevel:srSupport,supportCoordinatorName:srSupportName}),s=[');
+ footer=footer.replace('className:`report-signatures`,children:o.map','className:`report-signatures`,style:{gridTemplateColumns:`repeat(${o.length},minmax(0,1fr))`},children:o.map');
+ code=code.slice(0,start)+footer+code.slice(end);}
 // 6.10.14 — each on-screen analytical table gets its own responsive layout.
 // Keep the original rows, numeric calculations, grade bands and result fields intact.
 replace('title:`التوزيع حسب الصف`,children:(0,q.jsx)(`div`,{className:`overflow-auto rounded-xl border`',
