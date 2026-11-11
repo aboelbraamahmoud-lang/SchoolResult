@@ -4,11 +4,11 @@
   "files": [
     {
       "name": "app.js",
-      "sha256": "126fad9b0c7fac8954ca3b18546c694a51b96d1f22d3c205441488fea582d418"
+      "sha256": "3403be66793c594c04624e920f40479c448d156959c6112ac43d057b33cf7571"
     },
     {
       "name": "style.css",
-      "sha256": "460dfbff129c88ad16b7dca7b42da70f936ec05ccc05a018a259bc55cdbeddc7"
+      "sha256": "5ace831ace5ee1103f4515337051f2a3aa2149c8144a4ffffefd898410d79dfc"
     },
     {
       "name": "version.json",

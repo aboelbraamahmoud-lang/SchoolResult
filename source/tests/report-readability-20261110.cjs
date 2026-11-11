@@ -23,7 +23,9 @@ for(const key of Object.keys(changes))delete changes[key];
 S.ensureReportContrast(fixture('rgb(255,255,255)','rgb(50,50,50)',undefined,'linear-gradient(rgb(0,0,0),rgb(255,255,255))'));
 assert.ok(changes['background-color']);assert.equal(changes['background-image'],'none','mixed gradient receives a safe text surface');
 const css=fs.readFileSync(__dirname+'/../src/repair.css','utf8');
-assert.match(css,/\.report-meter > b \{[\s\S]*?background:#fff!important;[\s\S]*?font-weight:900!important;/);
-assert.match(css,/\.school-report-page \.level-analysis-table \.report-meter > b \{[\s\S]*?font-size:9pt!important/);
+assert.match(css,/\.report-meter > b \{[\s\S]*?background:transparent!important;[\s\S]*?font-weight:900!important;/);
+assert.match(css,/\.school-report-page \.level-analysis-table \.report-meter > b \{[\s\S]*?font-size:10pt!important/);
 assert.equal(S.readableReportColor('color(srgb 0.1 0.1 0.1)','color(srgb 0 0 0)'),'#ffffff');
 console.log('PASS report readability: 256 gray levels meet AA, text-fill synchronization, gradient extrema, numeric surface and bold grades');
+
+assert.match(css,/line-height:10\.8pt!important/,'retain the previous numeric line-box height');

@@ -48,6 +48,13 @@
    if(!el||!/^(?!SCRIPT$|STYLE$|NOSCRIPT$|IMG$|SVG$|PATH$|RECT$|STOP$|CANVAS$|INPUT$|OPTION$|TEXTAREA$)[A-Z][A-Z0-9]*$/.test(el.tagName||''))continue;
    // Change only actual text-bearing elements, not an outer card whose inherited color would change everything.
    if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
+   // Respect the explicitly chosen black, unboxed meter numbers in every export.
+   if(el.matches?.('.report-meter > b')){
+    el.style.setProperty('background','transparent','important');
+    el.style.setProperty('color','#000000','important');
+    el.style.setProperty('-webkit-text-fill-color','#000000','important');
+    continue;
+   }
    const style=el.ownerDocument.defaultView.getComputedStyle(el);
    if(style.display==='none'||style.visibility==='hidden')continue;
    const fg=style.webkitTextFillColor&&style.webkitTextFillColor!=='currentcolor'?style.webkitTextFillColor:style.color;
