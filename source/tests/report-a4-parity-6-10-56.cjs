@@ -14,7 +14,7 @@ assert.match(screen,/\.report-ministry-emblem-official/,'Original ministry logo 
 const portrait=SR.reportPrintOverride(false),wide=SR.reportPrintOverride(true);
 for(const [label,style,w,h] of [['portrait',portrait,210,297],['landscape',wide,297,210]]){
  assert.match(style,new RegExp('width:'+w+'mm!important;height:'+h+'mm!important'),label+' fills full physical A4');
- assert.match(style,/padding:3mm!important/,'use compact physical page inset');
+ assert.match(style,/padding:3mm 3mm 7mm!important/,'compact inset with printer-safe footer clearance');
  assert.match(style,/display:flex!important;flex-direction:column!important/,'retain screen flex layout');
  assert.doesNotMatch(style,/school-report-page>\*\{flex-shrink/,'preserve original flex behavior');
  assert.match(style,/margin-top:auto!important/,'retain page signature/footer position');

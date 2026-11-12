@@ -48,12 +48,31 @@
    if(!el||!/^(?!SCRIPT$|STYLE$|NOSCRIPT$|IMG$|SVG$|PATH$|RECT$|STOP$|CANVAS$|INPUT$|OPTION$|TEXTAREA$)[A-Z][A-Z0-9]*$/.test(el.tagName||''))continue;
    // Change only actual text-bearing elements, not an outer card whose inherited color would change everything.
    if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
-   // Respect the explicitly chosen black, unboxed meter numbers in every export.
+   // Meter fill is a positioned sibling, so ancestor backgrounds alone miss it.
    if(el.matches?.('.report-meter > b')){
+    const meter=el.parentElement,fill=meter.querySelector('i'),view=el.ownerDocument.defaultView;
     el.style.setProperty('background','transparent','important');
-    el.style.setProperty('color','#000000','important');
-    el.style.setProperty('-webkit-text-fill-color','#000000','important');
-    continue;
+    el.style.removeProperty('transform');
+    const base=bgColor(meter),f=fill&&view.getComputedStyle(fill),fr=fill?.getBoundingClientRect();
+    const fillColors=f&&f.display!=='none'?bgColor(fill).map(c=>blend(c.slice(0,3).concat([parseFloat(f.opacity)||0]),base[0])):base;
+    const best=colors=>Math.min(...colors.map(c=>ratio([255,255,255],c)))>Math.min(...colors.map(c=>ratio([0,0,0],c)))?'#ffffff':'#000000';
+    const outside=best(base),inside=best(fillColors),mr=meter.getBoundingClientRect();
+    let br=el.getBoundingClientRect();
+    if(fr&&fr.width>0&&inside!==outside&&br.left<fr.left&&br.right>fr.left){
+     // Keep the whole editable number over one paint region instead of a plaque,
+     // stroke, duplicate text or splitting a digit at the dark/light boundary.
+     const spaceLeft=fr.left-mr.left,spaceRight=mr.right-fr.left;
+     let target=null;
+     if(spaceRight>=br.width+2)target=Math.max(fr.left+1,Math.min(br.left,mr.right-br.width-1));
+     else if(spaceLeft>=br.width+2)target=Math.min(fr.left-br.width-1,Math.max(br.left,mr.left+1));
+     if(target!==null){const scale=mr.width/(meter.offsetWidth||mr.width);el.style.setProperty('transform','translateX('+((target-br.left)/scale)+'px)');br=el.getBoundingClientRect();}
+    }
+    const onFill=fr&&fr.width>0&&(br.left+br.right)/2>=fr.left&&(br.left+br.right)/2<=fr.right;
+    const replacement=onFill?inside:outside;
+    el.style.setProperty('color',replacement,'important');
+    el.style.setProperty('-webkit-text-fill-color',replacement,'important');
+    el.style.setProperty('text-shadow','none','important');
+    changed++;continue;
    }
    const style=el.ownerDocument.defaultView.getComputedStyle(el);
    if(style.display==='none'||style.visibility==='hidden')continue;

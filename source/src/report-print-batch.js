@@ -49,13 +49,13 @@ SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
     box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
     width:${w}!important;min-width:${w}!important;max-width:${w}!important;
     height:${h}!important;min-height:${h}!important;max-height:${h}!important;
-    padding:3mm!important;margin:0!important;
+    padding:3mm 3mm 7mm!important;margin:0!important;
     overflow:hidden!important;border-radius:0!important;box-shadow:none!important;
     transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
     break-after:auto!important;page-break-after:auto!important}
    /* Preserve the original student-statement padding and signature/identity geometry. */
    .sr646-print-document .sr650-sheet>.student-result-page{
-     padding:3mm!important;direction:rtl!important;
+     padding:3mm 3mm 7mm!important;direction:rtl!important;
      font-family:Arial,Helvetica,sans-serif!important;border-radius:0!important}
    .sr646-print-document .student-result-table{width:100%!important;table-layout:fixed!important}
    .sr646-print-document .student-result-footer{margin-top:auto!important}
@@ -73,7 +73,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    ['display','flex'],['flex-direction','column'],['width',targetWidth+'px'],
    ['min-width',targetWidth+'px'],['max-width',targetWidth+'px'],
    ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
-   ['overflow','visible'],['margin','0'],['padding','3mm']
+   ['overflow','visible'],['margin','0'],['padding','3mm 3mm 7mm']
  ])style.setProperty(name,value,'important');
  // The same inner sheet is fitted in the live preview, the print popup and PDF/ZIP.
  // Scale uniformly, including logos and footer, instead of changing only printed fonts.
@@ -104,7 +104,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
  const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
  const measure=()=>{
    const r=page.getBoundingClientRect();let width=content?r.width:Math.max(page.scrollWidth||0,r.width),height=content?r.height:Math.max(page.scrollHeight||0,r.height);
-   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
+   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-footer p,.report-attribution,.report-attribution span,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
      const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
      width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
    }
