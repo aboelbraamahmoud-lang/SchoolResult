@@ -1950,3 +1950,14 @@
   color:#000!important;
   -webkit-text-fill-color:#000!important;
 }
+
+/* Compact physical page inset shared by preview, print, PDF and Word.
+   Keep a 3 mm safety area rather than promising hardware borderless printing. */
+.school-report-page,.custom-report-page,.student-result-page{padding:3mm!important}
+@media print{
+ @page{margin:3mm}
+ @page reportPortrait{size:A4 portrait;margin:3mm}
+ @page reportLandscape{size:A4 landscape;margin:3mm}
+ @page sr613GradeReview{size:A4 portrait;margin:3mm}
+ #sr63-print-root .student-result-page{padding:3mm!important}
+}
