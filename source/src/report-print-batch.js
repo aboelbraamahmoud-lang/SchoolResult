@@ -49,13 +49,13 @@ SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
     box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
     width:${w}!important;min-width:${w}!important;max-width:${w}!important;
     height:${h}!important;min-height:${h}!important;max-height:${h}!important;
-    padding:9mm 9mm 8mm!important;margin:0!important;
+    padding:3mm!important;margin:0!important;
     overflow:hidden!important;border-radius:0!important;box-shadow:none!important;
     transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
     break-after:auto!important;page-break-after:auto!important}
    /* Preserve the original student-statement padding and signature/identity geometry. */
    .sr646-print-document .sr650-sheet>.student-result-page{
-     padding:12mm 12mm 10mm!important;direction:rtl!important;
+     padding:3mm!important;direction:rtl!important;
      font-family:Arial,Helvetica,sans-serif!important;border-radius:0!important}
    .sr646-print-document .student-result-table{width:100%!important;table-layout:fixed!important}
    .sr646-print-document .student-result-footer{margin-top:auto!important}
@@ -73,7 +73,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    ['display','flex'],['flex-direction','column'],['width',targetWidth+'px'],
    ['min-width',targetWidth+'px'],['max-width',targetWidth+'px'],
    ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
-   ['overflow','visible'],['margin','0']
+   ['overflow','visible'],['margin','0'],['padding','3mm']
  ])style.setProperty(name,value,'important');
  // The same inner sheet is fitted in the live preview, the print popup and PDF/ZIP.
  // Scale uniformly, including logos and footer, instead of changing only printed fonts.
@@ -86,13 +86,16 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
   const available=targetHeight-number('paddingTop')-number('paddingBottom')-number('borderTopWidth')-number('borderBottomWidth')-1;
   const width=targetWidth-number('paddingLeft')-number('paddingRight')-number('borderLeftWidth')-number('borderRightWidth');
   const fits=value=>{content.style.width=(width/value)+'px';return content.getBoundingClientRect().height*value<=available;};
-  if(!fits(1)){
+  // Reclaim the former 9–12 mm inset as readable, proportional enlargement.
+  // Dense reports still shrink safely; sparse reports never stretch disproportionately.
+  const maximum=1.12;
+  if(!fits(maximum)){
    // Keep the full printable width while proportionally shrinking a dense class sheet.
-   let low=.35,high=1;
+   let low=.35,high=maximum;
    if(!fits(low))throw Error('بيانات التقرير تتجاوز حدود صفحة A4 بحجم مقروء؛ اختر نطاقًا أصغر.');
    for(let i=0;i<14;i++){const middle=(low+high)/2;if(fits(middle))low=middle;else high=middle;}
    scale=low;fits(scale);
-  }
+  }else scale=maximum;
   content.style.transform='scale('+scale+')';
   page.dataset.reportScale=String(scale);
  }
@@ -188,7 +191,7 @@ SR63.printScopedStaffPanel=function(selector,title='تقرير المدرسة'){
  // Keep its isolated stylesheet too, not the print modes intended for other views.
  void SR63.getReportStyleText().then(css=>{
   if(win.closed)return;
-  win.document.open();win.document.write('<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>'+String(title).replace(/[<>"']/g,'')+'</title><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>@page{size:A4 landscape;margin:10mm}body{font-family:Tahoma,Arial,sans-serif;padding:12px;background:white}.srstaff-panel{border:0;box-shadow:none}.srstaff-band-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}button{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>'+node.outerHTML+'</body></html>');win.document.close();
+  win.document.open();win.document.write('<!doctype html><html dir="rtl" lang="ar"><head><meta charset="utf-8"><title>'+String(title).replace(/[<>"']/g,'')+'</title><style>'+css.replace(/<\/style/gi,'<\\/style')+'</style><style>@page{size:A4 landscape;margin:3mm}body{font-family:Tahoma,Arial,sans-serif;padding:0;background:white}.srstaff-panel{border:0;box-shadow:none}.srstaff-band-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}button{display:none!important}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}</style></head><body>'+node.outerHTML+'</body></html>');win.document.close();
   void (win.document.fonts?.ready||Promise.resolve()).then(()=>{if(!win.closed){SR63.ensureReportContrast?.(win.document);win.focus();win.print();}});
  }).catch(()=>{if(!win.closed)win.document.body.textContent='تعذر تحميل تنسيق التقرير. لم تُنفذ الطباعة.';});
 };
