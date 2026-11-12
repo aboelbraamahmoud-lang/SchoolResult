@@ -48,7 +48,7 @@ SR63.reportPdfFromJpegs=function(images){
  return new Blob(parts,{type:'application/pdf'});
 };
 SR63.reportZipFromPdfs=async function(files,preservePackagePaths=false){
- // Simple UTF-8 ZIP "store" writer; PDFs already contain JPEG-compressed page images.
+ // PDFs are already compressed; editable DOCX XML benefits greatly from DEFLATE.
  if(!files.length)throw Error('لا توجد تقارير لتنزيلها.');
  const enc=new TextEncoder(),pieces=[],central=[];let offset=0;
  const add=part=>{pieces.push(part);offset+=part.byteLength;};
@@ -61,9 +61,16 @@ SR63.reportZipFromPdfs=async function(files,preservePackagePaths=false){
    const filename=enc.encode(preservePackagePaths?safeInternal:SR63.safeReportFilename(name)),fileBytes=new Uint8Array(await blob.arrayBuffer());
   if(fileBytes.length>0xffffffff||offset>0xffffffff)throw Error('حجم التقرير يتجاوز حد ملفات ZIP التقليدية.');
   const crc=crc32(fileBytes),start=offset;
-  const {b:l,d:ld}=hdr(30,0x04034b50);ld.setUint16(4,20,true);ld.setUint16(6,0x800,true);ld.setUint32(14,crc,true);ld.setUint32(18,fileBytes.length,true);ld.setUint32(22,fileBytes.length,true);ld.setUint16(26,filename.length,true);
-  add(l);add(filename);add(fileBytes);
-  const {b:c,d:cd}=hdr(46,0x02014b50);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(8,0x800,true);cd.setUint32(16,crc,true);cd.setUint32(20,fileBytes.length,true);cd.setUint32(24,fileBytes.length,true);cd.setUint16(28,filename.length,true);cd.setUint32(42,start,true);
+  let payload=fileBytes,method=0;
+  if(preservePackagePaths&&/\.(xml|rels)$/.test(safeInternal)&&typeof CompressionStream==='function'){
+   try{
+    const compressed=new Uint8Array(await new Response(new Blob([fileBytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer());
+    if(compressed.length<fileBytes.length){payload=compressed;method=8;}
+   }catch{ /* Older browsers retain a valid, editable uncompressed package. */ }
+  }
+  const {b:l,d:ld}=hdr(30,0x04034b50);ld.setUint16(4,20,true);ld.setUint16(6,0x800,true);ld.setUint32(14,crc,true);ld.setUint16(8,method,true);ld.setUint32(18,payload.length,true);ld.setUint32(22,fileBytes.length,true);ld.setUint16(26,filename.length,true);
+  add(l);add(filename);add(payload);
+  const {b:c,d:cd}=hdr(46,0x02014b50);cd.setUint16(4,20,true);cd.setUint16(6,20,true);cd.setUint16(8,0x800,true);cd.setUint32(16,crc,true);cd.setUint16(10,method,true);cd.setUint32(20,payload.length,true);cd.setUint32(24,fileBytes.length,true);cd.setUint16(28,filename.length,true);cd.setUint32(42,start,true);
   central.push(c,filename);
  }
  const centralStart=offset;for(const b of central)add(b);

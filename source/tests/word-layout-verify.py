@@ -8,7 +8,7 @@ from lxml import etree,html
 from PIL import Image,ImageFilter,ImageChops
 import numpy as np
 W='http://schemas.openxmlformats.org/wordprocessingml/2006/main'
-NS={'w':W,'v':'urn:schemas-microsoft-com:vml','a':'http://schemas.openxmlformats.org/drawingml/2006/main','wp':'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'}
+NS={'w':W,'v':'urn:schemas-microsoft-com:vml','a':'http://schemas.openxmlformats.org/drawingml/2006/main','wp':'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing','wpg':'http://schemas.microsoft.com/office/word/2010/wordprocessingGroup','wps':'http://schemas.microsoft.com/office/word/2010/wordprocessingShape'}
 def run(*args):return subprocess.check_output(args,text=True,stderr=subprocess.STDOUT)
 def pages(path):return int(re.search(r'Pages:\s+(\d+)',run('pdfinfo',str(path))).group(1))
 def office_profile(profile):
@@ -36,6 +36,12 @@ def check(docx,skip_render=False):
  with zipfile.ZipFile(docx) as z:
   require(z.testzip() is None,'Invalid ZIP CRC');x=etree.fromstring(z.read('word/document.xml'))
   record.update(tables=len(x.findall('.//w:tbl',NS)),cells=len(x.findall('.//w:tc',NS)),textRuns=len(x.findall('.//w:t',NS)),media=len([n for n in z.namelist() if n.startswith('word/media/')]))
+  groups=x.findall('.//wpg:wgp',NS);children=x.findall('.//wpg:wgp/wps:wsp',NS);anchors=x.findall('.//wp:anchor',NS)
+  record.update(decorationGroups=len(groups),editableDecorations=len(children),floatingAnchors=len(anchors),documentXMLBytes=z.getinfo('word/document.xml').file_size,compressedXMLBytes=z.getinfo('word/document.xml').compress_size)
+  if mode!='yearComparison':
+   require(len(groups)>0 and len(children)>0,'Editable grouped decorations missing')
+   require(len(anchors)<len(children),'Decoration anchors must be reduced, not one anchor per cell edge')
+  require(z.getinfo('word/document.xml').compress_type==zipfile.ZIP_DEFLATED,'Native XML should be compressed')
   require(record['tables']>0 and record['cells']>0 and record['textRuns']>0,'Editable table/cell/text missing')
   require(not x.findall('.//w:altChunk',NS),'HTML masquerading as DOCX')
   require(all(t.find('w:tblPr/w:bidiVisual',NS) is not None for t in x.findall('.//w:tbl',NS)),'RTL table missing')

@@ -68,7 +68,15 @@
   for(const line of lines){
    const before=Math.max(0,line.y-cursor),lg=Math.max(0,line.x-box.x),rg=Math.max(0,box.x+box.w-line.x-line.w);
    const align=Math.abs(lg-rg)<2?'center':rg<lg?'start':'end',left=align==='end'?Math.max(0,lg-1):0,right=align==='start'?Math.max(0,rg-1):0;
-   const text=line.runs.sort((a,b)=>a.order-b.order).map(r=>run(r.text,r.style)).join('');
+   // Adjacent words with identical formatting share a run. Word otherwise has
+   // to maintain a complete property set for every whitespace/token during edits.
+   const compact=[];
+   for(const r of line.runs.sort((a,b)=>a.order-b.order)){
+    const previous=compact.at(-1);
+    if(previous&&JSON.stringify(previous.style)===JSON.stringify(r.style))previous.text+=r.text;
+    else compact.push({text:r.text,style:r.style});
+   }
+   const text=compact.map(r=>run(r.text,r.style)).join('');
    out+='<w:p><w:pPr><w:widowControl w:val="0"/><w:bidi w:val="1"/><w:snapToGrid w:val="0"/><w:spacing w:before="'+tw(before)+'" w:after="0" w:line="'+tw(line.h)+'" w:lineRule="exact"/><w:ind w:left="'+tw(right)+'" w:right="'+tw(left)+'"/><w:jc w:val="'+align+'"/></w:pPr>'+text+'</w:p>';
    cursor=line.y+line.h;
   }
@@ -76,7 +84,14 @@
  }
  function drawing(context,box,graphic){
   const id=++context.shapeId,emu=v=>Math.round(v*9525),w=emu(Math.max(.1,box.w)),h=emu(Math.max(.1,box.h));
-  return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="'+(251658240+id*1024)+'" behindDoc="0" locked="0" layoutInCell="0" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>'+emu(box.x)+'</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>'+emu(box.y)+'</wp:posOffset></wp:positionV><wp:extent cx="'+w+'" cy="'+h+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="'+id+'" name="Report object '+id+'"/><wp:cNvGraphicFramePr/><a:graphic>'+graphic(w,h,id)+'</a:graphic></wp:anchor></w:drawing></w:r>';
+  const data=graphic(w,h,id);
+  if(context.decorationGroup){
+   // One native, editable DrawingML group owns the page decorations instead of
+   // one floating anchor per table-cell edge. Child geometry remains editable.
+   const child=/<wps:wsp>[\s\S]*<\/wps:wsp>/.exec(data)?.[0];
+   if(child){context.decorationGroup.push(child.replace('<a:off x="0" y="0"/>','<a:off x="'+emu(box.x)+'" y="'+emu(box.y)+'"/>'));return '';}
+  }
+  return '<w:r><w:drawing><wp:anchor distT="0" distB="0" distL="0" distR="0" simplePos="0" relativeHeight="'+(251658240+id*1024)+'" behindDoc="0" locked="0" layoutInCell="0" allowOverlap="1"><wp:simplePos x="0" y="0"/><wp:positionH relativeFrom="page"><wp:posOffset>'+emu(box.x)+'</wp:posOffset></wp:positionH><wp:positionV relativeFrom="page"><wp:posOffset>'+emu(box.y)+'</wp:posOffset></wp:positionV><wp:extent cx="'+w+'" cy="'+h+'"/><wp:effectExtent l="0" t="0" r="0" b="0"/><wp:wrapNone/><wp:docPr id="'+id+'" name="Report object '+id+'"/><wp:cNvGraphicFramePr/><a:graphic>'+data+'</a:graphic></wp:anchor></w:drawing></w:r>';
  }
  const solid=c=>c?'<a:solidFill><a:srgbClr val="'+c.hex+'"><a:alpha val="'+Math.round(c.alpha*100000)+'"/></a:srgbClr></a:solidFill>':'<a:noFill/>';
  const xfrm=(w,h)=>'<a:xfrm><a:off x="0" y="0"/><a:ext cx="'+w+'" cy="'+h+'"/></a:xfrm>';
@@ -104,6 +119,10 @@
  }
  function decorations(root,origin,context){
   let out='';const borders=new Set();
+  // Fixed sheets can safely share one page-sized group. Flowing column reports
+  // may contain decoration fragments beyond the sheet; keep their independent
+  // anchors so Office does not rescale the group to those off-page bounds.
+  context.decorationGroup=root.dataset.wordFlow==='true'?null:[];
   const paint=(s,box,scale)=>{
    const fill=color(s.backgroundColor),radius=num(s.borderTopLeftRadius)*scale;
    if(fill)fill.alpha*=Number(s.opacity);
@@ -132,6 +151,9 @@
   }
   const before=getComputedStyle(root,'::before');
   if(before.content!=='none'&&before.position==='absolute'&&num(before.height)>0){paint(before,{x:num(before.left),y:num(before.top),w:num(before.width)||origin.width,h:num(before.height)},1);}
+  const children=context.decorationGroup;delete context.decorationGroup;
+  if(children?.length)out+=drawing(context,{x:0,y:0,w:origin.width,h:origin.height},(w,h)=>
+   '<a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"><wpg:wgp><wpg:cNvGrpSpPr/><wpg:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+w+'" cy="'+h+'"/><a:chOff x="0" y="0"/><a:chExt cx="'+w+'" cy="'+h+'"/></a:xfrm></wpg:grpSpPr>'+children.join('')+'</wpg:wgp></a:graphicData>');
   return out;
  }
  function nativeTable(table,origin){
@@ -185,8 +207,11 @@
    if(tag==='text'){
     const style=runStyle(el),room=Math.max(4,b.w*.16),box={...b,x:b.x-room/2,w:b.w+room,h:b.h+2};result+=shape(context,box,paragraphs([{...b,runs:[{text:el.textContent,style,order:0}]}],box));
    }else if(typeof el.getTotalLength==='function'){
-    const matrix=el.getScreenCTM(),length=el.getTotalLength(),count=Math.max(2,Math.min(1500,Math.ceil(length/1.5))),points=[];
-    for(let i=0;i<=count;i++){const p=el.getPointAtLength(length*i/count),q=new DOMPoint(p.x,p.y).matrixTransform(matrix);points.push(Math.round((q.x-origin.x-b.x)*100)+','+Math.round((q.y-origin.y-b.y)*100));}
+    const matrix=el.getScreenCTM(),length=el.getTotalLength(),count=tag==='line'?1:tag==='rect'&&!num(el.getAttribute('rx'))&&!num(el.getAttribute('ry'))?4:Math.max(2,Math.min(1500,Math.ceil(length/1.5))),points=[];
+    for(let i=0;i<=count;i++){let p;
+     if(tag==='rect'&&count===4){const x=num(el.getAttribute('x')),y=num(el.getAttribute('y')),w=num(el.getAttribute('width')),h=num(el.getAttribute('height'));p=[{x,y},{x:x+w,y},{x:x+w,y:y+h},{x,y:y+h},{x,y}][i];}
+     else p=el.getPointAtLength(length*i/count);
+     const q=new DOMPoint(p.x,p.y).matrixTransform(matrix);points.push(Math.round((q.x-origin.x-b.x)*100)+','+Math.round((q.y-origin.y-b.y)*100));}
     const fill=s.fill==='none'?null:color(s.fill),stroke=s.stroke==='none'?null:color(s.stroke);
     if(fill)fill.alpha*=Number(s.fillOpacity)*Number(s.opacity);
     if(stroke)stroke.width=num(s.strokeWidth)*Math.hypot(matrix.a,matrix.b);
@@ -230,7 +255,7 @@
     bodies.push('<w:p><w:pPr><w:spacing w:before="0" w:after="0" w:line="1" w:lineRule="exact"/>'+ (i<pages.length-1?section(landscape):'')+'</w:pPr>'+objects+'</w:p>'+(i===pages.length-1?section(landscape):''));
     holder.remove();options.onProgress?.(i+1,pages.length);if(i%4===0)await new Promise(r=>setTimeout(r,0));
    }
-   const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="'+NS+'wordprocessingml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:w10="urn:schemas-microsoft-com:office:word"><w:body>'+bodies.join('')+'</w:body></w:document>';
+   const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="'+NS+'wordprocessingml/2006/main" xmlns:r="'+NS+'officeDocument/2006/relationships" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape" xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup" xmlns:w10="urn:schemas-microsoft-com:office:word"><w:body>'+bodies.join('')+'</w:body></w:document>';
    const rel=(id,type,target)=>'<Relationship Id="'+id+'" Type="'+NS+'officeDocument/2006/relationships/'+type+'" Target="'+target+'"/>';
    const rels=contents=>'<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="'+NS+'package/2006/relationships">'+contents+'</Relationships>';
    const settings='<?xml version="1.0" encoding="UTF-8"?><w:settings xmlns:w="'+NS+'wordprocessingml/2006/main"><w:defaultTabStop w:val="720"/><w:autoHyphenation w:val="0"/><w:compat><w:compatSetting w:name="compatibilityMode" w:uri="http://schemas.microsoft.com/office/word" w:val="15"/></w:compat></w:settings>';
@@ -256,7 +281,7 @@
    const mm=96/25.4,w=(landscape?297:210)*mm,h=(landscape?210:297)*mm,margin=3*mm;
    // Chromium's column fragmentation uses the same break-inside/row rules as
    // native print. Its measured fragments are retained as editable Word objects.
-   const flow=doc.createElement('div');while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
+   const flow=doc.createElement('div');flow.dataset.wordFlow='true';while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
    const print=doc.createElement('style');print.textContent=SR63.reportScreenCSS(styles)+'main{width:auto!important;max-width:none!important;margin:0;direction:rtl}';doc.head.append(print);
    // Round the printable height to a CSS pixel, as the native print fragment
    // does; a fractional remainder must not move the last complete row.
