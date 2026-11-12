@@ -122,7 +122,7 @@
   // Fixed sheets can safely share one page-sized group. Flowing column reports
   // may contain decoration fragments beyond the sheet; keep their independent
   // anchors so Office does not rescale the group to those off-page bounds.
-  context.decorationGroup=root.classList.contains('school-report-page')?[]:null;
+  context.decorationGroup=root.dataset.wordFlow==='true'?null:[];
   const paint=(s,box,scale)=>{
    const fill=color(s.backgroundColor),radius=num(s.borderTopLeftRadius)*scale;
    if(fill)fill.alpha*=Number(s.opacity);
@@ -281,7 +281,7 @@
    const mm=96/25.4,w=(landscape?297:210)*mm,h=(landscape?210:297)*mm,margin=3*mm;
    // Chromium's column fragmentation uses the same break-inside/row rules as
    // native print. Its measured fragments are retained as editable Word objects.
-   const flow=doc.createElement('div');while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
+   const flow=doc.createElement('div');flow.dataset.wordFlow='true';while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
    const print=doc.createElement('style');print.textContent=SR63.reportScreenCSS(styles)+'main{width:auto!important;max-width:none!important;margin:0;direction:rtl}';doc.head.append(print);
    // Round the printable height to a CSS pixel, as the native print fragment
    // does; a fractional remainder must not move the last complete row.
