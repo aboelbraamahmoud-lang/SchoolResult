@@ -38,8 +38,9 @@ def check(docx,skip_render=False):
   record.update(tables=len(x.findall('.//w:tbl',NS)),cells=len(x.findall('.//w:tc',NS)),textRuns=len(x.findall('.//w:t',NS)),media=len([n for n in z.namelist() if n.startswith('word/media/')]))
   groups=x.findall('.//wpg:wgp',NS);children=x.findall('.//wpg:wgp/wps:wsp',NS);anchors=x.findall('.//wp:anchor',NS)
   record.update(decorationGroups=len(groups),editableDecorations=len(children),floatingAnchors=len(anchors),documentXMLBytes=z.getinfo('word/document.xml').file_size,compressedXMLBytes=z.getinfo('word/document.xml').compress_size)
-  require(len(groups)>0 and len(children)>0,'Editable grouped decorations missing')
-  require(len(anchors)<len(children),'Decoration anchors must be reduced, not one anchor per cell edge')
+  if mode!='yearComparison':
+   require(len(groups)>0 and len(children)>0,'Editable grouped decorations missing')
+   require(len(anchors)<len(children),'Decoration anchors must be reduced, not one anchor per cell edge')
   require(z.getinfo('word/document.xml').compress_type==zipfile.ZIP_DEFLATED,'Native XML should be compressed')
   require(record['tables']>0 and record['cells']>0 and record['textRuns']>0,'Editable table/cell/text missing')
   require(not x.findall('.//w:altChunk',NS),'HTML masquerading as DOCX')

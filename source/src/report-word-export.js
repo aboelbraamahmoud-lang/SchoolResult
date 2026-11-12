@@ -118,7 +118,11 @@
    '<w10:wrap type="none"/></v:'+tag+'></w:pict></w:r>';
  }
  function decorations(root,origin,context){
-  let out='';const borders=new Set();context.decorationGroup=[];
+  let out='';const borders=new Set();
+  // Fixed sheets can safely share one page-sized group. Flowing column reports
+  // may contain decoration fragments beyond the sheet; keep their independent
+  // anchors so Office does not rescale the group to those off-page bounds.
+  context.decorationGroup=root.classList.contains('school-report-page')?[]:null;
   const paint=(s,box,scale)=>{
    const fill=color(s.backgroundColor),radius=num(s.borderTopLeftRadius)*scale;
    if(fill)fill.alpha*=Number(s.opacity);
@@ -148,7 +152,7 @@
   const before=getComputedStyle(root,'::before');
   if(before.content!=='none'&&before.position==='absolute'&&num(before.height)>0){paint(before,{x:num(before.left),y:num(before.top),w:num(before.width)||origin.width,h:num(before.height)},1);}
   const children=context.decorationGroup;delete context.decorationGroup;
-  if(children.length)out+=drawing(context,{x:0,y:0,w:origin.width,h:origin.height},(w,h)=>
+  if(children?.length)out+=drawing(context,{x:0,y:0,w:origin.width,h:origin.height},(w,h)=>
    '<a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"><wpg:wgp><wpg:cNvGrpSpPr/><wpg:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="'+w+'" cy="'+h+'"/><a:chOff x="0" y="0"/><a:chExt cx="'+w+'" cy="'+h+'"/></a:xfrm></wpg:grpSpPr>'+children.join('')+'</wpg:wgp></a:graphicData>');
   return out;
  }
