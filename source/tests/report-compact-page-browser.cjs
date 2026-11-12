@@ -21,7 +21,7 @@ const {chromium}=require('playwright');
  return {footerBounds,bottomInset:parseFloat(s.paddingBottom),first,again,padding:parseFloat(s.paddingTop),paper:[r.width,r.height],expected:[w,h],content:[c.left-r.left,c.right-r.left,c.bottom-r.top],rows:root.querySelectorAll('tr').length};
  },{landscape,rows});
  assert.equal(result.rows,rows);
- assert.ok(Math.abs(result.bottomInset-7*96/25.4)<.1,'printer-safe bottom inset');
+ assert.ok(Math.abs(result.bottomInset-3*96/25.4)<.1,'printer-safe bottom inset');
  for(const footer of result.footerBounds){assert.ok(footer.height>0,'footer visible');assert.notEqual(footer.position,'absolute','footer participates in fit');assert.ok(footer.bottom<=result.paper[1]-result.bottomInset+1,'footer remains above printer safety area');}
  assert.ok(result.footerBounds[2].top>=result.footerBounds[1].bottom-1,'attribution follows vision without overlap');assert.ok(Math.abs(result.padding-3*96/25.4)<.1);
  result.paper.forEach((v,i)=>assert.ok(Math.abs(v-result.expected[i])<1));

@@ -1711,19 +1711,19 @@ SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',o
     const best=colors=>Math.min(...colors.map(c=>ratio([255,255,255],c)))>Math.min(...colors.map(c=>ratio([0,0,0],c)))?'#ffffff':'#000000';
     const outside=best(base),inside=best(fillColors),mr=meter.getBoundingClientRect();
     let br=el.getBoundingClientRect();
-    if(fr&&fr.width>0&&inside!==outside&&br.left<fr.left&&br.right>fr.left){
-     // Keep the whole editable number over one paint region instead of a plaque,
-     // stroke, duplicate text or splitting a digit at the dark/light boundary.
-     const spaceLeft=fr.left-mr.left,spaceRight=mr.right-fr.left;
-     let target=null;
-     if(spaceRight>=br.width+2)target=Math.max(fr.left+1,Math.min(br.left,mr.right-br.width-1));
-     else if(spaceLeft>=br.width+2)target=Math.min(fr.left-br.width-1,Math.max(br.left,mr.left+1));
-     if(target!==null){const scale=mr.width/(meter.offsetWidth||mr.width);el.style.setProperty('transform','translateX('+((target-br.left)/scale)+'px)');br=el.getBoundingClientRect();}
-    }
     const onFill=fr&&fr.width>0&&(br.left+br.right)/2>=fr.left&&(br.left+br.right)/2<=fr.right;
     const replacement=onFill?inside:outside;
     el.style.setProperty('color',replacement,'important');
     el.style.setProperty('-webkit-text-fill-color',replacement,'important');
+    if(fr&&fr.width>0&&inside!==outside&&br.left<fr.left&&br.right>fr.left){
+     // Paint only the glyphs on each side of the fill boundary, never move the
+     // number or add an opaque box. Word retains the solid color fallback.
+     const edge=Math.max(0,Math.min(100,(fr.left-br.left)/br.width*100));
+     el.style.setProperty('background-image','linear-gradient(to right,'+outside+' '+edge+'%,'+inside+' '+edge+'%)','important');
+     el.style.setProperty('background-clip','text','important');
+     el.style.setProperty('-webkit-background-clip','text','important');
+     el.style.setProperty('-webkit-text-fill-color','transparent','important');
+    }
     el.style.setProperty('text-shadow','none','important');
     changed++;continue;
    }
@@ -2730,13 +2730,13 @@ SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
     box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
     width:${w}!important;min-width:${w}!important;max-width:${w}!important;
     height:${h}!important;min-height:${h}!important;max-height:${h}!important;
-    padding:3mm 3mm 7mm!important;margin:0!important;
+    padding:3mm!important;margin:0!important;
     overflow:hidden!important;border-radius:0!important;box-shadow:none!important;
     transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
     break-after:auto!important;page-break-after:auto!important}
    /* Preserve the original student-statement padding and signature/identity geometry. */
    .sr646-print-document .sr650-sheet>.student-result-page{
-     padding:3mm 3mm 7mm!important;direction:rtl!important;
+     padding:3mm!important;direction:rtl!important;
      font-family:Arial,Helvetica,sans-serif!important;border-radius:0!important}
    .sr646-print-document .student-result-table{width:100%!important;table-layout:fixed!important}
    .sr646-print-document .student-result-footer{margin-top:auto!important}
@@ -2754,7 +2754,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    ['display','flex'],['flex-direction','column'],['width',targetWidth+'px'],
    ['min-width',targetWidth+'px'],['max-width',targetWidth+'px'],
    ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
-   ['overflow','visible'],['margin','0'],['padding','3mm 3mm 7mm']
+   ['overflow','visible'],['margin','0'],['padding','3mm']
  ])style.setProperty(name,value,'important');
  // The same inner sheet is fitted in the live preview, the print popup and PDF/ZIP.
  // Scale uniformly, including logos and footer, instead of changing only printed fonts.
@@ -2799,9 +2799,10 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
 };
 SR63.prepareReportPreview=function(page){
  if(!page)return;
- const fit=()=>{if(!page.isConnected)return;try{SR63.ensureReportContrast?.(page);
+ const fit=()=>{if(!page.isConnected)return;try{
   const landscape=page.dataset.orientation==='landscape';
   SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+  SR63.ensureReportContrast?.(page);
   delete page.dataset.fitError;
  }catch(error){page.dataset.fitError=String(error.message||error);}};
  fit();

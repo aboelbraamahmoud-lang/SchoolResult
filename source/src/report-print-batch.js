@@ -49,13 +49,13 @@ SR63.reportPrintOverride=function reportPrintOverride(landscape=false){
     box-sizing:border-box!important;display:flex!important;flex-direction:column!important;
     width:${w}!important;min-width:${w}!important;max-width:${w}!important;
     height:${h}!important;min-height:${h}!important;max-height:${h}!important;
-    padding:3mm 3mm 7mm!important;margin:0!important;
+    padding:3mm!important;margin:0!important;
     overflow:hidden!important;border-radius:0!important;box-shadow:none!important;
     transform:none!important;break-inside:avoid!important;page-break-inside:avoid!important;
     break-after:auto!important;page-break-after:auto!important}
    /* Preserve the original student-statement padding and signature/identity geometry. */
    .sr646-print-document .sr650-sheet>.student-result-page{
-     padding:3mm 3mm 7mm!important;direction:rtl!important;
+     padding:3mm!important;direction:rtl!important;
      font-family:Arial,Helvetica,sans-serif!important;border-radius:0!important}
    .sr646-print-document .student-result-table{width:100%!important;table-layout:fixed!important}
    .sr646-print-document .student-result-footer{margin-top:auto!important}
@@ -73,7 +73,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
    ['display','flex'],['flex-direction','column'],['width',targetWidth+'px'],
    ['min-width',targetWidth+'px'],['max-width',targetWidth+'px'],
    ['height',targetHeight+'px'],['min-height',targetHeight+'px'],['max-height',targetHeight+'px'],
-   ['overflow','visible'],['margin','0'],['padding','3mm 3mm 7mm']
+   ['overflow','visible'],['margin','0'],['padding','3mm']
  ])style.setProperty(name,value,'important');
  // The same inner sheet is fitted in the live preview, the print popup and PDF/ZIP.
  // Scale uniformly, including logos and footer, instead of changing only printed fonts.
@@ -118,9 +118,10 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
 };
 SR63.prepareReportPreview=function(page){
  if(!page)return;
- const fit=()=>{if(!page.isConnected)return;try{SR63.ensureReportContrast?.(page);
+ const fit=()=>{if(!page.isConnected)return;try{
   const landscape=page.dataset.orientation==='landscape';
   SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+  SR63.ensureReportContrast?.(page);
   delete page.dataset.fitError;
  }catch(error){page.dataset.fitError=String(error.message||error);}};
  fit();
