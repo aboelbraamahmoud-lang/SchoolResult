@@ -253,7 +253,7 @@
    await Promise.all([doc.fonts.ready,...[...doc.images].map(im=>im.decode())]);
    SR63.ensureReportContrast?.(doc);
    const styles=[...doc.querySelectorAll('style')].map(n=>n.textContent).join('\n'),landscape=!/@page\s*\{[^}]*size\s*:\s*A4\s+portrait/i.test(styles);
-   const mm=96/25.4,w=(landscape?297:210)*mm,h=(landscape?210:297)*mm,margin=10*mm;
+   const mm=96/25.4,w=(landscape?297:210)*mm,h=(landscape?210:297)*mm,margin=3*mm;
    // Chromium's column fragmentation uses the same break-inside/row rules as
    // native print. Its measured fragments are retained as editable Word objects.
    const flow=doc.createElement('div');while(doc.body.firstChild)flow.append(doc.body.firstChild);doc.body.append(flow);
