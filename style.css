@@ -1964,3 +1964,21 @@
  @page sr613GradeReview{size:A4 portrait;margin:3mm}
  #sr63-print-root .student-result-page{padding:3mm!important}
 }
+
+/* Explicit Word action color: arbitrary utility is not guaranteed in the built CSS. */
+.sr-word-download-button{background:#285c76!important;color:#fff!important;border:1px solid #214f66!important}
+.sr-word-download-button:hover:not(:disabled){background:#1d485e!important}
+.sr-word-download-button:focus-visible{outline:3px solid #60a5fa!important;outline-offset:2px}
+.sr-word-download-button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Keep all footer text inside the measured content, never at an absolute page edge.
+   The shared fit engine also reserves a small bottom printer safety inset. */
+.school-report-page .report-attribution,
+.school-report-page .report-page-number{
+ position:static!important;inset:auto!important;transform:none!important;
+ flex-shrink:0;margin-top:1.5mm!important;max-width:100%;
+}
+.school-report-page .report-attribution{display:flex;flex-wrap:wrap;overflow-wrap:anywhere}
+.school-report-page .report-footer{flex-shrink:0;overflow:visible;padding-bottom:1mm!important}
+.school-report-page .report-footer>p{overflow-wrap:anywhere}
+.school-report-page .report-page-number{align-self:flex-end}

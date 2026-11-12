@@ -48,12 +48,31 @@
    if(!el||!/^(?!SCRIPT$|STYLE$|NOSCRIPT$|IMG$|SVG$|PATH$|RECT$|STOP$|CANVAS$|INPUT$|OPTION$|TEXTAREA$)[A-Z][A-Z0-9]*$/.test(el.tagName||''))continue;
    // Change only actual text-bearing elements, not an outer card whose inherited color would change everything.
    if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
-   // Respect the explicitly chosen black, unboxed meter numbers in every export.
+   // Meter fill is a positioned sibling, so ancestor backgrounds alone miss it.
    if(el.matches?.('.report-meter > b')){
+    const meter=el.parentElement,fill=meter.querySelector('i'),view=el.ownerDocument.defaultView;
     el.style.setProperty('background','transparent','important');
-    el.style.setProperty('color','#000000','important');
-    el.style.setProperty('-webkit-text-fill-color','#000000','important');
-    continue;
+    el.style.removeProperty('transform');
+    const base=bgColor(meter),f=fill&&view.getComputedStyle(fill),fr=fill?.getBoundingClientRect();
+    const fillColors=f&&f.display!=='none'?bgColor(fill).map(c=>blend(c.slice(0,3).concat([parseFloat(f.opacity)||0]),base[0])):base;
+    const best=colors=>Math.min(...colors.map(c=>ratio([255,255,255],c)))>Math.min(...colors.map(c=>ratio([0,0,0],c)))?'#ffffff':'#000000';
+    const outside=best(base),inside=best(fillColors),mr=meter.getBoundingClientRect();
+    let br=el.getBoundingClientRect();
+    const onFill=fr&&fr.width>0&&(br.left+br.right)/2>=fr.left&&(br.left+br.right)/2<=fr.right;
+    const replacement=onFill?inside:outside;
+    el.style.setProperty('color',replacement,'important');
+    el.style.setProperty('-webkit-text-fill-color',replacement,'important');
+    if(fr&&fr.width>0&&inside!==outside&&br.left<fr.left&&br.right>fr.left){
+     // Paint only the glyphs on each side of the fill boundary, never move the
+     // number or add an opaque box. Word retains the solid color fallback.
+     const edge=Math.max(0,Math.min(100,(fr.left-br.left)/br.width*100));
+     el.style.setProperty('background-image','linear-gradient(to right,'+outside+' '+edge+'%,'+inside+' '+edge+'%)','important');
+     el.style.setProperty('background-clip','text','important');
+     el.style.setProperty('-webkit-background-clip','text','important');
+     el.style.setProperty('-webkit-text-fill-color','transparent','important');
+    }
+    el.style.setProperty('text-shadow','none','important');
+    changed++;continue;
    }
    const style=el.ownerDocument.defaultView.getComputedStyle(el);
    if(style.display==='none'||style.visibility==='hidden')continue;

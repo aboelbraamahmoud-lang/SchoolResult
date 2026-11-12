@@ -13,7 +13,7 @@ assert.doesNotMatch(fn,/cloneNode/,'do not generate an alternative student resul
 assert.match(fn,/printReportBatch\(pages,'بيان نتائج الطلاب',false,win\)/);
 assert.match(student,/className:'school-report-page student-result-page'/,'React preview is still the original template');
 assert.match(printer,/\.sr646-print-document \.sr650-sheet>\.student-result-page/,'student-specific print A4 styles');
-assert.match(printer,/padding:3mm!important/,'original report identity spacing is retained');
+assert.match(printer,/padding:3mm!important/,'report identity spacing includes safe footer clearance');
 assert.match(printer,/\.student-result-footer\{margin-top:auto!important\}/,'signatures stay in their expected position');
 assert.match(printer,/\.report-footer/);assert.match(printer,/\.student-result-footer/,'both report kinds are measured');
 assert.match(printer,/\.student-result-table/,'student results table may adjust to A4, not be clipped');

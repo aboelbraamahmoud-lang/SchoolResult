@@ -1701,12 +1701,31 @@ SR63.reportFooterHTML=function(workspace,subject='',teacher='',customFooter='',o
    if(!el||!/^(?!SCRIPT$|STYLE$|NOSCRIPT$|IMG$|SVG$|PATH$|RECT$|STOP$|CANVAS$|INPUT$|OPTION$|TEXTAREA$)[A-Z][A-Z0-9]*$/.test(el.tagName||''))continue;
    // Change only actual text-bearing elements, not an outer card whose inherited color would change everything.
    if(![...el.childNodes].some(node=>node.nodeType===3&&node.nodeValue?.trim()))continue;
-   // Respect the explicitly chosen black, unboxed meter numbers in every export.
+   // Meter fill is a positioned sibling, so ancestor backgrounds alone miss it.
    if(el.matches?.('.report-meter > b')){
+    const meter=el.parentElement,fill=meter.querySelector('i'),view=el.ownerDocument.defaultView;
     el.style.setProperty('background','transparent','important');
-    el.style.setProperty('color','#000000','important');
-    el.style.setProperty('-webkit-text-fill-color','#000000','important');
-    continue;
+    el.style.removeProperty('transform');
+    const base=bgColor(meter),f=fill&&view.getComputedStyle(fill),fr=fill?.getBoundingClientRect();
+    const fillColors=f&&f.display!=='none'?bgColor(fill).map(c=>blend(c.slice(0,3).concat([parseFloat(f.opacity)||0]),base[0])):base;
+    const best=colors=>Math.min(...colors.map(c=>ratio([255,255,255],c)))>Math.min(...colors.map(c=>ratio([0,0,0],c)))?'#ffffff':'#000000';
+    const outside=best(base),inside=best(fillColors),mr=meter.getBoundingClientRect();
+    let br=el.getBoundingClientRect();
+    const onFill=fr&&fr.width>0&&(br.left+br.right)/2>=fr.left&&(br.left+br.right)/2<=fr.right;
+    const replacement=onFill?inside:outside;
+    el.style.setProperty('color',replacement,'important');
+    el.style.setProperty('-webkit-text-fill-color',replacement,'important');
+    if(fr&&fr.width>0&&inside!==outside&&br.left<fr.left&&br.right>fr.left){
+     // Paint only the glyphs on each side of the fill boundary, never move the
+     // number or add an opaque box. Word retains the solid color fallback.
+     const edge=Math.max(0,Math.min(100,(fr.left-br.left)/br.width*100));
+     el.style.setProperty('background-image','linear-gradient(to right,'+outside+' '+edge+'%,'+inside+' '+edge+'%)','important');
+     el.style.setProperty('background-clip','text','important');
+     el.style.setProperty('-webkit-background-clip','text','important');
+     el.style.setProperty('-webkit-text-fill-color','transparent','important');
+    }
+    el.style.setProperty('text-shadow','none','important');
+    changed++;continue;
    }
    const style=el.ownerDocument.defaultView.getComputedStyle(el);
    if(style.display==='none'||style.visibility==='hidden')continue;
@@ -2766,7 +2785,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
  const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
  const measure=()=>{
    const r=page.getBoundingClientRect();let width=content?r.width:Math.max(page.scrollWidth||0,r.width),height=content?r.height:Math.max(page.scrollHeight||0,r.height);
-   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
+   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-footer p,.report-attribution,.report-attribution span,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
      const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
      width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
    }
@@ -2780,9 +2799,10 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
 };
 SR63.prepareReportPreview=function(page){
  if(!page)return;
- const fit=()=>{if(!page.isConnected)return;try{SR63.ensureReportContrast?.(page);
+ const fit=()=>{if(!page.isConnected)return;try{
   const landscape=page.dataset.orientation==='landscape';
   SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+  SR63.ensureReportContrast?.(page);
   delete page.dataset.fitError;
  }catch(error){page.dataset.fitError=String(error.message||error);}};
  fit();
@@ -8783,7 +8803,7 @@ renderReportPage=(t,pageNumber,pageTotal)=>{let i=w?`${tj(e.settings,f).name} ×
  (0,q.jsxs)(`div`,{children:[(0,q.jsx)(J,{htmlFor:`sr-range-max`,children:`الحد الأعلى (%) — غير شامل إلا إذا كان 100%`}),(0,q.jsx)(fA,{id:`sr-range-max`,className:`mt-2`,type:`number`,min:`0`,max:`100`,step:`any`,value:upperLimit,'aria-invalid':!!rangeError,onChange:e=>{_(e.target.value);invalidate()}})]}),
  (0,q.jsx)(`p`,{className:`col-span-full text-sm font-bold`,role:rangeError?`alert`:undefined,children:rangeError||`يشمل الحد الأدنى، والحد الأعلى غير شامل إلا 100% فتُحسب الدرجة الكاملة. مثال: من 90% إلى 100% شاملًا.`})]})]}),(0,q.jsxs)(`div`,{className:`mt-4 flex flex-wrap items-center gap-2`,children:[prepared?(0,q.jsx)(uA,{className:reportOverflowCount?`bg-rose-50 text-rose-700`:`bg-emerald-50 text-emerald-700`,children:reportOverflowCount?`فحص الطباعة: ${reportOverflowCount.toLocaleString(`ar-EG`)} صفحة تحتاج مراجعة`:`المعاينة جاهزة — راجع معاينة PDF`}):(0,q.jsx)(uA,{className:`bg-sky-50 text-sky-800`,children:`المعاينة لم تُجهز بعد`}),(0,q.jsxs)(uA,{className:`bg-slate-100 text-slate-700`,children:[prepared?D.length.toLocaleString(`ar-EG`):`0`,` صفحة`]}),O>0&&(0,q.jsxs)(uA,{className:`bg-amber-50 text-amber-800`,children:[O.toLocaleString(`ar-EG`),` اسم طويل — راجع المعاينة`]}),w&&f===m&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-700`,children:`اختر اختبارين مختلفين`}),(0,q.jsxs)(dA,{onClick:()=>void preparePreview(),disabled:w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`mr-auto bg-teal-700`,children:[subjectBusy?`جارٍ تحميل مقارنة المواد…`:`تجهيز المعاينة`]}),(previewError||subjectError||subjectBlocked)&&(0,q.jsx)(uA,{className:`bg-rose-50 text-rose-800`,children:`${subjectBlocked?'مقارنة المواد تتطلب صلاحية مقارنة القسم بالأقسام الأخرى.':subjectError||('تعذر تجهيز المعاينة: '+previewError)}`}),!specialMode&&(0,q.jsxs)(dA,{onClick:printBatch,disabled:!canPrint||!prepared||!D.length||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#123247]`,children:[(0,q.jsx)(Fy,{}),`طباعة التقرير الحالي`]}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(false),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-teal-700`,children:`تنزيل PDF كامل — ملف واحد`}),
- (0,q.jsx)(dA,{onClick:()=>void exportWord(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`bg-[#285c76] text-white`,title:`ملف Word حقيقي بخلايا وجداول ونصوص وألوان قابلة للتعديل، مقاس A4`,children:`تحميل Word (.docx) — جداول ونصوص قابلة للتعديل`}),
+ (0,q.jsx)(dA,{onClick:()=>void exportWord(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,className:`sr-word-download-button bg-[#285c76] text-white`,title:`ملف Word حقيقي بخلايا وجداول ونصوص وألوان قابلة للتعديل، مقاس A4`,children:`تحميل Word (.docx) — جداول ونصوص قابلة للتعديل`}),
  
   (0,q.jsx)(dA,{onClick:()=>void saveVectorPDF(),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`حفظ PDF متجهي — بدون بكسلة عند التكبير`}),
  (0,q.jsx)(dA,{onClick:()=>void exportPDF(true),disabled:!canPrint||!!downloadState||w&&f===m||!!rangeError||subjectBlocked||subjectBusy||departmentMode&&!subjectMode&&!fixedSubject,variant:`outline`,children:`تنزيل تقارير مفردة ZIP — حسب ${i===`teacher`?'المعلم':'الصف'}`}),

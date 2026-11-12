@@ -104,7 +104,7 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
  const rows=[...(table?.querySelectorAll?.('tbody tr')||[])].filter(Boolean);
  const measure=()=>{
    const r=page.getBoundingClientRect();let width=content?r.width:Math.max(page.scrollWidth||0,r.width),height=content?r.height:Math.max(page.scrollHeight||0,r.height);
-   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
+   for(const node of page.querySelectorAll?.('table,thead,tbody,tr,td,th,img,svg,.report-head,.report-context,.report-meta-grid,.report-footer,.report-footer p,.report-attribution,.report-attribution span,.report-page-number,.student-result-header,.student-result-identity,.student-result-summary,.student-result-method-note,.student-result-footer,.srskill-header,.srskill-footer,.srskill-page-number')||[]){
      const q=node?.getBoundingClientRect?.();if(!q||!q.width||!q.height)continue;
      width=Math.max(width,q.right-r.left);height=Math.max(height,q.bottom-r.top);
    }
@@ -118,9 +118,10 @@ SR63.planReportSheet=function planReportSheet(page,targetWidth,targetHeight){
 };
 SR63.prepareReportPreview=function(page){
  if(!page)return;
- const fit=()=>{if(!page.isConnected)return;try{SR63.ensureReportContrast?.(page);
+ const fit=()=>{if(!page.isConnected)return;try{
   const landscape=page.dataset.orientation==='landscape';
   SR63.planReportSheet(page,(landscape?297:210)*96/25.4,(landscape?210:297)*96/25.4);
+  SR63.ensureReportContrast?.(page);
   delete page.dataset.fitError;
  }catch(error){page.dataset.fitError=String(error.message||error);}};
  fit();

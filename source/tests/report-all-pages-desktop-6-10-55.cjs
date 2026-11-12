@@ -10,7 +10,7 @@ assert.doesNotMatch(fn,/#printable-reports \.school-report-page/,'print must not
 assert.match(ui,/root\.render\(v\.cloneElement\(renderReportPage\(page,pageOffset\+pIndex\+1,pageTotal\),/,'full selection and split PDF use original preview React component and absolute page numbering');
 assert.match(ui,/pageHTML\.push\(capture\?await capture\(node,page,pIndex\):node\.outerHTML\)/,'print/vector preserve HTML while PDF/ZIP capture identical DOM');
 assert.match(ui,/visible\.map\(\(t,r\)=>renderReportPage/,'8-page preview stays fast');
-assert.match(print,/padding:3mm!important/,'use compact page inset');
+assert.match(print,/padding:3mm!important/,'compact inset with footer clearance');
 assert.doesNotMatch(print,/calc\(100% - 4mm\)/,'do not reflow the original table margins');
 assert.match(pdf,/SR63\.planReportSheet\(element,w,h\)/);
 console.log('SchoolResult 6.10.55: all selected report pages printed, consistent A4 fit with downloaded PDF/ZIP PASS');

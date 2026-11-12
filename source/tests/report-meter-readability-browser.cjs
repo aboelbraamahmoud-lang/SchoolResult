@@ -40,7 +40,19 @@ const {chromium}=require('playwright');
  assert.equal(current.length,previous.length);
  current.forEach((r,i)=>{assert.ok(Math.abs(r[0]-previous[i][0])<.1,`unchanged width ${i}: ${r[0]} / ${previous[i][0]}`);assert.ok(Math.abs(r[1]-previous[i][1])<.1,`unchanged height ${i}: ${r[1]} / ${previous[i][1]}`);assert.equal(r[2],previous[i][2]);assert.equal(r[3],previous[i][3]);});
  const results=await page.evaluate(()=>[...document.querySelectorAll('.report-meter > b')].map(el=>{const s=getComputedStyle(el);return {bg:s.backgroundColor,fill:s.webkitTextFillColor,weight:s.fontWeight,size:parseFloat(s.fontSize),width:el.getBoundingClientRect().width,parent:el.parentElement.getBoundingClientRect().width}}));
- for(const r of results){assert.equal(r.bg,'rgba(0, 0, 0, 0)');assert.equal(r.fill,'rgb(0, 0, 0)');assert.ok(+r.weight>=700);assert.ok(r.size>=13.3);assert.ok(r.width<=r.parent+1);}
+ for(const r of results){assert.equal(r.bg,'rgba(0, 0, 0, 0)');assert.ok(['rgb(0, 0, 0)','rgb(255, 255, 255)','rgba(0, 0, 0, 0)'].includes(r.fill));assert.ok(+r.weight>=700);assert.ok(r.size>=13.3);assert.ok(r.width<=r.parent+1);}
+ const dynamic=await page.evaluate(()=>{
+ const host=document.createElement('div');host.style.cssText='width:200px;direction:rtl';
+ host.innerHTML='<div class="report-meter"><i style="width:100%;background:#000;opacity:1"></i><b>95%</b></div>';
+ document.body.append(host);const meter=host.firstChild,fill=meter.querySelector('i'),label=meter.querySelector('b');
+ SR63.ensureReportContrast(host);const dark=getComputedStyle(label).color;
+ fill.style.width='0%';SR63.ensureReportContrast(host);const light=getComputedStyle(label).color;
+ fill.style.width='50%';SR63.ensureReportContrast(host);const r=label.getBoundingClientRect(),f=fill.getBoundingClientRect();
+ const edgeSafe=getComputedStyle(label).backgroundImage.includes('linear-gradient')&&getComputedStyle(label).webkitTextFillColor==='rgba(0, 0, 0, 0)';
+ const before=r.x;SR63.ensureReportContrast(host);const stable=Math.abs(label.getBoundingClientRect().x-before)<.1;
+ const text=label.textContent;host.remove();return {dark,light,edgeSafe,stable,text};
+ });
+ assert.equal(dynamic.dark,'rgb(255, 255, 255)');assert.equal(dynamic.light,'rgb(0, 0, 0)');assert.ok(dynamic.edgeSafe,'number glyphs follow each side of the dark/light boundary');assert.ok(dynamic.stable);assert.equal(dynamic.text,'95%');
  const dark=await page.$eval('.dark',e=>getComputedStyle(e).webkitTextFillColor);assert.equal(dark,'rgb(255, 255, 255)');
  const mid=await page.$eval('.mid',e=>getComputedStyle(e).color);assert.equal(mid,'rgb(0, 0, 0)');
  }
